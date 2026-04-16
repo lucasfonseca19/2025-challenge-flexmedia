@@ -51,7 +51,7 @@ export interface Usuario {
 export interface Totem {
   id: number
   nome: string
-  apiKey: string
+  codigo: string
   online: boolean
   ultimoHeartbeat: string | null
   hotelId: number

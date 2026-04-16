@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { Totem } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -71,9 +72,9 @@ export const conteudoService = {
 
 export const totemService = {
   listar: (hotelId: number) =>
-    api.get(`/hoteis/${hotelId}/totens`).then(r => r.data),
+    api.get(`/hoteis/${hotelId}/totens`).then(r => r.data as Totem[]),
   criar: (hotelId: number, data: { nome: string }) =>
-    api.post(`/hoteis/${hotelId}/totens`, data).then(r => r.data),
+    api.post(`/hoteis/${hotelId}/totens`, data).then(r => r.data as Totem),
   remover: (id: number) =>
     api.delete(`/totens/${id}`),
 }

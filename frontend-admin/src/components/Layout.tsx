@@ -11,9 +11,7 @@ const ADMIN_ITEMS = [
 const OPERADOR_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/reservas', label: 'Reservas', icon: '📋' },
-  { to: '/totens', label: 'Totens', icon: '🖥️' },
-  { to: '/conteudo', label: 'Conteúdo Totem', icon: '🖼️' },
-  { to: '/configuracao', label: 'Configuração', icon: '⚙️' },
+  { to: '/totem', label: 'Totem', icon: '🖥️' },
 ]
 
 export default function Layout() {

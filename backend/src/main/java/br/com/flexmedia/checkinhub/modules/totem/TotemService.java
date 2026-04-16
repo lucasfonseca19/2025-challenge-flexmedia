@@ -1,7 +1,11 @@
 package br.com.flexmedia.checkinhub.modules.totem;
 
 import br.com.flexmedia.checkinhub.common.exception.ResourceNotFoundException;
+import br.com.flexmedia.checkinhub.modules.conteudo.ConteudoTotem;
+import br.com.flexmedia.checkinhub.modules.conteudo.ConteudoTotemRepository;
 import br.com.flexmedia.checkinhub.modules.hotel.Hotel;
+import br.com.flexmedia.checkinhub.modules.hotel.HotelConfig;
+import br.com.flexmedia.checkinhub.modules.hotel.HotelConfigService;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -9,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +21,8 @@ public class TotemService {
 
     private final TotemRepository totemRepository;
     private final HotelRepository hotelRepository;
+    private final HotelConfigService hotelConfigService;
+    private final ConteudoTotemRepository conteudoTotemRepository;
 
     public List<TotemResponseDTO> listarPorHotel(Long hotelId) {
         return totemRepository.findByHotelId(hotelId).stream()
@@ -31,7 +37,7 @@ public class TotemService {
         Totem totem = Totem.builder()
                 .hotel(hotel)
                 .nome(nome)
-                .apiKey(UUID.randomUUID().toString())
+                .codigo(gerarCodigoUnico())
                 .build();
         totem = totemRepository.save(totem);
         return TotemResponseDTO.from(totem, isOnline(totem));
@@ -53,8 +59,59 @@ public class TotemService {
         return TotemResponseDTO.from(totem, true);
     }
 
+    @Transactional
+    public TotemConfigDTO buscarConfigPorCodigo(String codigo) {
+        Totem totem = totemRepository.findByCodigo(codigo.toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Totem não encontrado: " + codigo));
+
+        HotelConfig hotelConfig = hotelConfigService.buscarOuCriarPadrao(totem.getHotel().getId());
+        List<ConteudoTotem> conteudos = conteudoTotemRepository
+                .findByHotelIdAndAtivoTrueOrderByOrdemExibicaoAsc(totem.getHotel().getId());
+
+        totem.setUltimoHeartbeat(LocalDateTime.now());
+        totemRepository.save(totem);
+
+        return TotemConfigDTO.builder()
+                .id(totem.getId())
+                .codigo(totem.getCodigo())
+                .nome(totem.getNome())
+                .hotelId(totem.getHotel().getId())
+                .config(TotemConfigDTO.ConfigDTO.builder()
+                        .nomeExibido(hotelConfig.getNomeExibido())
+                        .logoUrl(hotelConfig.getLogoUrl())
+                        .corPrimaria(hotelConfig.getCorPrimaria())
+                        .idiomasAtivos(hotelConfig.getIdiomasAtivos())
+                        .build())
+                .conteudo(conteudos.stream().map(c -> TotemConfigDTO.ConteudoDTO.builder()
+                        .id(c.getId())
+                        .tipo(c.getTipo().name())
+                        .titulo(c.getTitulo())
+                        .urlMidia(c.getUrlMidia())
+                        .ordemExibicao(c.getOrdemExibicao())
+                        .build()).toList())
+                .build();
+    }
+
     public boolean isOnline(Totem totem) {
         if (totem.getUltimoHeartbeat() == null) return false;
         return totem.getUltimoHeartbeat().isAfter(LocalDateTime.now().minusMinutes(2));
+    }
+
+    private String gerarCodigoUnico() {
+        String codigo;
+        do {
+            codigo = gerarCodigo();
+        } while (totemRepository.existsByCodigo(codigo));
+        return codigo;
+    }
+
+    private String gerarCodigo() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 }

@@ -25,7 +25,7 @@ const PROMO_SLIDES = [
 
 export default function IdlePage() {
   const navigate = useNavigate()
-  const { resetar } = useTotem()
+  const { resetar, totemConfig } = useTotem()
 
   useEffect(() => {
     resetar()
@@ -38,7 +38,12 @@ export default function IdlePage() {
     >
       {/* Header */}
       <div className="flex flex-col items-center gap-4 mt-8 lg:mt-16">
-        <h1 className="text-4xl lg:text-7xl font-bold tracking-tight text-white">CheckIn Hub</h1>
+        {totemConfig?.config?.logoUrl && (
+          <img src={totemConfig.config.logoUrl} alt="Logo" className="h-16 object-contain mb-4" />
+        )}
+        <h1 className="text-4xl lg:text-7xl font-bold tracking-tight text-white">
+          {totemConfig?.config?.nomeExibido ?? 'CheckIn Hub'}
+        </h1>
         <p className="text-lg lg:text-2xl text-slate-400">Bem-vindo · Welcome · Bienvenido</p>
       </div>
 

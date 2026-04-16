@@ -22,3 +22,23 @@ export interface ChaveEmitida {
   token: string
   dataEmissao: string
 }
+
+export interface TotemConfig {
+  id: number
+  codigo: string
+  nome: string
+  hotelId: number
+  config: {
+    nomeExibido: string
+    logoUrl: string
+    corPrimaria: string
+    idiomasAtivos: string
+  }
+  conteudo: {
+    id: number
+    tipo: 'SLIDE' | 'BANNER' | 'VIDEO'
+    titulo: string
+    urlMidia: string
+    ordemExibicao: number
+  }[]
+}

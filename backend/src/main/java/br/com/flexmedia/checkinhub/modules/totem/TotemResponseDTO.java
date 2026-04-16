@@ -6,7 +6,7 @@ public record TotemResponseDTO(
         Long id,
         Long hotelId,
         String nome,
-        String apiKey,
+        String codigo,
         LocalDateTime ultimoHeartbeat,
         boolean ativo,
         boolean online
@@ -16,7 +16,7 @@ public record TotemResponseDTO(
                 t.getId(),
                 t.getHotel().getId(),
                 t.getNome(),
-                t.getApiKey(),
+                t.getCodigo(),
                 t.getUltimoHeartbeat(),
                 t.isAtivo(),
                 online

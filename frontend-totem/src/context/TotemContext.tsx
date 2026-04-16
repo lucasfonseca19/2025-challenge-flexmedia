@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Idioma, Reserva } from '../types'
+import type { Idioma, Reserva, TotemConfig } from '../types'
 import pt from '../locales/pt.json'
 import en from '../locales/en.json'
 import es from '../locales/es.json'
@@ -15,6 +15,8 @@ interface TotemContextType {
   setReserva: (reserva: Reserva | null) => void
   fluxo: 'checkin' | 'checkout' | null
   setFluxo: (fluxo: 'checkin' | 'checkout' | null) => void
+  totemConfig: TotemConfig | null
+  setTotemConfig: (config: TotemConfig | null) => void
   resetar: () => void
 }
 
@@ -24,8 +26,18 @@ export function TotemProvider({ children }: { children: ReactNode }) {
   const [idioma, setIdioma] = useState<Idioma>('pt')
   const [reserva, setReserva] = useState<Reserva | null>(null)
   const [fluxo, setFluxo] = useState<'checkin' | 'checkout' | null>(null)
+  const [totemConfig, setTotemConfig] = useState<TotemConfig | null>(() => {
+    const raw = localStorage.getItem('totem_config')
+    return raw ? JSON.parse(raw) : null
+  })
 
   const t = traducoes[idioma]
+
+  function salvarConfig(config: TotemConfig | null) {
+    if (config) localStorage.setItem('totem_config', JSON.stringify(config))
+    else localStorage.removeItem('totem_config')
+    setTotemConfig(config)
+  }
 
   function resetar() {
     setReserva(null)
@@ -34,7 +46,20 @@ export function TotemProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <TotemContext.Provider value={{ idioma, setIdioma, t, reserva, setReserva, fluxo, setFluxo, resetar }}>
+    <TotemContext.Provider
+      value={{
+        idioma,
+        setIdioma,
+        t,
+        reserva,
+        setReserva,
+        fluxo,
+        setFluxo,
+        totemConfig,
+        setTotemConfig: salvarConfig,
+        resetar,
+      }}
+    >
       {children}
     </TotemContext.Provider>
   )

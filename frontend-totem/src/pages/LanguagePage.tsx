@@ -11,8 +11,10 @@ const IDIOMAS: { code: Idioma; label: string; flag: string }[] = [
 
 export default function LanguagePage() {
   const navigate = useNavigate()
-  const { setIdioma, setFluxo, t } = useTotem()
+  const { setIdioma, setFluxo, t, totemConfig } = useTotem()
   const [etapa, setEtapa] = useState<'idioma' | 'acao'>('idioma')
+  const idiomasAtivos = totemConfig?.config?.idiomasAtivos?.split(',') ?? ['pt', 'en']
+  const idiomasExibidos = IDIOMAS.filter(i => idiomasAtivos.includes(i.code))
 
   function selecionarIdioma(code: Idioma) {
     setIdioma(code)
@@ -34,7 +36,7 @@ export default function LanguagePage() {
             <span className="text-xl md:text-3xl text-slate-400">Seleccione su idioma</span>
           </h2>
           <div className="flex flex-wrap gap-4 md:gap-8 justify-center">
-            {IDIOMAS.map(({ code, label, flag }) => (
+            {idiomasExibidos.map(({ code, label, flag }) => (
               <button
                 key={code}
                 onClick={() => selecionarIdioma(code)}

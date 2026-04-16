@@ -1,0 +1,6 @@
+version: 1
+display_name: MySQL Audit
+short_description: Audita o MySQL local do CheckIn Hub para depuração e validação de dados.
+default_prompt: >
+  Audite o banco MySQL local do CheckIn Hub, execute as queries necessárias e explique
+  o estado atual dos dados com foco em reservas, chaves, usuários, hotéis, totens e métricas.

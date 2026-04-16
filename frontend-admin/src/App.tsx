@@ -6,10 +6,8 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import HotelsPage from './pages/HotelsPage'
 import ReservationsPage from './pages/ReservationsPage'
-import ContentPage from './pages/ContentPage'
 import UsersPage from './pages/UsersPage'
-import TotemsPage from './pages/TotemsPage'
-import ConfigPage from './pages/ConfigPage'
+import TotemPage from './pages/TotemPage'
 
 function App() {
   return (
@@ -22,10 +20,8 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/hoteis" element={<HotelsPage />} />
               <Route path="/reservas" element={<ReservationsPage />} />
-              <Route path="/conteudo" element={<ContentPage />} />
               <Route path="/usuarios" element={<UsersPage />} />
-              <Route path="/totens" element={<TotemsPage />} />
-              <Route path="/configuracao" element={<ConfigPage />} />
+              <Route path="/totem" element={<TotemPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

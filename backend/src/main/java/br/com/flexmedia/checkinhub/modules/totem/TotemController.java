@@ -28,6 +28,11 @@ public class TotemController {
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
+    @GetMapping("/api/totens/codigo/{codigo}")
+    public ResponseEntity<TotemConfigDTO> buscarPorCodigo(@PathVariable String codigo) {
+        return ResponseEntity.ok(totemService.buscarConfigPorCodigo(codigo));
+    }
+
     @DeleteMapping("/api/totens/{id}")
     public ResponseEntity<Void> remover(@PathVariable Long id) {
         totemService.remover(id);

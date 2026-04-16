@@ -360,8 +360,8 @@ public class Totem {
     @Column(nullable = false, length = 100)
     private String nome;          // ex: "Totem Lobby"
     
-    @Column(nullable = false, unique = true, length = 100)
-    private String apiKey;        // UUID gerado no cadastro
+    @Column(nullable = false, unique = true, length = 10)
+    private String codigo;        // código alfanumérico gerado no cadastro
     
     @Column(name = "ultimo_heartbeat")
     private LocalDateTime ultimoHeartbeat;
@@ -378,7 +378,7 @@ public class Totem {
 
 `TotemController.java`:
 - `GET  /api/hoteis/{hotelId}/totens` — lista totens do hotel
-- `POST /api/hoteis/{hotelId}/totens` — cria totem (gera apiKey automática com `UUID.randomUUID()`)
+- `POST /api/hoteis/{hotelId}/totens` — cria totem (gera código alfanumérico automaticamente)
 - `DELETE /api/totens/{id}` — remove totem
 - `POST /api/totens/{id}/heartbeat` — atualiza `ultimoHeartbeat = LocalDateTime.now()` (público, sem auth)
 
@@ -681,10 +681,10 @@ useIdleReset(90) // 90 segundos
 
 **Por quê:** Funcionalidade obrigatória do painel do hotel — adicionar, remover e ver status online/offline de totens.
 
-Criar `frontend-admin/src/pages/TotemsPage.tsx`:
+Criar `frontend-admin/src/pages/TotemPage.tsx`:
 
 **Funcionalidades:**
-- Tabela com: nome do totem, API key (oculta com botão "mostrar"), status online/offline (verde/cinza), último heartbeat em formato relativo ("há 2 min" / "há 3 dias")
+- Tabela com: nome do totem, código de ativação, status online/offline (verde/cinza), último heartbeat em formato relativo ("há 2 min" / "há 3 dias")
 - Badge colorido: verde "Online" (heartbeat < 2 min) ou cinza "Offline"
 - Modal "Novo totem" com campo nome
 - Botão "Remover" com confirmação
@@ -708,14 +708,14 @@ export const totemService = {
 
 Adicionar rota:
 ```tsx
-<Route path="/totens" element={<TotemsPage />} />
+<Route path="/totem" element={<TotemPage />} />
 ```
 
 **Arquivo:** `frontend-admin/src/components/Layout.tsx`
 
-Adicionar item de menu "Totens" com ícone, visível apenas para `OPERADOR` (gestor do hotel).
+Adicionar item de menu "Totem" com ícone, visível apenas para `OPERADOR` (gestor do hotel).
 
-**Critério de conclusão:** Página lista totens com status correto. Novo totem é criado e aparece com API key. Remoção funciona.
+**Critério de conclusão:** Página lista totens com status correto. Novo totem é criado e aparece com o código gerado. Remoção funciona.
 
 ---
 
@@ -749,12 +749,12 @@ export const configService = {
 
 **Arquivo:** `frontend-admin/src/App.tsx`
 
-Adicionar rota:
+Integrar a configuração como aba da página de totem:
 ```tsx
-<Route path="/configuracao" element={<ConfigPage />} />
+<Route path="/totem" element={<TotemPage />} />
 ```
 
-**Critério de conclusão:** Gestor salva configurações e elas são persistidas no backend. Preview ao vivo atualiza em tempo real conforme campos são editados.
+**Critério de conclusão:** Gestor salva configurações e elas são persistidas no backend. Preview ao vivo atualiza em tempo real conforme campos são editados dentro da aba `Aparência` em `TotemPage`.
 
 ---
 

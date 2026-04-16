@@ -19,6 +19,22 @@ public class HotelConfigService {
     }
 
     @Transactional
+    public HotelConfig buscarOuCriarPadrao(Long hotelId) {
+        return hotelConfigRepository.findByHotelId(hotelId)
+                .orElseGet(() -> {
+                    Hotel hotel = hotelRepository.getReferenceById(hotelId);
+                    HotelConfig config = HotelConfig.builder()
+                            .hotel(hotel)
+                            .nomeExibido(hotel.getNome())
+                            .logoUrl("")
+                            .corPrimaria("#1e40af")
+                            .idiomasAtivos("pt,en")
+                            .build();
+                    return hotelConfigRepository.save(config);
+                });
+    }
+
+    @Transactional
     public HotelConfigDTO atualizar(Long hotelId, HotelConfigDTO dto) {
         HotelConfig config = hotelConfigRepository.findByHotelId(hotelId)
                 .orElseGet(() -> criarPadrao(hotelId));
