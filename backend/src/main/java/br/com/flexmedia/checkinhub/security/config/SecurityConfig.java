@@ -64,6 +64,9 @@ public class SecurityConfig {
                 .requestMatchers(new AntPathRequestMatcher("/api/checkout/**", HttpMethod.POST.name())).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/chaves/**", HttpMethod.POST.name())).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/conteudo", HttpMethod.GET.name())).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/quartos/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/totens/*/heartbeat", HttpMethod.POST.name())).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/hoteis/*/config", HttpMethod.GET.name())).permitAll()
                 // Demais endpoints exigem autenticação
                 .anyRequest().authenticated()
             )

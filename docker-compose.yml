@@ -1,40 +1,24 @@
 services:
 
-  # ─── Oracle XE 21c ────────────────────────────────────────────────────────
-  oracle:
-    image: gvenzl/oracle-xe:21-slim-faststart
-    container_name: checkinhub-oracle
+  # ─── MySQL 8 ──────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.4
+    container_name: checkinhub-mysql
     environment:
-      ORACLE_PASSWORD: Oracle21c!
-      APP_USER: checkinhub
-      APP_USER_PASSWORD: checkinhub123
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: checkinhub
+      MYSQL_USER: checkinhub
+      MYSQL_PASSWORD: checkinhub123
     ports:
-      - "1521:1521"
+      - "3306:3306"
     volumes:
-      - oracle_data:/opt/oracle/oradata
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 120s
-    networks:
-      - checkinhub-net
-
-  # ─── Redis 7 ──────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: checkinhub-redis
-    command: redis-server --save 60 1 --loglevel warning
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "checkinhub", "-pcheckinhub123"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - checkinhub-net
 
@@ -45,22 +29,17 @@ services:
       dockerfile: Dockerfile
     container_name: checkinhub-backend
     environment:
-      ORACLE_URL: jdbc:oracle:thin:@oracle:1521/XEPDB1
-      ORACLE_USER: checkinhub
-      ORACLE_PASS: checkinhub123
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      REDIS_PASS: ""
+      MYSQL_URL: jdbc:mysql://mysql:3306/checkinhub?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
+      MYSQL_USER: checkinhub
+      MYSQL_PASS: checkinhub123
       JWT_SECRET: 3cHm9K8vXqL2pN5rT7wZ0jF4dY1sU6bE
       JWT_EXPIRATION: "86400000"
       PMS_ADAPTER: mock
-      CORS_ORIGINS: http://localhost,http://localhost:80
+      CORS_ORIGINS: http://localhost,http://localhost:80,http://localhost:5173,http://localhost:5174
     ports:
       - "8080:8080"
     depends_on:
-      oracle:
-        condition: service_healthy
-      redis:
+      mysql:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
@@ -100,8 +79,7 @@ services:
       - checkinhub-net
 
 volumes:
-  oracle_data:
-  redis_data:
+  mysql_data:
 
 networks:
   checkinhub-net:

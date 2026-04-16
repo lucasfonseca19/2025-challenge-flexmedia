@@ -13,8 +13,7 @@ import java.time.LocalDateTime;
 public class ChaveDigital {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_chave")
-    @SequenceGenerator(name = "seq_chave", sequenceName = "seq_chave", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

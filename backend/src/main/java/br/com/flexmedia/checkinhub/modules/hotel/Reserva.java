@@ -19,8 +19,7 @@ import java.time.LocalDateTime;
 public class Reserva {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_reserva")
-    @SequenceGenerator(name = "seq_reserva", sequenceName = "seq_reserva", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
@@ -49,6 +48,9 @@ public class Reserva {
 
     @Column(name = "hospede_data_nascimento")
     private LocalDate hospedeDataNascimento;
+
+    @Column(name = "face_descriptor", columnDefinition = "TEXT")
+    private String faceDescriptor;
 
     @NotNull
     @Column(name = "data_checkin", nullable = false)

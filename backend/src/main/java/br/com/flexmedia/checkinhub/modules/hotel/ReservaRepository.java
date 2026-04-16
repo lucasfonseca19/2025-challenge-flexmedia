@@ -29,4 +29,6 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
                                        Pageable pageable);
 
     Page<Reserva> findAll(Pageable pageable);
+
+    Optional<Reserva> findByQuartoNumeroAndStatus(String quartoNumero, StatusReserva status);
 }

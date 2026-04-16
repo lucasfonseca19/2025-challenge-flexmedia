@@ -8,18 +8,22 @@ import br.com.flexmedia.checkinhub.modules.hotel.StatusReserva;
 import br.com.flexmedia.checkinhub.modules.hotel.dto.ReservaResponseDTO;
 import br.com.flexmedia.checkinhub.modules.keys.ChaveDigitalRepository;
 import br.com.flexmedia.checkinhub.modules.metrics.MetricasService;
+import br.com.flexmedia.checkinhub.pms.PMSAdapter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CheckoutService {
 
     private final ReservaService reservaService;
     private final ReservaRepository reservaRepository;
     private final ChaveDigitalRepository chaveDigitalRepository;
     private final MetricasService metricasService;
+    private final PMSAdapter pmsAdapter;
 
     public ReservaResponseDTO buscarParaCheckout(String codigoOuCpf) {
         try {
@@ -49,6 +53,12 @@ public class CheckoutService {
 
         reserva.setStatus(StatusReserva.CHECKOUT_REALIZADO);
         reservaRepository.save(reserva);
+
+        try {
+            pmsAdapter.confirmarCheckout(String.valueOf(reserva.getId()));
+        } catch (Exception e) {
+            log.warn("PMS não confirmou check-out {}: {}", reserva.getId(), e.getMessage());
+        }
 
         metricasService.registrarCheckout(reserva.getHotel().getId());
 

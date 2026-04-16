@@ -10,13 +10,13 @@ export const checkinService = {
   buscarReserva: (codigoOuCpf: string): Promise<Reserva> =>
     api.get(`/checkin/reserva/${encodeURIComponent(codigoOuCpf)}`).then(r => r.data),
 
-  confirmar: (reservaId: number): Promise<void> =>
-    api.post(`/checkin/confirmar/${reservaId}`).then(r => r.data),
+  confirmar: (reservaId: number, payload?: { faceDescriptor?: string | null, idioma?: string }): Promise<void> =>
+    api.post(`/checkin/confirmar/${reservaId}`, payload ?? {}).then(r => r.data),
 }
 
 export const checkoutService = {
-  iniciar: (reservaId: string): Promise<Reserva> =>
-    api.post('/checkout/iniciar', { reservaId }).then(r => r.data),
+  buscarReserva: (codigoOuCpf: string): Promise<Reserva> =>
+    api.get(`/checkout/reserva/${encodeURIComponent(codigoOuCpf)}`).then(r => r.data),
 
   confirmar: (reservaId: number): Promise<void> =>
     api.post(`/checkout/confirmar/${reservaId}`).then(r => r.data),

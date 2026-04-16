@@ -38,7 +38,15 @@ public class MetricasService {
 
         List<DashboardDTO.MetricaDiaDTO> historico = buildHistorico(hotelId, hoje.minusDays(6), hoje);
 
-        return new DashboardDTO(checkinsHoje, checkoutsHoje, chavesHoje, 0, hoteisAtivos, historico);
+        long idiomaPt = 0, idiomaEn = 0, idiomaEs = 0;
+        if (hotelId != null) {
+            MetricaDiaria m = getOuCriar(hotelId, hoje);
+            idiomaPt = m.getIdiomaPt();
+            idiomaEn = m.getIdiomaEn();
+            idiomaEs = m.getIdiomaEs();
+        }
+
+        return new DashboardDTO(checkinsHoje, checkoutsHoje, chavesHoje, 0, hoteisAtivos, historico, idiomaPt, idiomaEn, idiomaEs);
     }
 
     public List<DashboardDTO.MetricaDiaDTO> getHistorico(Long hotelId, int dias) {
@@ -65,6 +73,18 @@ public class MetricasService {
     public void registrarChaveEmitida(Long hotelId) {
         MetricaDiaria m = getOuCriar(hotelId, LocalDate.now());
         m.setTotalChavesEmitidas(m.getTotalChavesEmitidas() + 1);
+        metricaDiariaRepository.save(m);
+    }
+
+    @Transactional
+    public void registrarIdioma(Long hotelId, String idioma) {
+        MetricaDiaria m = getOuCriar(hotelId, LocalDate.now());
+        String lang = idioma != null ? idioma.toLowerCase() : "pt";
+        switch (lang) {
+            case "en" -> m.setIdiomaEn(m.getIdiomaEn() + 1);
+            case "es" -> m.setIdiomaEs(m.getIdiomaEs() + 1);
+            default   -> m.setIdiomaPt(m.getIdiomaPt() + 1);
+        }
         metricaDiariaRepository.save(m);
     }
 

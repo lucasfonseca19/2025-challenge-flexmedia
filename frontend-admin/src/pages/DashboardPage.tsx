@@ -12,6 +12,9 @@ interface DashboardData {
   ocupacaoAtual: number
   hoteisAtivos: number
   historico: { data: string; totalCheckins: number; totalCheckouts: number; totalChaves: number }[]
+  idiomaPt: number
+  idiomaEn: number
+  idiomaEs: number
 }
 
 function StatCard({ label, value, cor }: { label: string; value: number | string; cor: string }) {
@@ -93,20 +96,31 @@ export default function DashboardPage() {
           <h3 className="text-base font-semibold mb-4 text-slate-300">Idiomas utilizados</h3>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
-              <Pie
-                data={IDIOMA_MOCK}
-                dataKey="valor"
-                nameKey="idioma"
-                cx="50%"
-                cy="45%"
-                outerRadius={80}
-                label={({ percent }) => `${(((percent as number) ?? 0) * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
-                {IDIOMA_MOCK.map((_, i) => (
-                  <Cell key={i} fill={IDIOMA_CORES[i % IDIOMA_CORES.length]} />
-                ))}
-              </Pie>
+              {(() => {
+                const idiomaData = dados && (dados.idiomaPt + dados.idiomaEn + dados.idiomaEs) > 0
+                  ? [
+                      { idioma: 'Português', valor: dados.idiomaPt },
+                      { idioma: 'English',   valor: dados.idiomaEn },
+                      { idioma: 'Español',   valor: dados.idiomaEs },
+                    ].filter(d => d.valor > 0)
+                  : IDIOMA_MOCK
+                return (
+                  <Pie
+                    data={idiomaData}
+                    dataKey="valor"
+                    nameKey="idioma"
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={80}
+                    label={({ percent }) => `${(((percent as number) ?? 0) * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {idiomaData.map((_, i) => (
+                      <Cell key={i} fill={IDIOMA_CORES[i % IDIOMA_CORES.length]} />
+                    ))}
+                  </Pie>
+                )
+              })()}
               <Legend formatter={(value) => <span className="text-xs text-slate-300">{value}</span>} />
               <Tooltip
                 formatter={(value: unknown) => [`${value}%`, 'Uso']}

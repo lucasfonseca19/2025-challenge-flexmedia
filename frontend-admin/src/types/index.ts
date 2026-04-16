@@ -48,6 +48,25 @@ export interface Usuario {
   ativo: boolean
 }
 
+export interface Totem {
+  id: number
+  nome: string
+  apiKey: string
+  online: boolean
+  ultimoHeartbeat: string | null
+  hotelId: number
+  ativo: boolean
+}
+
+export interface HotelConfig {
+  id?: number
+  hotelId: number
+  nomeExibido: string
+  logoUrl: string
+  corPrimaria: string
+  idiomasAtivos: string  // CSV: "pt,en,es"
+}
+
 export interface AuthResponse {
   token: string
   usuario: Usuario

@@ -7,7 +7,9 @@ import br.com.flexmedia.checkinhub.modules.hotel.ReservaService;
 import br.com.flexmedia.checkinhub.modules.hotel.StatusReserva;
 import br.com.flexmedia.checkinhub.modules.hotel.dto.ReservaResponseDTO;
 import br.com.flexmedia.checkinhub.modules.metrics.MetricasService;
+import br.com.flexmedia.checkinhub.pms.PMSAdapter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +18,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CheckinService {
 
     private final ReservaService reservaService;
     private final ReservaRepository reservaRepository;
     private final MetricasService metricasService;
+    private final PMSAdapter pmsAdapter;
 
     public ReservaResponseDTO buscarParaCheckin(String codigoOuCpf) {
         String entrada = codigoOuCpf == null ? "" : codigoOuCpf.trim();
@@ -73,16 +77,32 @@ public class CheckinService {
 
     @Transactional
     public ReservaResponseDTO confirmarCheckin(Long reservaId) {
+        return confirmarCheckin(reservaId, null);
+    }
+
+    @Transactional
+    public ReservaResponseDTO confirmarCheckin(Long reservaId, CheckinConfirmDTO dto) {
         Reserva reserva = reservaService.findOrThrow(reservaId);
 
         if (reserva.getStatus() != StatusReserva.CONFIRMADA) {
-            throw new BusinessException("Check-in não permitido. Status atual: " + reserva.getStatus());
+            throw new BusinessException("Check-in não permitido. Status: " + reserva.getStatus());
         }
 
         reserva.setStatus(StatusReserva.CHECKIN_REALIZADO);
+        if (dto != null && dto.faceDescriptor() != null) {
+            reserva.setFaceDescriptor(dto.faceDescriptor());
+        }
         reservaRepository.save(reserva);
 
-        metricasService.registrarCheckin(reserva.getHotel().getId());
+        try {
+            pmsAdapter.confirmarCheckin(String.valueOf(reserva.getId()));
+        } catch (Exception e) {
+            log.warn("PMS não confirmou check-in {}: {}", reserva.getId(), e.getMessage());
+        }
+
+        Long hotelId = reserva.getHotel().getId();
+        metricasService.registrarCheckin(hotelId);
+        metricasService.registrarIdioma(hotelId, dto != null ? dto.idioma() : null);
 
         return ReservaResponseDTO.from(reserva);
     }

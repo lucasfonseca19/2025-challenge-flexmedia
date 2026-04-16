@@ -2,16 +2,23 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const NAV_ITEMS = [
+const ADMIN_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/hoteis', label: 'Hotéis', icon: '🏨' },
-  { to: '/reservas', label: 'Reservas', icon: '📋' },
-  { to: '/conteudo', label: 'Conteúdo Totem', icon: '🖼️' },
   { to: '/usuarios', label: 'Usuários', icon: '👥' },
+]
+
+const OPERADOR_ITEMS = [
+  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { to: '/reservas', label: 'Reservas', icon: '📋' },
+  { to: '/totens', label: 'Totens', icon: '🖥️' },
+  { to: '/conteudo', label: 'Conteúdo Totem', icon: '🖼️' },
+  { to: '/configuracao', label: 'Configuração', icon: '⚙️' },
 ]
 
 export default function Layout() {
   const { usuario, logout } = useAuth()
+  const navItems = usuario?.role === 'ADMIN' ? ADMIN_ITEMS : OPERADOR_ITEMS
   const navigate = useNavigate()
   const [sidebarAberta, setSidebarAberta] = useState(false)
 
@@ -30,7 +37,7 @@ export default function Layout() {
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(item => (
+        {navItems.map(item => (
           <NavLink
             key={item.to}
             to={item.to}

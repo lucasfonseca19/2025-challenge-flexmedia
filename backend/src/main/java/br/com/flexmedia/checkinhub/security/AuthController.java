@@ -51,7 +51,11 @@ public class AuthController {
         Usuario usuario = usuarioRepository.findByEmailAndAtivoTrue(request.email())
                 .orElseThrow();
 
-        String token = jwtService.gerarToken(usuario.getEmail());
+        String token = jwtService.gerarToken(
+                usuario.getEmail(),
+                usuario.getHotel() != null ? usuario.getHotel().getId() : null,
+                usuario.getRole().name()
+        );
         return ResponseEntity.ok(new LoginResponseDTO(token, UsuarioInfoDTO.from(usuario)));
     }
 

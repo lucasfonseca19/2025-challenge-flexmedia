@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
-import { checkinService } from '../services/api'
+import { checkinService, checkoutService } from '../services/api'
 
 export default function SearchReservationPage() {
   const navigate = useNavigate()
-  const { t, setReserva } = useTotem()
+  const { t, fluxo, setReserva } = useTotem()
   const [codigo, setCodigo] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
@@ -15,7 +15,10 @@ export default function SearchReservationPage() {
     setCarregando(true)
     setErro('')
     try {
-      const reserva = await checkinService.buscarReserva(codigo.trim())
+      const servico = fluxo === 'checkout'
+        ? checkoutService.buscarReserva
+        : checkinService.buscarReserva
+      const reserva = await servico(codigo.trim())
       setReserva(reserva)
       navigate('/confirmar-dados')
     } catch {

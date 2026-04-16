@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as faceapi from 'face-api.js'
 import { useTotem } from '../context/TotemContext'
 import { checkinService } from '../services/api'
 import type { Idioma } from '../types'
@@ -36,15 +37,44 @@ export default function FacialRecognitionPage() {
   const [modo, setModo] = useState<Modo>('camera')
   const [statusCamera, setStatusCamera] = useState<'aguardando' | 'processando' | 'sucesso'>('aguardando')
   const [cameraAtiva, setCameraAtiva] = useState(false)
+  const [modelosCarregados, setModelosCarregados] = useState(false)
 
   // DOB mode state
   const [dataNascimento, setDataNascimento] = useState('')
   const [erroData, setErroData] = useState<string | null>(null)
   const [confirmandoDob, setConfirmandoDob] = useState(false)
 
+  // Carregar modelos face-api.js uma única vez
+  useEffect(() => {
+    async function carregarModelos() {
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models')
+      await faceapi.nets.faceLandmark68Net.loadFromUri('/models')
+      await faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+      setModelosCarregados(true)
+    }
+    carregarModelos()
+  }, [])
+
+  // Capturar descriptor do vídeo ao vivo
+  async function capturarDescriptor(): Promise<number[] | null> {
+    if (!videoRef.current) return null
+    const detection = await faceapi
+      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptor()
+    if (!detection) return null
+    return Array.from(detection.descriptor) // Float32Array → number[]
+  }
+
   async function prosseguir() {
     if (fluxo === 'checkin' && reserva?.id) {
-      try { await checkinService.confirmar(reserva.id) } catch { /* ignora */ }
+      const descriptor = await capturarDescriptor()
+      try {
+        await checkinService.confirmar(reserva.id, {
+          faceDescriptor: descriptor ? JSON.stringify(descriptor) : null,
+          idioma
+        })
+      } catch { /* ignora */ }
     }
     navigate(fluxo === 'checkout' ? '/checkout' : '/emitir-chave')
   }
@@ -68,16 +98,34 @@ export default function FacialRecognitionPage() {
         streamRef.current = stream
         if (videoRef.current) { videoRef.current.srcObject = stream }
         setCameraAtiva(true)
-        // Simulação MVP: auto-valida após 3 s
-        setTimeout(() => {
-          if (cancelled) return
-          setStatusCamera('processando')
-          setTimeout(() => {
-            if (cancelled) return
-            setStatusCamera('sucesso')
-            setTimeout(() => { if (!cancelled) prosseguir() }, 1500)
-          }, 1500)
-        }, 3000)
+
+        // Aguarda modelos carregarem antes de detectar
+        const aguardarModelos = () => new Promise<void>(resolve => {
+          if (modelosCarregados) { resolve(); return }
+          const id = setInterval(() => {
+            if (modelosCarregados || cancelled) { clearInterval(id); resolve() }
+          }, 200)
+        })
+        await aguardarModelos()
+        if (cancelled) return
+
+        setStatusCamera('processando')
+
+        // Tenta capturar descriptor com face-api.js
+        const detection = await faceapi
+          .detectSingleFace(videoRef.current!, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptor()
+
+        if (cancelled) return
+
+        if (detection) {
+          setStatusCamera('sucesso')
+          setTimeout(() => { if (!cancelled) prosseguir() }, 1500)
+        } else {
+          // Face não detectada — volta para aguardando para nova tentativa
+          setStatusCamera('aguardando')
+        }
       } catch {
         setCameraAtiva(false)
       }
@@ -88,7 +136,7 @@ export default function FacialRecognitionPage() {
       cancelled = true
       streamRef.current?.getTracks().forEach(t => t.stop())
     }
-  }, [modo])
+  }, [modo, modelosCarregados])
 
   async function confirmarDataNascimento() {
     if (!dataNascimento) {

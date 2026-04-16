@@ -69,6 +69,22 @@ export const conteudoService = {
   remover: (id: number) => api.delete(`/conteudo/${id}`),
 }
 
+export const totemService = {
+  listar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totens`).then(r => r.data),
+  criar: (hotelId: number, data: { nome: string }) =>
+    api.post(`/hoteis/${hotelId}/totens`, data).then(r => r.data),
+  remover: (id: number) =>
+    api.delete(`/totens/${id}`),
+}
+
+export const configService = {
+  buscar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/config`).then(r => r.data),
+  salvar: (hotelId: number, data: unknown) =>
+    api.put(`/hoteis/${hotelId}/config`, data).then(r => r.data),
+}
+
 export const usuarioService = {
   listar: () =>
     api.get('/auth/usuarios').then(r => r.data),
