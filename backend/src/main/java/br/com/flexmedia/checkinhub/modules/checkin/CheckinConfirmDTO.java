@@ -1,3 +1,5 @@
 package br.com.flexmedia.checkinhub.modules.checkin;
 
-public record CheckinConfirmDTO(String faceDescriptor, String idioma) {}
+import java.time.LocalDate;
+
+public record CheckinConfirmDTO(String faceDescriptor, LocalDate dataNascimento, String idioma) {}

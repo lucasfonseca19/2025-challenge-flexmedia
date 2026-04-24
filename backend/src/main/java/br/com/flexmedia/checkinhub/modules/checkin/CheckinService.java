@@ -88,9 +88,20 @@ public class CheckinService {
             throw new BusinessException("Check-in não permitido. Status: " + reserva.getStatus());
         }
 
+        String faceDescriptor = dto != null ? dto.faceDescriptor() : null;
+        boolean temDescriptor = faceDescriptor != null && !faceDescriptor.isBlank();
+        boolean dobValido = dto != null
+                && dto.dataNascimento() != null
+                && reserva.getHospedeDataNascimento() != null
+                && dto.dataNascimento().isEqual(reserva.getHospedeDataNascimento());
+
+        if (!temDescriptor && !dobValido) {
+            throw new BusinessException("Validação de identidade obrigatória para confirmar check-in.");
+        }
+
         reserva.setStatus(StatusReserva.CHECKIN_REALIZADO);
-        if (dto != null && dto.faceDescriptor() != null) {
-            reserva.setFaceDescriptor(dto.faceDescriptor());
+        if (temDescriptor) {
+            reserva.setFaceDescriptor(faceDescriptor);
         }
         reservaRepository.save(reserva);
 

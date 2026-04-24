@@ -65,7 +65,7 @@ export const checkinService = {
 
   confirmar: (
     reservaId: number,
-    payload?: { faceDescriptor?: string | null, idioma?: string }
+    payload?: { faceDescriptor?: string | null, dataNascimento?: string | null, idioma?: string }
   ): Promise<void> => post(`/checkin/confirmar/${reservaId}`, payload ?? {}),
 }
 

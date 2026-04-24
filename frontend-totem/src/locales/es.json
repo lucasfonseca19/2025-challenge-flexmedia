@@ -45,7 +45,8 @@
     "btnConfirmar": "Confirmar",
     "erroDataInvalida": "Fecha de nacimiento incorrecta. Verifique e intente nuevamente.",
     "erroDataObrigatoria": "Por favor, ingrese su fecha de nacimiento.",
-    "erroFormatoInvalido": "Formato inválido. Use DD/MM/AAAA."
+    "erroFormatoInvalido": "Formato inválido. Use DD/MM/AAAA.",
+    "erroValidacaoObrigatoria": "No fue posible confirmar su identidad. Diríjase a la recepción."
   },
   "emitirChave": {
     "titulo": "¡Su llave está lista!",

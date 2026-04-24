@@ -42,6 +42,7 @@ export default function FacialRecognitionPage() {
   // DOB mode state
   const [dataNascimento, setDataNascimento] = useState('')
   const [erroData, setErroData] = useState<string | null>(null)
+  const [erroIdentidade, setErroIdentidade] = useState<string | null>(null)
   const [confirmandoDob, setConfirmandoDob] = useState(false)
 
   // Carregar modelos face-api.js uma única vez
@@ -66,15 +67,16 @@ export default function FacialRecognitionPage() {
     return Array.from(detection.descriptor) // Float32Array → number[]
   }
 
-  async function prosseguir() {
+  async function confirmarCheckin(payload?: { faceDescriptor?: string | null; dataNascimento?: string | null }) {
     if (fluxo === 'checkin' && reserva?.id) {
+      await checkinService.confirmar(reserva.id, { ...payload, idioma })
+    }
+  }
+
+  async function prosseguirComCamera() {
+    if (fluxo === 'checkin') {
       const descriptor = await capturarDescriptor()
-      try {
-        await checkinService.confirmar(reserva.id, {
-          faceDescriptor: descriptor ? JSON.stringify(descriptor) : null,
-          idioma
-        })
-      } catch { /* ignora */ }
+      await confirmarCheckin({ faceDescriptor: descriptor ? JSON.stringify(descriptor) : null })
     }
     navigate(fluxo === 'checkout' ? '/checkout' : '/emitir-chave')
   }
@@ -121,7 +123,14 @@ export default function FacialRecognitionPage() {
 
         if (detection) {
           setStatusCamera('sucesso')
-          setTimeout(() => { if (!cancelled) prosseguir() }, 1500)
+          setTimeout(() => {
+            if (!cancelled) {
+              prosseguirComCamera().catch(() => {
+                setStatusCamera('aguardando')
+                setErroIdentidade(t.verificacaoIdentidade.erroValidacaoObrigatoria)
+              })
+            }
+          }, 1500)
         } else {
           // Face não detectada — volta para aguardando para nova tentativa
           setStatusCamera('aguardando')
@@ -154,11 +163,22 @@ export default function FacialRecognitionPage() {
     }
     setErroData(null)
     setConfirmandoDob(true)
-    await prosseguir()
+    try {
+      await confirmarCheckin({ dataNascimento: isoDate })
+      navigate(fluxo === 'checkout' ? '/checkout' : '/emitir-chave')
+    } catch {
+      setErroData(t.verificacaoIdentidade.erroDataInvalida)
+    } finally {
+      setConfirmandoDob(false)
+    }
   }
 
-  async function validarManualmente() {
-    await prosseguir()
+  function validarManualmente() {
+    if (temDataNascimento) {
+      trocarModo('dataNascimento')
+      return
+    }
+    setErroIdentidade(t.verificacaoIdentidade.erroValidacaoObrigatoria)
   }
 
   function trocarModo(novoModo: Modo) {
@@ -224,6 +244,10 @@ export default function FacialRecognitionPage() {
 
           <p className="text-lg md:text-2xl text-slate-300 text-center px-6 md:px-16">{statusTexto[statusCamera]}</p>
 
+          {erroIdentidade && (
+            <p className="text-red-400 text-base md:text-xl text-center px-6 md:px-16">{erroIdentidade}</p>
+          )}
+
           {statusCamera === 'aguardando' && (
             <button
               onClick={validarManualmente}
@@ -278,4 +302,3 @@ export default function FacialRecognitionPage() {
     </div>
   )
 }
-

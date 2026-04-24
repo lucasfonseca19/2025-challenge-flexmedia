@@ -45,7 +45,8 @@
     "btnConfirmar": "Confirm",
     "erroDataInvalida": "Incorrect date of birth. Please check and try again.",
     "erroDataObrigatoria": "Please enter your date of birth.",
-    "erroFormatoInvalido": "Invalid format. Use MM/DD/YYYY."
+    "erroFormatoInvalido": "Invalid format. Use MM/DD/YYYY.",
+    "erroValidacaoObrigatoria": "We could not confirm your identity. Please contact the front desk."
   },
   "emitirChave": {
     "titulo": "Your key is ready!",
