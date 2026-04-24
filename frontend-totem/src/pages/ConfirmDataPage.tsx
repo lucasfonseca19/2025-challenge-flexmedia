@@ -14,7 +14,7 @@ export default function ConfirmDataPage() {
   const mensagemBloqueio = obterMensagemBloqueio(reserva.status, fluxo, t)
 
   function confirmar() {
-    navigate('/facial')
+    navigate(fluxo === 'checkout' ? '/checkout' : '/facial')
   }
 
   return (

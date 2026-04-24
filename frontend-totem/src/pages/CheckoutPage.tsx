@@ -27,8 +27,13 @@ export default function CheckoutPage() {
     }
   }
 
-  const formatarData = (iso: string) =>
-    new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  const formatarData = (iso: string) => {
+    const [ano, mes, dia] = iso.split('-')
+    return new Date(Number(ano), Number(mes) - 1, Number(dia)).toLocaleDateString(
+      'pt-BR',
+      { day: '2-digit', month: 'long', year: 'numeric' }
+    )
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-screen w-screen bg-slate-900 text-white gap-6 md:gap-8">
