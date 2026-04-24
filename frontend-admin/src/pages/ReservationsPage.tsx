@@ -110,8 +110,10 @@ export default function ReservationsPage() {
     carregar(0, busca, s)
   }
 
-  const formatarData = (iso: string) =>
-    new Date(iso).toLocaleDateString('pt-BR')
+  const formatarData = (iso: string) => {
+    const [ano, mes, dia] = iso.split('-')
+    return `${dia}/${mes}/${ano}`
+  }
 
   function abrirNovo() {
     const hotelPadrao = usuario?.hotelId ?? hoteis[0]?.id ?? 1
@@ -183,7 +185,17 @@ export default function ReservationsPage() {
     setSalvando(true)
     setErro(null)
     try {
-      const payload = { ...form, hospedeDataNascimento: form.hospedeDataNascimento || null }
+      const payload = {
+        codigoReserva: form.codigoReserva,
+        hospedeNome: form.hospedeNome,
+        hospedeCpf: form.hospedeCpf,
+        hospedeEmail: form.hospedeEmail || null,
+        quartoNumero: form.quartoNumero,
+        hotelId: form.hotelId,
+        dataCheckin: form.dataCheckin,
+        dataCheckout: form.dataCheckout,
+        hospedeDataNascimento: form.hospedeDataNascimento || null,
+      }
       if (reservaEditando) {
         await reservaService.atualizar(reservaEditando.id, payload)
       } else {
