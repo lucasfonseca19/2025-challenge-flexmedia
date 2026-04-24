@@ -59,7 +59,8 @@ export default function IssueKeyPage() {
           <div className="text-center">
             <p className="text-xl text-slate-400">Token</p>
             <p className="text-2xl md:text-4xl font-mono font-bold tracking-widest mt-1">{chave.token}</p>
-            <p className="text-lg text-slate-500 mt-1">{t.emitirChave.quarto}: {chave.tipo}</p>
+            <p className="text-lg text-slate-500 mt-1">{t.emitirChave.quarto}: {reserva?.quartoNumero}</p>
+            <p className="text-lg text-slate-500 mt-1">Tipo: {chave.tipo}</p>
           </div>
           <p className="text-base md:text-xl text-slate-300 text-center px-6 md:px-16">{t.emitirChave.instrucao}</p>
           <button
