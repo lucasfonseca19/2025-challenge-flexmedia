@@ -50,6 +50,7 @@ class CheckinControllerIT {
                 .hotel(hotel)
                 .dataCheckin(LocalDate.now())
                 .dataCheckout(LocalDate.now().plusDays(2))
+                .hospedeDataNascimento(LocalDate.of(1990, 5, 15))
                 .status(status)
                 .build());
     }
@@ -96,7 +97,9 @@ class CheckinControllerIT {
     void confirmarCheckin_reservaConfirmada_retorna200EStatusCheckinRealizado() throws Exception {
         Reserva reserva = salvarReserva("RES-IT-002", "222.333.444-55", StatusReserva.CONFIRMADA);
 
-        mockMvc.perform(post("/api/checkin/confirmar/" + reserva.getId()))
+        mockMvc.perform(post("/api/checkin/confirmar/" + reserva.getId())
+                        .contentType("application/json")
+                        .content("{\"dataNascimento\":\"1990-05-15\",\"idioma\":\"pt\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CHECKIN_REALIZADO"));
     }

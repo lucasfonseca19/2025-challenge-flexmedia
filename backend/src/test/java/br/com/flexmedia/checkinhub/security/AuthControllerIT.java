@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -78,7 +80,32 @@ class AuthControllerIT {
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
+                .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@test.com", roles = "ADMIN")
+    void desativarUsuario_quandoForOutroUsuario_retorna204() throws Exception {
+        Usuario outroUsuario = usuarioRepository.save(Usuario.builder()
+                .nome("Operador Teste")
+                .email("operador@test.com")
+                .senha(passwordEncoder.encode("senha123"))
+                .role(RoleUsuario.OPERADOR)
+                .ativo(true)
+                .build());
+
+        mockMvc.perform(delete("/api/auth/usuarios/" + outroUsuario.getId()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@test.com", roles = "ADMIN")
+    void desativarUsuario_quandoForProprioUsuario_retorna422() throws Exception {
+        Usuario admin = usuarioRepository.findByEmailAndAtivoTrue("admin@test.com").orElseThrow();
+
+        mockMvc.perform(delete("/api/auth/usuarios/" + admin.getId()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value("Não é possível desativar o próprio usuário logado."));
     }
 }

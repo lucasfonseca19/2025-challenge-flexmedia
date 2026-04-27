@@ -59,6 +59,22 @@ class HotelControllerIT {
     }
 
     @Test
+    @WithMockUser(roles = "OPERADOR")
+    void criarHotel_comOperador_retorna403() throws Exception {
+        var body = Map.of(
+                "nome", "Hotel Bloqueado",
+                "cnpj", "88.777.666/0001-55",
+                "cidade", "Santos",
+                "estado", "SP"
+        );
+
+        mockMvc.perform(post("/api/hoteis")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void criarHotel_cnpjDuplicado_retorna422() throws Exception {
         var body = Map.of(

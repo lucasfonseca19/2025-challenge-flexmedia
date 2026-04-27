@@ -38,7 +38,7 @@ public class ReservaController {
 
     @GetMapping("/codigo/{codigo}")
     public ReservaResponseDTO buscarPorCodigo(@PathVariable String codigo) {
-        return reservaService.buscarPorCodigo(codigo);
+        return reservaService.buscarPorCodigoAdministrativo(codigo);
     }
 
     @PutMapping("/{id}")
