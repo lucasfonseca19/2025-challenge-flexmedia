@@ -38,7 +38,10 @@ Dados criados/validados na execução:
 - Reserva cross-hotel: `RES-HOTEL-2`
 - Hotel criado/editado: `Hotel P0 CRUD Editado` (`id=2`)
 - Hotel criado indevidamente por operador durante teste de segurança: `Hotel Proibido` (`id=3`)
+- Hotéis de massa: `Hotel Massa 9450220` (`id=4`, inativo), `Hotel Usuarios 9450220` (`id=5`)
+- Reservas de massa: `PAGE-9450220-0` até `PAGE-9450220-15`, `KEY-9450220`, `DEL-9450220` (excluída)
 - Conteúdo de totem: `Conteudo P0 Ativo` (`id=1`, atualmente inativo)
+- Conteúdo visual ativo: `Conteudo Visual 483815` (`id=3`)
 - Totem: `Totem P0 3344`, código `5RIKKD`
 
 | TC | Resultado | Evidência / observação |
@@ -54,14 +57,14 @@ Dados criados/validados na execução:
 | TC-015 | ✅ | Logout voltou para `/login`; sessão não permaneceu acessível na UI. |
 | TC-020 | ✅ | `POST /api/hoteis` criou `Hotel P0 CRUD` com `201`. |
 | TC-021 | ✅ | `PUT /api/hoteis/2` atualizou nome/cidade do hotel com `200`. |
-| TC-022 | ⏳ | Não executado. |
+| TC-022 | ✅ | `PATCH /api/hoteis/4/desativar` retornou `204`; `GET /api/hoteis/4` confirmou `ativo=false`. |
 | TC-023 | ✅ | CNPJ duplicado retornou `422` com detalhe `CNPJ já cadastrado`. |
 | TC-030 | ✅ | Retestado após correção: reserva com check-in, check-out e DOB persistiu corretamente no backend/MySQL. |
 | TC-031 | ✅ | Código de reserva duplicado retornou `422` com detalhe `Código de reserva já cadastrado`. |
 | TC-032 | ✅ | Checkout anterior ao check-in retornou `422` com detalhe de validação. |
 | TC-033 | ✅ | `PUT /api/reservas/5` alterou quarto e datas de `RES-P0-EDIT` com `200`. |
-| TC-034 | ⏳ | Não executado. |
-| TC-035 | ⚠️ | Busca parcial por `Editavel` funcionou; paginação com 15+ registros ainda não foi validada. |
+| TC-034 | ✅ | `DELETE /api/reservas/{id}` retornou `204`; busca posterior da reserva excluída retornou `404`. |
+| TC-035 | ✅ | Criadas 16 reservas `PAGE-9450220-*`; paginação retornou 10 itens na página 0 e 6 na página 1. |
 | TC-040 | ✅ | Totem criado no painel; código `5RIKKD`, status inicial offline, `ultimo_heartbeat=NULL`. |
 | TC-041 | ✅ | Código `5RIKKD` ativou o totem; redirecionou para IdlePage. |
 | TC-042 | ✅ | Heartbeat atualizou `totens.ultimo_heartbeat`; admin mostrou `Online / Agora`. |
@@ -75,27 +78,27 @@ Dados criados/validados na execução:
 | TC-060 | ✅ | Retestado após correção: fluxo de checkout vai de confirmação de dados para `/checkout`, sem passar por `/facial`. |
 | TC-061 | ✅ | Checkout de reserva `CONFIRMADA` foi bloqueado com `422` e detalhe `Check-out não permitido`. |
 | TC-100 | ✅ | Cadastro de operador via `/usuarios` funcionou e usuário apareceu na lista. |
-| TC-101 | ⏳ | Não executado. |
-| TC-102 | ⏳ | Não executado. |
-| TC-103 | ⏳ | Não executado. |
-| TC-104 | ⏳ | Não executado. |
-| TC-120 | ⚠️ | Configuração do hotel foi atualizada via API e refletiu no payload público do totem; upload/preview visual na UI ainda não foi validado. |
-| TC-121 | ⏳ | Não executado. |
+| TC-101 | ✅ | ADMIN `admin9450220@teste.local` criado com `201` e `hotelId=null`. |
+| TC-102 | ✅ | E-mail duplicado retornou `422` com detalhe `E-mail já cadastrado`. |
+| TC-103 | ✅ | Usuário operador foi desativado com `204`; login posterior retornou `401`. |
+| TC-104 | ❌ | Usuário ADMIN logado conseguiu desativar a si mesmo com `204`; login posterior retornou `401`. |
+| TC-120 | ⚠️ | Configuração por API foi aplicada visualmente no totem: logo, nome `Hotel Teste P0` e idiomas `pt/en/es`; fluxo de upload/formulário da UI ainda não foi exercitado. |
+| TC-121 | ✅ | Após reload do totem, `localStorage.totemConfig` manteve logo, nome e idiomas na IdlePage. |
 | TC-130 | ✅ | Conteúdo `Conteudo P0 Ativo` foi criado via API com `201`. |
-| TC-131 | ⚠️ | Conteúdo ativo apareceu no payload público do totem; rotação visual na IdlePage ainda não foi validada. |
+| TC-131 | ❌ | Conteúdo ativo aparece no payload público do totem, mas a IdlePage renderiza cards fixos de restaurante/piscina/Wi-Fi e não exibe o conteúdo cadastrado. |
 | TC-132 | ✅ | Conteúdo inativado saiu do payload público `conteudo`. |
-| TC-133 | ⏳ | Não executado. |
-| TC-140 | ⚠️ | Dashboard ADMIN renderizou cards e gráficos, mas não foi validado contra 2+ hotéis com check-ins. |
+| TC-133 | ✅ | `DELETE /api/conteudo/{id}` retornou `204`; conteúdo excluído não apareceu mais na listagem. |
+| TC-140 | ✅ | Dashboard ADMIN renderizou cards e gráficos com dados agregados após massa com 2+ hotéis/check-ins. |
 | TC-141 | ✅ | Dashboard OPERADOR renderizou dados do hotel do operador. |
 | TC-142 | ✅ | `metricas_diarias` registrou `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=1` para 2026-04-24. |
 | TC-150 | ✅ | Chave foi gerada com token único, `ativa=1` e `data_expiracao`; divergência de nome no documento anotada abaixo. |
-| TC-151 | ⏳ | Não executado. |
+| TC-151 | ✅ | Reemissão de chave para `KEY-9450220` gerou novo token; MySQL confirmou 2 chaves no total e apenas 1 ativa. |
 | TC-240 | ✅ | Totem com heartbeat recente apareceu como Online. |
-| TC-250 | ⚠️ | DOB persistiu corretamente no backend/MySQL após correção; exibição visual da coluna na tabela admin ainda não foi validada. |
+| TC-250 | ✅ | Tabela de reservas do admin exibiu coluna `Dt. Nascimento` com datas preenchidas, ex. `15/05/1990` e `02/02/1992`. |
 | TC-320 | ❌ | OPERADOR do hotel 1 conseguiu consultar reservas do hotel 2 informando `hotelId=2`. |
 | TC-321 | ❌ | OPERADOR conseguiu criar hotel via `POST /api/hoteis`, retornando `201`. |
 | TC-322 | ✅ | Request sem `Authorization` em `/api/hoteis` retornou `401`. |
-| TC-323 | ⏳ | Não executado. |
+| TC-323 | ✅ | Preflight CORS permitiu `Origin: http://localhost:5174` e não retornou `Access-Control-Allow-Origin` para `http://evil.local`. |
 | TC-324 | ✅ | JWT inválido em `/api/hoteis` retornou `401`. |
 
 Notas de divergência entre documentação e schema atual:
@@ -104,8 +107,13 @@ Notas de divergência entre documentação e schema atual:
 - `chaves_digitais.expira_em` no documento corresponde a `chaves_digitais.data_expiracao` no banco.
 
 Defeitos abertos identificados na execução:
+- `TC-104`: `DELETE /api/auth/usuarios/{id}` permite que o ADMIN logado desative a própria conta.
+- `TC-131`: IdlePage não consome/renderiza `conteudo` ativo do payload público do totem.
 - `TC-320`: endpoints de reserva aceitam `hotelId` arbitrário mesmo quando o JWT é de `OPERADOR`; deve restringir ao hotel do token ou retornar `403`.
 - `TC-321`: `POST /api/hoteis` aceita token de `OPERADOR`; deve exigir `ADMIN`.
+
+Observação de ambiente:
+- O totem falha por CORS quando aberto em `http://127.0.0.1:5173`; a configuração atual permite `http://localhost:5173` e `http://localhost:5174`.
 
 ---
 
