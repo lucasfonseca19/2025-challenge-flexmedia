@@ -26,6 +26,7 @@ const PROMO_SLIDES = [
 export default function IdlePage() {
   const navigate = useNavigate()
   const { resetar, totemConfig } = useTotem()
+  const conteudo = [...(totemConfig?.conteudo ?? [])].sort((a, b) => a.ordemExibicao - b.ordemExibicao)
 
   useEffect(() => {
     resetar()
@@ -60,18 +61,49 @@ export default function IdlePage() {
 
       {/* Promoções */}
       <div className="w-full max-w-4xl mb-8">
-        <div className="flex gap-4">
-          {PROMO_SLIDES.map(s => (
-            <div
-              key={s.id}
-              className="flex-1 bg-slate-800 rounded-xl p-5 text-center flex flex-col gap-1"
-            >
-              <span className="text-slate-200 text-base font-medium">{s.pt}</span>
-              <span className="text-slate-400 text-sm">{s.en}</span>
-              <span className="text-slate-500 text-sm">{s.es}</span>
-            </div>
-          ))}
-        </div>
+        {conteudo.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {conteudo.map(item => (
+              <div
+                key={item.id}
+                className="bg-slate-800 rounded-xl overflow-hidden text-center flex flex-col min-h-40"
+              >
+                {item.tipo === 'VIDEO' ? (
+                  <video
+                    src={item.urlMidia}
+                    className="h-28 w-full object-cover bg-slate-950"
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                  />
+                ) : (
+                  <img
+                    src={item.urlMidia}
+                    alt={item.titulo}
+                    className="h-28 w-full object-cover bg-slate-950"
+                  />
+                )}
+                <div className="flex flex-1 items-center justify-center p-4">
+                  <span className="text-slate-100 text-base font-medium">{item.titulo}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-4">
+            {PROMO_SLIDES.map(s => (
+              <div
+                key={s.id}
+                className="flex-1 bg-slate-800 rounded-xl p-5 text-center flex flex-col gap-1"
+              >
+                <span className="text-slate-200 text-base font-medium">{s.pt}</span>
+                <span className="text-slate-400 text-sm">{s.en}</span>
+                <span className="text-slate-500 text-sm">{s.es}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
