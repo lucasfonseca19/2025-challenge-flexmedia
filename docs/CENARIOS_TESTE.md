@@ -23,7 +23,7 @@
 <a id="status-execucao"></a>
 # Status de execução
 
-Última execução manual assistida: **2026-04-24**.
+Última execução manual assistida: **2026-04-27**.
 
 Ambiente usado:
 - Backend `http://localhost:8080`
@@ -34,6 +34,11 @@ Ambiente usado:
 Dados criados/validados na execução:
 - Operador: `op1777062452505@teste.local`
 - Reserva: `RES497807`
+- Reserva editável: `RES-P0-EDIT`
+- Reserva cross-hotel: `RES-HOTEL-2`
+- Hotel criado/editado: `Hotel P0 CRUD Editado` (`id=2`)
+- Hotel criado indevidamente por operador durante teste de segurança: `Hotel Proibido` (`id=3`)
+- Conteúdo de totem: `Conteudo P0 Ativo` (`id=1`, atualmente inativo)
 - Totem: `Totem P0 3344`, código `5RIKKD`
 
 | TC | Resultado | Evidência / observação |
@@ -43,49 +48,64 @@ Dados criados/validados na execução:
 | TC-003 | ✅ | Admin abriu em `5174` e redirecionou para `/login`. |
 | TC-010 | ✅ | Login ADMIN com `admin@flexmedia.com` funcionou e menu exibiu apenas Dashboard, Hotéis e Usuários. |
 | TC-011 | ✅ | Operador criado pela UI conseguiu login e menu exibiu Dashboard, Reservas e Totem. |
-| TC-012 | ⚠️ | API retorna `401` com detalhe correto, mas a UI não exibiu mensagem visível de erro no login inválido. |
+| TC-012 | ✅ | Retestado após correção: senha inválida permanece em `/login` e exibe `E-mail ou senha inválidos.`. |
 | TC-013 | ✅ | Acesso direto a `/dashboard` sem sessão redirecionou para `/login`. |
 | TC-014 | ✅ | Token inválido em rota protegida retornou `401` pela API. |
 | TC-015 | ✅ | Logout voltou para `/login`; sessão não permaneceu acessível na UI. |
-| TC-020 | ⏳ | Não executado nesta rodada; já existia `Hotel Test 1` no banco. |
-| TC-021 | ⏳ | Não executado. |
+| TC-020 | ✅ | `POST /api/hoteis` criou `Hotel P0 CRUD` com `201`. |
+| TC-021 | ✅ | `PUT /api/hoteis/2` atualizou nome/cidade do hotel com `200`. |
 | TC-022 | ⏳ | Não executado. |
-| TC-023 | ⏳ | Não executado. |
-| TC-030 | ⚠️ | Reserva foi criada e apareceu como `CONFIRMADA`, mas `dataCheckout` foi salvo igual ao check-in e `hospedeDataNascimento` ficou `NULL`. |
-| TC-031 | ⏳ | Não executado. |
-| TC-032 | ⏳ | Não executado. |
-| TC-033 | ⏳ | Não executado. |
+| TC-023 | ✅ | CNPJ duplicado retornou `422` com detalhe `CNPJ já cadastrado`. |
+| TC-030 | ✅ | Retestado após correção: reserva com check-in, check-out e DOB persistiu corretamente no backend/MySQL. |
+| TC-031 | ✅ | Código de reserva duplicado retornou `422` com detalhe `Código de reserva já cadastrado`. |
+| TC-032 | ✅ | Checkout anterior ao check-in retornou `422` com detalhe de validação. |
+| TC-033 | ✅ | `PUT /api/reservas/5` alterou quarto e datas de `RES-P0-EDIT` com `200`. |
 | TC-034 | ⏳ | Não executado. |
-| TC-035 | ⏳ | Não executado. |
+| TC-035 | ⚠️ | Busca parcial por `Editavel` funcionou; paginação com 15+ registros ainda não foi validada. |
 | TC-040 | ✅ | Totem criado no painel; código `5RIKKD`, status inicial offline, `ultimo_heartbeat=NULL`. |
 | TC-041 | ✅ | Código `5RIKKD` ativou o totem; redirecionou para IdlePage. |
 | TC-042 | ✅ | Heartbeat atualizou `totens.ultimo_heartbeat`; admin mostrou `Online / Agora`. |
 | TC-043 | ✅ | Código inválido exibiu erro e permaneceu em `/setup`. |
-| TC-050 | ⚠️ | Check-in por código concluiu, status virou `CHECKIN_REALIZADO`, chave foi emitida e métrica incrementou. Não houve câmera real; fallback manual avançou sem DOB; `face_descriptor` ficou vazio; tela exibiu `Quarto: DIGITAL`. |
+| TC-050 | ⚠️ | Retestado sem câmera real: check-in com DOB válido concluiu, chave foi emitida e tela mostra `Quarto: 203`; reconhecimento facial ainda não foi validado. |
 | TC-051 | ⏳ | Não executado. |
 | TC-052 | ⏳ | Não executado. |
 | TC-053 | ⏳ | Não executado. |
 | TC-054 | ⏳ | Não executado. |
-| TC-055 | ❌ | Fallback manual não pediu data de nascimento; ele confirmou o check-in diretamente quando não havia DOB na reserva. |
-| TC-060 | ⚠️ | Checkout concluiu, status virou `CHECKOUT_REALIZADO`, chave ficou inativa e métrica incrementou. Fluxo real passa por `/confirmar-dados` e `/facial` antes de `/checkout`, diferente do roteiro. |
-| TC-061 | ⏳ | Não executado. |
+| TC-055 | ✅ | Backend rejeitou check-in sem `faceDescriptor` e sem DOB válido; DOB correto permitiu prosseguir. |
+| TC-060 | ✅ | Retestado após correção: fluxo de checkout vai de confirmação de dados para `/checkout`, sem passar por `/facial`. |
+| TC-061 | ✅ | Checkout de reserva `CONFIRMADA` foi bloqueado com `422` e detalhe `Check-out não permitido`. |
 | TC-100 | ✅ | Cadastro de operador via `/usuarios` funcionou e usuário apareceu na lista. |
 | TC-101 | ⏳ | Não executado. |
 | TC-102 | ⏳ | Não executado. |
 | TC-103 | ⏳ | Não executado. |
 | TC-104 | ⏳ | Não executado. |
+| TC-120 | ⚠️ | Configuração do hotel foi atualizada via API e refletiu no payload público do totem; upload/preview visual na UI ainda não foi validado. |
+| TC-121 | ⏳ | Não executado. |
+| TC-130 | ✅ | Conteúdo `Conteudo P0 Ativo` foi criado via API com `201`. |
+| TC-131 | ⚠️ | Conteúdo ativo apareceu no payload público do totem; rotação visual na IdlePage ainda não foi validada. |
+| TC-132 | ✅ | Conteúdo inativado saiu do payload público `conteudo`. |
+| TC-133 | ⏳ | Não executado. |
 | TC-140 | ⚠️ | Dashboard ADMIN renderizou cards e gráficos, mas não foi validado contra 2+ hotéis com check-ins. |
 | TC-141 | ✅ | Dashboard OPERADOR renderizou dados do hotel do operador. |
 | TC-142 | ✅ | `metricas_diarias` registrou `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=1` para 2026-04-24. |
-| TC-150 | ⚠️ | Chave foi gerada com token único e `ativa=1`; documentação cita `expira_em`, mas schema real usa `data_expiracao`. |
+| TC-150 | ✅ | Chave foi gerada com token único, `ativa=1` e `data_expiracao`; divergência de nome no documento anotada abaixo. |
 | TC-151 | ⏳ | Não executado. |
 | TC-240 | ✅ | Totem com heartbeat recente apareceu como Online. |
-| TC-250 | ⚠️ | Coluna DOB existe na tabela, mas a reserva criada com DOB pela UI salvou `NULL`; precisa retestar após corrigir cadastro. |
+| TC-250 | ⚠️ | DOB persistiu corretamente no backend/MySQL após correção; exibição visual da coluna na tabela admin ainda não foi validada. |
+| TC-320 | ❌ | OPERADOR do hotel 1 conseguiu consultar reservas do hotel 2 informando `hotelId=2`. |
+| TC-321 | ❌ | OPERADOR conseguiu criar hotel via `POST /api/hoteis`, retornando `201`. |
+| TC-322 | ✅ | Request sem `Authorization` em `/api/hoteis` retornou `401`. |
+| TC-323 | ⏳ | Não executado. |
+| TC-324 | ✅ | JWT inválido em `/api/hoteis` retornou `401`. |
 
 Notas de divergência entre documentação e schema atual:
 - `reservas.descriptor_facial` no documento corresponde a `reservas.face_descriptor` no banco.
 - `reservas.data_checkin_real` e `reservas.data_checkout_real` aparecem no documento, mas não existem no schema atual.
 - `chaves_digitais.expira_em` no documento corresponde a `chaves_digitais.data_expiracao` no banco.
+
+Defeitos abertos identificados na execução:
+- `TC-320`: endpoints de reserva aceitam `hotelId` arbitrário mesmo quando o JWT é de `OPERADOR`; deve restringir ao hotel do token ou retornar `403`.
+- `TC-321`: `POST /api/hoteis` aceita token de `OPERADOR`; deve exigir `ADMIN`.
 
 ---
 
