@@ -43,7 +43,7 @@ Verificar saúde: `GET http://localhost:8080/actuator/health` → `{"status":"UP
 
 - Banco: **MySQL 8.4** (foi Oracle, migrado)
 - Frontend: **React 19 + TypeScript + Vite + Tailwind CSS v4**
-- Reconhecimento facial: **face-api.js** rodando 100% no browser (sem enviar imagens ao servidor)
+- Reconhecimento facial: **@vladmandic/human** local no browser — frontend captura embedding facial e backend apenas persiste/serve o descriptor
 - Auth: **JWT** com claims `email`, `hotelId`, `role`
 - Roles: `ADMIN` (FlexMedia global) e `OPERADOR` (gestor vinculado a um hotel)
 - PMS: **MockPMSAdapter** ativo por padrão (`app.pms.adapter=mock`)
@@ -54,7 +54,7 @@ Verificar saúde: `GET http://localhost:8080/actuator/health` → `{"status":"UP
 ## Documentos de contexto detalhados
 
 - `docs/backend.md` — entidades, endpoints, segurança, padrões
-- `docs/frontend-totem.md` — fluxo, páginas, face-api.js, i18n
+- `docs/frontend-totem.md` — fluxo, páginas, Human, i18n
 - `docs/frontend-admin.md` — auth, rotas, páginas, serviços
 - `docs/TASKS.md` — histórico de tarefas realizadas e pendentes
 

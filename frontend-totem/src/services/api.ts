@@ -59,6 +59,14 @@ function post<T>(path: string, body?: JsonBody): Promise<T> {
   })
 }
 
+export type ValidacaoFaceResponse = {
+  sucesso: boolean
+  mensagem: string
+  descriptorArmazenado: string | null
+  hospedeNome: string | null
+  quartoNumero: string | null
+}
+
 export const checkinService = {
   buscarReserva: (codigoOuCpf: string): Promise<Reserva> =>
     get(`/checkin/reserva/${encodeURIComponent(codigoOuCpf)}`),
@@ -67,6 +75,11 @@ export const checkinService = {
     reservaId: number,
     payload?: { faceDescriptor?: string | null, dataNascimento?: string | null, idioma?: string }
   ): Promise<void> => post(`/checkin/confirmar/${reservaId}`, payload ?? {}),
+}
+
+export const quartoService = {
+  validarFace: (quartoNumero: string): Promise<ValidacaoFaceResponse> =>
+    post(`/quartos/${encodeURIComponent(quartoNumero)}/validar-face`),
 }
 
 export const checkoutService = {

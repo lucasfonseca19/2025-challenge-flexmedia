@@ -1,6 +1,6 @@
 # Frontend Totem — Contexto Detalhado
 
-**Stack:** React 19 · TypeScript · Vite · Tailwind CSS v4 · Axios · face-api.js · react-router-dom v7
+**Stack:** React 19 · TypeScript · Vite · Tailwind CSS v4 · Axios · `@vladmandic/human` · react-router-dom v7
 
 **Propósito:** Interface do hóspede. Roda em tela touch (kiosk mode). Sem autenticação de usuário — o totem acessa a API com endpoints públicos.
 
@@ -24,13 +24,14 @@ src/
 │   ├── LanguagePage.tsx       — seleção de idioma
 │   ├── SearchReservationPage.tsx — busca por código ou CPF
 │   ├── ConfirmDataPage.tsx    — exibe dados da reserva para confirmação
-│   ├── FacialRecognitionPage.tsx — cadastra rosto (face-api.js) + fallback DOB
+│   ├── FacialRecognitionPage.tsx — cadastra descriptor facial (Human) + fallback DOB
 │   ├── IssueKeyPage.tsx       — emite chave digital
 │   ├── CheckoutPage.tsx       — confirmação de checkout
 │   ├── ThankYouPage.tsx       — tela final de agradecimento
 │   └── DoorPage.tsx           — simulador de porta (/porta/:quarto)
 ├── services/
-│   └── api.ts                 — serviços de chamada à API (axios)
+│   ├── api.ts                 — serviços de chamada à API
+│   └── faceRecognitionService.ts — wrapper local do Human
 ├── types/
 │   └── index.ts               — tipos TypeScript compartilhados
 └── locales/
@@ -47,7 +48,7 @@ src/
 | `/selecionar-idioma` | LanguagePage | PT-BR, English, Español |
 | `/buscar-reserva` | SearchReservationPage | Input de código ou CPF |
 | `/confirmar-dados` | ConfirmDataPage | Exibe nome, quarto, datas |
-| `/facial` | FacialRecognitionPage | Câmera + face-api.js ou fallback DOB |
+| `/facial` | FacialRecognitionPage | Câmera + Human local ou fallback DOB |
 | `/emitir-chave` | IssueKeyPage | Chama POST /api/chaves/{id} |
 | `/checkout` | CheckoutPage | Resumo + confirmação de saída |
 | `/obrigado` | ThankYouPage | Encerramento, reseta estado |
@@ -115,40 +116,34 @@ checkoutService.confirmar(reservaId)       → POST /checkout/confirmar/{id}
 
 chavesService.emitir(reservaId)            → POST /chaves/{id}
 
-quartoService.validarFace(quartoNumero)    → GET /quartos/{quarto}/validar-face
+quartoService.validarFace(quartoNumero) → POST /quartos/{quarto}/validar-face
 // retorna: { sucesso, mensagem, descriptorArmazenado, hospedeNome, quartoNumero }
 ```
 
-## face-api.js — Como está implementado
+## Human — Como está implementado
 
-### Modelos (em `public/models/`)
-- `tiny_face_detector` (~190KB) — detecta onde o rosto está na imagem
-- `face_landmark_68` (~350KB) — mapeia 68 pontos do rosto para normalização
-- `face_recognition` (~6.2MB) — converte rosto normalizado em array de 128 números
-
-Os modelos são carregados uma vez no `useEffect` da `FacialRecognitionPage` e cacheados pelo browser.
+O frontend usa `@vladmandic/human` com modelos locais em `public/models/human`. Toda detecção e comparação rodam no browser; o backend só persiste e devolve o descriptor.
 
 ### Fluxo de enrollment (check-in — `FacialRecognitionPage`)
 ```
-1. Carrega modelos do /models/
-2. Abre câmera com getUserMedia({ video: { facingMode: 'user' } })
-3. A cada frame detecta: tinyFaceDetector → landmarks → descriptor
-4. Quando face detectada: extrai Float32Array(128)
-5. Converte para number[] e serializa: JSON.stringify(Array.from(descriptor))
-6. Envia no body de POST /checkin/confirmar/{id} como campo faceDescriptor
+1. Carrega modelos locais do Human
+2. Abre câmera com `getUserMedia({ video: { facingMode: 'user' } })`
+3. Detecta exatamente um rosto e gera embedding facial
+4. Serializa o embedding como JSON
+5. Envia `faceDescriptor` no body de `POST /checkin/confirmar/{id}`
+6. Backend salva o descriptor em `reservas.face_descriptor`
 ```
 
 ### Fluxo de verificação (porta — `DoorPage`)
 ```
-1. Busca descriptor do backend: GET /quartos/{quarto}/validar-face
-2. Parseia: JSON.parse(descriptorArmazenado) → Float32Array
-3. Captura rosto ao vivo → extrai descriptor em tempo real
-4. Compara: faceapi.euclideanDistance(d1, d2)
-5. Distância < 0.5 → acesso liberado (verde ✓)
-   Distância ≥ 0.5 → acesso negado (vermelho ✗)
+1. Captura descriptor ao vivo com o Human
+2. Envia `POST /quartos/{quarto}/validar-face`
+3. Backend retorna o descriptor armazenado da reserva ativa
+4. Frontend compara localmente com `human.match.similarity(...)`
+5. Similaridade `>= 0.5` libera acesso
 ```
 
-> **Importante:** toda comparação acontece no browser. Nenhuma imagem é enviada ao servidor.
+> **Importante:** nenhuma imagem é enviada para serviço externo. O reconhecimento roda inteiramente no navegador.
 
 ### Fallback por data de nascimento (`FacialRecognitionPage`)
 - Aparece se `reserva.hospedeDataNascimento !== null`

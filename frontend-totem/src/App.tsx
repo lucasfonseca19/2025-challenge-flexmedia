@@ -8,6 +8,7 @@ import LanguagePage from './pages/LanguagePage'
 import SearchReservationPage from './pages/SearchReservationPage'
 import ConfirmDataPage from './pages/ConfirmDataPage'
 import FacialRecognitionPage from './pages/FacialRecognitionPage'
+import DoorPage from './pages/DoorPage'
 import IssueKeyPage from './pages/IssueKeyPage'
 import CheckoutPage from './pages/CheckoutPage'
 import ThankYouPage from './pages/ThankYouPage'
@@ -18,7 +19,7 @@ function AppContent() {
 
   useEffect(() => {
     const path = window.location.pathname
-    if (!totemConfig && path !== '/setup') {
+    if (!totemConfig && path !== '/setup' && !path.startsWith('/porta/')) {
       navigate('/setup')
     }
   }, [navigate, totemConfig])
@@ -49,6 +50,7 @@ function AppContent() {
       <Route path="/buscar-reserva" element={<SearchReservationPage />} />
       <Route path="/confirmar-dados" element={<ConfirmDataPage />} />
       <Route path="/facial" element={<FacialRecognitionPage />} />
+      <Route path="/porta/:quarto" element={<DoorPage />} />
       <Route path="/emitir-chave" element={<IssueKeyPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/obrigado" element={<ThankYouPage />} />

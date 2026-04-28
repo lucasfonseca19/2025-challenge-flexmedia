@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import * as faceapi from 'face-api.js'
 import { useTotem } from '../context/TotemContext'
 import { checkinService } from '../services/api'
+import { faceRecognitionService } from '../services/faceRecognitionService'
 import type { Idioma } from '../types'
 
 type Modo = 'camera' | 'dataNascimento'
+type StatusCamera = 'carregando' | 'aguardando' | 'processando' | 'sucesso' | 'erro'
 
-/** Auto-insere barras: DD/MM/YYYY ou MM/DD/YYYY (mesma máscara, 2/2/4 dígitos) */
 function mascaraData(valor: string): string {
   const digits = valor.replace(/\D/g, '').slice(0, 8)
   if (digits.length <= 2) return digits
@@ -15,7 +15,6 @@ function mascaraData(valor: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
 }
 
-/** Converte entrada do usuário para ISO YYYY-MM-DD conforme idioma */
 function parsearParaIso(valor: string, idioma: Idioma): string | null {
   const parts = valor.split('/')
   if (parts.length !== 3 || parts[2].length !== 4) return null
@@ -35,53 +34,15 @@ export default function FacialRecognitionPage() {
 
   const temDataNascimento = !!reserva?.hospedeDataNascimento
   const [modo, setModo] = useState<Modo>('camera')
-  const [statusCamera, setStatusCamera] = useState<'aguardando' | 'processando' | 'sucesso'>('aguardando')
+  const [statusCamera, setStatusCamera] = useState<StatusCamera>('carregando')
   const [cameraAtiva, setCameraAtiva] = useState(false)
-  const [modelosCarregados, setModelosCarregados] = useState(false)
+  const [erroCapturaMsg, setErroCapturaMsg] = useState<string | null>(null)
 
-  // DOB mode state
   const [dataNascimento, setDataNascimento] = useState('')
   const [erroData, setErroData] = useState<string | null>(null)
   const [erroIdentidade, setErroIdentidade] = useState<string | null>(null)
   const [confirmandoDob, setConfirmandoDob] = useState(false)
 
-  // Carregar modelos face-api.js uma única vez
-  useEffect(() => {
-    async function carregarModelos() {
-      await faceapi.nets.tinyFaceDetector.loadFromUri('/models')
-      await faceapi.nets.faceLandmark68Net.loadFromUri('/models')
-      await faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-      setModelosCarregados(true)
-    }
-    carregarModelos()
-  }, [])
-
-  // Capturar descriptor do vídeo ao vivo
-  async function capturarDescriptor(): Promise<number[] | null> {
-    if (!videoRef.current) return null
-    const detection = await faceapi
-      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceDescriptor()
-    if (!detection) return null
-    return Array.from(detection.descriptor) // Float32Array → number[]
-  }
-
-  async function confirmarCheckin(payload?: { faceDescriptor?: string | null; dataNascimento?: string | null }) {
-    if (fluxo === 'checkin' && reserva?.id) {
-      await checkinService.confirmar(reserva.id, { ...payload, idioma })
-    }
-  }
-
-  async function prosseguirComCamera() {
-    if (fluxo === 'checkin') {
-      const descriptor = await capturarDescriptor()
-      await confirmarCheckin({ faceDescriptor: descriptor ? JSON.stringify(descriptor) : null })
-    }
-    navigate(fluxo === 'checkout' ? '/checkout' : '/emitir-chave')
-  }
-
-  // Camera: start/stop when modo changes
   useEffect(() => {
     if (modo !== 'camera') {
       streamRef.current?.getTracks().forEach(t => t.stop())
@@ -95,48 +56,30 @@ export default function FacialRecognitionPage() {
 
     async function iniciarCamera() {
       try {
+        setStatusCamera('carregando')
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
         streamRef.current = stream
-        if (videoRef.current) { videoRef.current.srcObject = stream }
+        if (videoRef.current) videoRef.current.srcObject = stream
         setCameraAtiva(true)
-
-        // Aguarda modelos carregarem antes de detectar
-        const aguardarModelos = () => new Promise<void>(resolve => {
-          if (modelosCarregados) { resolve(); return }
-          const id = setInterval(() => {
-            if (modelosCarregados || cancelled) { clearInterval(id); resolve() }
-          }, 200)
+        setStatusCamera('aguardando')
+        void faceRecognitionService.init().catch(() => {
+          if (!cancelled) {
+            setStatusCamera('erro')
+            setErroCapturaMsg('Não foi possível carregar a biometria facial.')
+          }
         })
-        await aguardarModelos()
-        if (cancelled) return
 
-        setStatusCamera('processando')
-
-        // Tenta capturar descriptor com face-api.js
-        const detection = await faceapi
-          .detectSingleFace(videoRef.current!, new faceapi.TinyFaceDetectorOptions())
-          .withFaceLandmarks()
-          .withFaceDescriptor()
-
-        if (cancelled) return
-
-        if (detection) {
-          setStatusCamera('sucesso')
+        // Para checkout, apenas navega sem validação facial
+        if (fluxo === 'checkout') {
           setTimeout(() => {
-            if (!cancelled) {
-              prosseguirComCamera().catch(() => {
-                setStatusCamera('aguardando')
-                setErroIdentidade(t.verificacaoIdentidade.erroValidacaoObrigatoria)
-              })
-            }
+            if (!cancelled) navigate('/checkout')
           }, 1500)
-        } else {
-          // Face não detectada — volta para aguardando para nova tentativa
-          setStatusCamera('aguardando')
         }
-      } catch {
+      } catch (error) {
         setCameraAtiva(false)
+        setStatusCamera('erro')
+        setErroCapturaMsg(error instanceof Error ? error.message : 'Não foi possível inicializar a biometria.')
       }
     }
 
@@ -145,7 +88,31 @@ export default function FacialRecognitionPage() {
       cancelled = true
       streamRef.current?.getTracks().forEach(t => t.stop())
     }
-  }, [modo, modelosCarregados])
+  }, [fluxo, modo, navigate])
+
+  async function capturarEValidar() {
+    if (!videoRef.current || !cameraAtiva) return
+    setErroCapturaMsg(null)
+    setStatusCamera('processando')
+
+    try {
+      const descriptor = await faceRecognitionService.captureDescriptor(videoRef.current)
+      if (!reserva?.id) {
+        throw new Error('Reserva não carregada. Volte e busque a reserva novamente.')
+      }
+      await checkinService.confirmar(reserva.id, {
+        faceDescriptor: faceRecognitionService.serializeDescriptor(descriptor),
+        idioma,
+      })
+      setStatusCamera('sucesso')
+      setTimeout(() => navigate('/emitir-chave'), 1500)
+    } catch (err: unknown) {
+      setStatusCamera('erro')
+      const msg = err instanceof Error ? err.message : 'Erro ao validar rosto.'
+      setErroCapturaMsg(msg)
+      setTimeout(() => setStatusCamera('aguardando'), 2500)
+    }
+  }
 
   async function confirmarDataNascimento() {
     if (!dataNascimento) {
@@ -164,7 +131,7 @@ export default function FacialRecognitionPage() {
     setErroData(null)
     setConfirmandoDob(true)
     try {
-      await confirmarCheckin({ dataNascimento: isoDate })
+      await checkinService.confirmar(reserva!.id, { dataNascimento: isoDate, idioma })
       navigate(fluxo === 'checkout' ? '/checkout' : '/emitir-chave')
     } catch {
       setErroData(t.verificacaoIdentidade.erroDataInvalida)
@@ -184,25 +151,30 @@ export default function FacialRecognitionPage() {
   function trocarModo(novoModo: Modo) {
     setErroData(null)
     setDataNascimento('')
+    setErroCapturaMsg(null)
     setModo(novoModo)
   }
 
-  const statusTexto = {
+  const statusTexto: Record<StatusCamera, string> = {
+    carregando: 'Carregando biometria facial...',
     aguardando: t.reconhecimentoFacial.instrucao,
     processando: t.reconhecimentoFacial.processando,
     sucesso: t.reconhecimentoFacial.sucesso,
+    erro: erroCapturaMsg ?? 'Rosto não reconhecido. Tente novamente.',
   }
-  const statusCor = {
+  const statusCor: Record<StatusCamera, string> = {
+    carregando: 'border-slate-500',
     aguardando: 'border-blue-500',
     processando: 'border-yellow-400',
     sucesso: 'border-green-400',
+    erro: 'border-red-500',
   }
+  const podeCadastrarFace = !!reserva?.id && fluxo !== 'checkout'
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-screen bg-slate-900 text-white gap-6 px-4 py-8">
       <h2 className="text-3xl md:text-5xl font-bold text-center">{t.reconhecimentoFacial.titulo}</h2>
 
-      {/* Seletor de modo — só aparece se dataNascimento estiver cadastrada */}
       {temDataNascimento && (
         <div className="flex gap-2 bg-slate-800 rounded-2xl p-1">
           <button
@@ -228,9 +200,15 @@ export default function FacialRecognitionPage() {
       {modo === 'camera' && (
         <>
           <div className={`relative w-56 h-56 md:w-80 md:h-80 rounded-full overflow-hidden border-4 ${statusCor[statusCamera]} transition-colors duration-500`}>
-            {cameraAtiva ? (
-              <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
-            ) : (
+            {/* Sempre no DOM para que videoRef.current esteja disponível antes de setCameraAtiva */}
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className={`w-full h-full object-cover scale-x-[-1] ${cameraAtiva ? 'block' : 'hidden'}`}
+            />
+            {!cameraAtiva && (
               <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                 <span className="text-6xl">📷</span>
               </div>
@@ -238,6 +216,11 @@ export default function FacialRecognitionPage() {
             {statusCamera === 'sucesso' && (
               <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center">
                 <span className="text-8xl">✓</span>
+              </div>
+            )}
+            {statusCamera === 'erro' && (
+              <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center">
+                <span className="text-8xl">✗</span>
               </div>
             )}
           </div>
@@ -248,13 +231,31 @@ export default function FacialRecognitionPage() {
             <p className="text-red-400 text-base md:text-xl text-center px-6 md:px-16">{erroIdentidade}</p>
           )}
 
-          {statusCamera === 'aguardando' && (
-            <button
-              onClick={validarManualmente}
-              className="mt-2 px-6 py-3 md:px-10 md:py-4 bg-slate-700 hover:bg-slate-600 text-white text-base md:text-xl rounded-2xl transition-colors active:scale-95"
-            >
-              {t.reconhecimentoFacial.btnManual}
-            </button>
+          {(statusCamera === 'aguardando' || statusCamera === 'erro') && cameraAtiva && podeCadastrarFace && (
+            <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+              <button
+                onClick={capturarEValidar}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-xl font-semibold rounded-2xl transition-colors active:scale-95"
+              >
+                📸 Validar rosto
+              </button>
+              <button
+                onClick={validarManualmente}
+                className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white text-base rounded-2xl transition-colors active:scale-95"
+              >
+                {t.reconhecimentoFacial.btnManual}
+              </button>
+            </div>
+          )}
+
+          {(statusCamera === 'aguardando' || statusCamera === 'erro') && cameraAtiva && !podeCadastrarFace && fluxo !== 'checkout' && (
+            <p className="text-red-400 text-base md:text-xl text-center px-6 md:px-16">
+              Reserva não carregada. Volte e busque a reserva novamente.
+            </p>
+          )}
+
+          {(statusCamera === 'carregando' || statusCamera === 'processando') && (
+            <p className="text-yellow-400 text-base md:text-lg animate-pulse">Aguarde...</p>
           )}
         </>
       )}

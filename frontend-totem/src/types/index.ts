@@ -15,6 +15,7 @@ export interface Reserva {
   dataCheckout: string
   status: StatusReserva
   hospedeDataNascimento: string | null
+  faceDescriptor?: string | null
 }
 
 export interface ChaveEmitida {

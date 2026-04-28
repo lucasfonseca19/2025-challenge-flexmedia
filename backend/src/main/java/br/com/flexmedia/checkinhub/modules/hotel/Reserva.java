@@ -49,7 +49,7 @@ public class Reserva {
     @Column(name = "hospede_data_nascimento")
     private LocalDate hospedeDataNascimento;
 
-    @Column(name = "face_descriptor", columnDefinition = "TEXT")
+    @Column(name = "face_descriptor", columnDefinition = "MEDIUMTEXT")
     private String faceDescriptor;
 
     @NotNull

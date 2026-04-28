@@ -25,7 +25,6 @@ public class CheckinService {
     private final ReservaRepository reservaRepository;
     private final MetricasService metricasService;
     private final PMSAdapter pmsAdapter;
-
     public ReservaResponseDTO buscarParaCheckin(String codigoOuCpf) {
         String entrada = codigoOuCpf == null ? "" : codigoOuCpf.trim();
         if (entrada.isBlank()) {

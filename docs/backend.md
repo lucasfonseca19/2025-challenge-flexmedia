@@ -27,7 +27,7 @@ br.com.flexmedia.checkinhub
 └── modules/
     ├── hotel/
     │   ├── Hotel.java           — entidade hotel
-    │   ├── Reserva.java         — entidade reserva (inclui faceDescriptor TEXT)
+    │   ├── Reserva.java         — entidade reserva (inclui faceDescriptor MEDIUMTEXT)
     │   ├── StatusReserva.java   — enum: CONFIRMADA, CHECKIN_REALIZADO, CHECKOUT_REALIZADO, CANCELADA
     │   ├── HotelController.java — /api/hoteis
     │   ├── ReservaController.java — /api/reservas
@@ -44,7 +44,7 @@ br.com.flexmedia.checkinhub
     ├── checkin/
     │   ├── CheckinController.java — /api/checkin
     │   ├── CheckinService.java
-    │   └── CheckinConfirmDTO.java — campos: faceDescriptor (String), idioma (String)
+    │   └── CheckinConfirmDTO.java — campos: faceDescriptor, dataNascimento, idioma
     ├── checkout/
     │   ├── CheckoutController.java — /api/checkout
     │   └── CheckoutService.java
@@ -80,9 +80,9 @@ id (IDENTITY) | nome | cnpj (unique) | cidade | estado | ativo | createdAt | upd
 ```
 id (IDENTITY) | codigoReserva (unique) | hospedeNome | hospedeCpf | hospedeEmail
 | quartoNumero | hotel (FK) | hospedeDataNascimento | dataCheckin | dataCheckout
-| status (enum) | faceDescriptor (TEXT) | createdAt | updatedAt
+| status (enum) | faceDescriptor (MEDIUMTEXT) | createdAt | updatedAt
 ```
-> `faceDescriptor` — JSON array de 128 números gerado pelo face-api.js. Ex: `"[0.12, -0.34, ...]"`
+> `faceDescriptor` — JSON array com o embedding facial gerado localmente pelo `Human` no browser.
 
 ### Usuario
 ```
@@ -150,7 +150,7 @@ id (IDENTITY) | reserva (FK) | token (UUID, unique) | tipo (enum) | dataExpiraca
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | GET | `/api/checkin/reserva/{codigoOuCpf}` | **Público** | Busca reserva por código ou CPF |
-| POST | `/api/checkin/confirmar/{reservaId}` | **Público** | Confirma check-in. Body: `{faceDescriptor, idioma}` |
+| POST | `/api/checkin/confirmar/{reservaId}` | **Público** | Confirma check-in. Body: `{faceDescriptor, idioma}` ou fallback `{dataNascimento, idioma}` |
 
 ### Check-out — `/api/checkout`
 | Método | Rota | Auth | Descrição |
@@ -166,7 +166,7 @@ id (IDENTITY) | reserva (FK) | token (UUID, unique) | tipo (enum) | dataExpiraca
 ### Quartos — `/api/quartos`
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
-| GET | `/api/quartos/{quartoNumero}/validar-face` | **Público** | Retorna faceDescriptor armazenado da reserva ativa do quarto |
+| POST | `/api/quartos/{quartoNumero}/validar-face` | **Público** | Retorna o descriptor salvo da reserva `CHECKIN_REALIZADO` para comparação local no frontend |
 
 ### Totens — `/api/totens`
 | Método | Rota | Auth | Descrição |

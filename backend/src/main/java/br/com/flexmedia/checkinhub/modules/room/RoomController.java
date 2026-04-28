@@ -15,29 +15,28 @@ import java.util.Optional;
 public class RoomController {
 
     private final ReservaRepository reservaRepository;
-
     @PostMapping("/{quartoNumero}/validar-face")
     public ResponseEntity<ValidacaoFaceResponseDTO> validarFace(
-            @PathVariable String quartoNumero,
-            @RequestBody ValidacaoFaceRequestDTO dto) {
+            @PathVariable String quartoNumero) {
 
-        // Busca reserva ativa (CHECKIN_REALIZADO) para o quarto
         Optional<Reserva> reservaOpt = reservaRepository
-            .findByQuartoNumeroAndStatus(quartoNumero, StatusReserva.CHECKIN_REALIZADO);
+                .findByQuartoNumeroAndStatus(quartoNumero, StatusReserva.CHECKIN_REALIZADO);
 
-        if (reservaOpt.isEmpty() || reservaOpt.get().getFaceDescriptor() == null) {
+        if (reservaOpt.isEmpty()) {
             return ResponseEntity.ok(new ValidacaoFaceResponseDTO(false, "Sem check-in ativo para este quarto"));
         }
 
-        // Retorna o descriptor armazenado para comparação no frontend
-        // A comparação real é feita pelo face-api.js no browser
         Reserva reserva = reservaOpt.get();
+        if (reserva.getFaceDescriptor() == null || reserva.getFaceDescriptor().isBlank()) {
+            return ResponseEntity.ok(new ValidacaoFaceResponseDTO(false, "Sem imagem facial registrada para este hóspede"));
+        }
+
         return ResponseEntity.ok(new ValidacaoFaceResponseDTO(
-            true,
-            "Descriptor encontrado",
-            reserva.getFaceDescriptor(),
-            reserva.getHospedeNome(),
-            reserva.getQuartoNumero()
+                true,
+                "Descriptor facial encontrado",
+                reserva.getFaceDescriptor(),
+                reserva.getHospedeNome(),
+                reserva.getQuartoNumero()
         ));
     }
 }
