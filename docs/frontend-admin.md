@@ -72,6 +72,7 @@ Comportamento esperado:
 ## Padroes de UI
 
 - Layout administrativo com sidebar e header.
+- A sidebar do desktop pode ser minimizada para modo icone-only; no mobile ela continua abrindo em overlay via botao hamburguer.
 - Operacoes destrutivas devem ter confirmacao clara.
 - Erros HTTP devem preferir `response.data.detail`.
 - Telas operacionais devem evitar mocks silenciosos quando houver contrato real de backend.
