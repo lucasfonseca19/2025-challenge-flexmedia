@@ -41,7 +41,7 @@ Verificar saúde: `GET http://localhost:8080/actuator/health` → `{"status":"UP
 
 ## Decisões já tomadas — não questionar
 
-- Banco: **MySQL 8.4** (foi Oracle, migrado)
+- Banco: **MySQL 8.4**
 - Frontend: **React 19 + TypeScript + Vite + Tailwind CSS v4**
 - Reconhecimento facial: **@vladmandic/human** local no browser — frontend captura embedding facial e backend apenas persiste/serve o descriptor
 - Auth: **JWT** com claims `email`, `hotelId`, `role`
@@ -50,13 +50,17 @@ Verificar saúde: `GET http://localhost:8080/actuator/health` → `{"status":"UP
 - IDs: `GenerationType.IDENTITY` em todas as entidades (auto_increment MySQL)
 - Redis: **removido** — não usar
 - Custo: **zero** — nenhuma API paga permitida
+- Totem Studio: customização visual por hotel com rascunho/publicação, upload local de mídia e renderer compartilhado entre admin e totem
 
 ## Documentos de contexto detalhados
 
-- `docs/backend.md` — entidades, endpoints, segurança, padrões
-- `docs/frontend-totem.md` — fluxo, páginas, Human, i18n
+- `docs/ARQUITETURA.md` — fonte técnica central: arquitetura, tecnologias, banco, auth, Totem Studio e biometria
+- `docs/backend.md` — entidades, endpoints e padrões do backend
 - `docs/frontend-admin.md` — auth, rotas, páginas, serviços
-- `docs/TASKS.md` — histórico de tarefas realizadas e pendentes
+- `docs/frontend-totem.md` — fluxo, páginas, Human, i18n
+- `docs/OPERACAO_LOCAL.md` — operação local, queries e contratos de homologação
+- `docs/CENARIOS_TESTE.md` — tracker vivo de QA manual
+- `docs/TASKS.md` — histórico legado; não usar como fonte atual
 
 ## Fluxo principal do hóspede (totem)
 

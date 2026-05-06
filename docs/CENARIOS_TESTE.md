@@ -4,6 +4,7 @@
 > **Estratégia:** garantir o básico antes de edge cases. Seguir a ordem das seções (P0 → P3).
 > **Ambientes:** Backend `http://localhost:8080` · Totem `http://localhost:5173` · Admin `http://localhost:5174`
 > **Credenciais seed:** `admin@flexmedia.com` / `admin123`
+> **Guia operacional:** ver `docs/OPERACAO_LOCAL.md` para contratos atuais, acesso ao DB e checklist antes de refinamentos.
 > **Legenda de prioridade:** 🔴 P0 (bloqueante) · 🟠 P1 (crítico) · 🟡 P2 (importante) · 🟢 P3 (edge case / refinamento)
 > **Legenda de execução:** ✅ passou · ⚠️ passou parcialmente / divergente · ❌ falhou · ⏳ não testado
 
@@ -23,7 +24,7 @@
 <a id="status-execucao"></a>
 # Status de execução
 
-Última execução manual assistida: **2026-04-28**.
+Última execução manual assistida: **2026-05-05**.
 
 Ambiente usado:
 - Backend `http://localhost:8080`
@@ -44,6 +45,12 @@ Dados criados/validados na execução:
 - Conteúdo visual ativo: `Conteudo Visual 483815` (`id=3`)
 - Totem: `Totem P0 3344`, código `5RIKKD`
 - Homologação biométrica Human: reserva `PAGE-9450220-15`, quarto `615`, reserva `id=23`, chave digital `61574EB1FD2943B1AB2348DF1793F04D`
+- Massa de re-homologação 2026-05-05:
+  - `HML-DOB-OK`, quarto `701`, fallback por data validado e chave digital `0BC559D6DDD44321B2D0EE1E5D99FF03`
+  - `HML-CANCELADA`, quarto `702`, reserva cancelada
+  - `HML-JA-CHECKIN`, quarto `703`, reserva já em check-in com descriptor dummy
+  - `HML-SEM-DESC`, quarto `704`, check-in ativo sem descriptor facial
+  - `HML-DESC-RUIM`, quarto `705`, check-in ativo com descriptor inválido/corrompido
 
 | TC | Resultado | Evidência / observação |
 |----|-----------|------------------------|
@@ -70,12 +77,12 @@ Dados criados/validados na execução:
 | TC-041 | ✅ | Código `5RIKKD` ativou o totem; redirecionou para IdlePage. |
 | TC-042 | ✅ | Heartbeat atualizou `totens.ultimo_heartbeat`; admin mostrou `Online / Agora`. |
 | TC-043 | ✅ | Código inválido exibiu erro e permaneceu em `/setup`. |
-| TC-050 | ✅ | Retestado com câmera real pelo usuário: reserva `PAGE-9450220-15` concluiu check-in biométrico com Human, emitiu chave e banco confirmou `status=CHECKIN_REALIZADO`, `face_descriptor` JSON válido, 1024 dimensões e tamanho 14500. |
+| TC-050 | ✅ | Retestado com câmera real pelo usuário em 2026-05-05. Execução anterior com `PAGE-9450220-15` também confirmou check-in biométrico Human, chave ativa, `face_descriptor` JSON válido com 1024 dimensões e status `CHECKIN_REALIZADO`. |
 | TC-051 | ⏳ | Não executado. |
 | TC-052 | ⏳ | Não executado. |
-| TC-053 | ⏳ | Não executado. |
-| TC-054 | ⏳ | Não executado. |
-| TC-055 | ✅ | Backend rejeitou check-in sem `faceDescriptor` e sem DOB válido; DOB correto permitiu prosseguir. |
+| TC-053 | ✅ | Navegador interno em 2026-05-05: `HML-JA-CHECKIN` exibiu aviso de check-in já realizado e não mostrou ação para confirmar novo check-in. |
+| TC-054 | ✅ | Navegador interno em 2026-05-05: `HML-CANCELADA` exibiu aviso de reserva cancelada e não permitiu avançar. |
+| TC-055 | ✅ | Navegador interno em 2026-05-05: DOB incorreto bloqueou; DOB correto `01/01/1990` para `HML-DOB-OK` emitiu chave. Banco confirmou `CHECKIN_REALIZADO`, `face_descriptor` vazio e chave ativa. |
 | TC-060 | ✅ | Retestado após correção: fluxo de checkout vai de confirmação de dados para `/checkout`, sem passar por `/facial`. |
 | TC-061 | ✅ | Checkout de reserva `CONFIRMADA` foi bloqueado com `422` e detalhe `Check-out não permitido`. |
 | TC-100 | ✅ | Cadastro de operador via `/usuarios` funcionou e usuário apareceu na lista. |
@@ -83,15 +90,15 @@ Dados criados/validados na execução:
 | TC-102 | ✅ | E-mail duplicado retornou `422` com detalhe `E-mail já cadastrado`. |
 | TC-103 | ✅ | Usuário operador foi desativado com `204`; login posterior retornou `401`. |
 | TC-104 | ✅ | Retestado após correção: tentativa de auto-desativação retorna `422` com mensagem clara. |
-| TC-110 | ✅ | Retestado com câmera real pelo usuário em `/porta/615`: mesmo rosto usado no check-in liberou acesso. Banco confirmou uma única reserva ativa para o quarto `615`. |
-| TC-111 | ✅ | Retestado manualmente pelo usuário: tentativa com rosto diferente/condição negativa foi negada ou falhou com mensagem clara. |
-| TC-112 | ⏳ | Não retestado nesta execução. |
-| TC-120 | ⚠️ | Configuração por API foi aplicada visualmente no totem: logo, nome `Hotel Teste P0` e idiomas `pt/en/es`; fluxo de upload/formulário da UI ainda não foi exercitado. |
-| TC-121 | ✅ | Após reload do totem, `localStorage.totemConfig` manteve logo, nome e idiomas na IdlePage. |
-| TC-130 | ✅ | Conteúdo `Conteudo P0 Ativo` foi criado via API com `201`. |
-| TC-131 | ✅ | Retestado no navegador: IdlePage exibiu `Conteudo Visual 483815` vindo de `totemConfig.conteudo`. |
-| TC-132 | ✅ | Conteúdo inativado saiu do payload público `conteudo`. |
-| TC-133 | ✅ | `DELETE /api/conteudo/{id}` retornou `204`; conteúdo excluído não apareceu mais na listagem. |
+| TC-110 | ✅ | Retestado com câmera real pelo usuário em 2026-05-05: mesmo rosto usado no check-in liberou acesso. Execução anterior em `/porta/615` também passou. |
+| TC-111 | ✅ | Retestado manualmente pelo usuário em 2026-05-05: tentativa com rosto diferente/condição negativa foi negada ou falhou com mensagem clara. |
+| TC-112 | ✅ | Retestado em 2026-05-05: API retornou `Sem check-in ativo para este quarto` para quarto inexistente `799`. Cenário relacionado de quarto com check-in ativo sem face também foi validado em `/porta/704` e retornou `Sem imagem facial registrada para este hóspede`. |
+| TC-120 | ⏳ | Rehomologar com Totem Studio: rascunho, publicação e renderização no totem. Evidências anteriores cobriam apenas `hotel_config`. |
+| TC-121 | ⏳ | Rehomologar persistência do design publicado após reload do totem. |
+| TC-130 | ⏳ | Rehomologar upload pela biblioteca do Totem Studio. Evidências anteriores cobriam apenas `conteudo_totem`. |
+| TC-131 | ⏳ | Rehomologar uso de mídia publicada no design da IdlePage. |
+| TC-132 | ⏳ | Rehomologar vídeo MP4 em loop no preview e no totem. |
+| TC-133 | ⏳ | Rehomologar remoção de mídia pela API nova de Totem Studio. |
 | TC-140 | ✅ | Dashboard ADMIN renderizou cards e gráficos com dados agregados após massa com 2+ hotéis/check-ins. |
 | TC-141 | ✅ | Dashboard OPERADOR renderizou dados do hotel do operador. |
 | TC-142 | ✅ | `metricas_diarias` registrou `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=1` para 2026-04-24. |
@@ -249,7 +256,7 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 
 ### TC-040 — Criar totem no painel (OPERADOR)
 - **Pré:** logado como OPERADOR
-- **Passos:** `/totem` → aba Dispositivos → Novo Totem → nome/localização → Salvar
+- **Passos:** `/totens` → Novo Totem → nome → Salvar
 - **Esperado:**
   - `POST /api/hoteis/{hotelId}/totens` retorna `201` com `codigo` único gerado
   - Totem aparece na lista com status offline
@@ -305,6 +312,8 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 
 **Execução 2026-04-28:** passou com `PAGE-9450220-15` / quarto `615`. Banco confirmou `face_descriptor` válido, 1024 dimensões, chave digital ativa e status `CHECKIN_REALIZADO`.
 
+**Execução 2026-05-05:** retestado manualmente pelo usuário com câmera real. Navegador interno não consegue validar câmera, mas validou o fluxo alternativo por data de nascimento em `HML-DOB-OK` até `/emitir-chave`.
+
 ### TC-051 — Check-in buscando por CPF
 - **Passos:** idêntico a TC-050, mas no passo 3 digitar CPF (formato `000.000.000-00` OU `00000000000`)
 - **Esperado:** busca encontra reserva, fluxo segue igual
@@ -318,9 +327,13 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 - **Passos:** TC-050 até passo 4
 - **Esperado:** `POST /api/checkin/confirmar` retorna `400` com mensagem de status inválido, UI exibe erro
 
+**Execução 2026-05-05:** passou no navegador interno com `HML-JA-CHECKIN`. A tela de confirmação exibiu aviso de check-in já realizado e não disponibilizou botão para prosseguir.
+
 ### TC-054 — Reserva CANCELADA não permite check-in
 - **Pré:** reserva com `status = CANCELADA`
 - **Esperado:** ConfirmDataPage exibe aviso e não permite avançar
+
+**Execução 2026-05-05:** passou no navegador interno com `HML-CANCELADA`. A tela exibiu aviso de reserva cancelada e manteve apenas a ação de voltar.
 
 ### TC-055 — Fallback de confirmação por data de nascimento quando câmera/Human falha
 - **Pré:** dispositivo sem câmera OU Human não detecta rosto após tentativas
@@ -397,49 +410,58 @@ Funcionalidades essenciais que sustentam o produto ao longo do tempo.
 
 **Execução 2026-04-28:** passou manualmente em `/porta/615` com o mesmo rosto usado no check-in.
 
+**Execução 2026-05-05:** retestado manualmente pelo usuário com câmera real; mesmo rosto liberou acesso.
+
 ### TC-111 — Validação facial nega acesso com rosto diferente
 - **Passos:** outra pessoa tenta acesso
 - **Esperado:** similaridade `< 0.5`, UI mostra "Acesso negado" ou mensagem clara de validação facial
 
 **Execução 2026-04-28:** passou manualmente conforme relato do usuário.
 
+**Execução 2026-05-05:** retestado manualmente pelo usuário; condição negativa foi negada ou falhou com mensagem clara.
+
 ### TC-112 — Quarto sem check-in ativo
 - **Passos:** `/porta/{quartoSemReserva}`
 - **Esperado:** retorna erro, UI informa que não há hóspede ativo no quarto
 
+**Execução 2026-05-05:** passou por validação complementar de API:
+- `POST /api/quartos/704/validar-face` retornou `Sem imagem facial registrada para este hóspede`.
+- `POST /api/quartos/799/validar-face` retornou `Sem check-in ativo para este quarto`.
+
 ---
 
-## 2.3 Configuração de aparência do totem
+## 2.3 Totem Studio e aparência do totem
 
-### TC-120 — Alterar logo e cores do hotel
+### TC-120 — Alterar tema, blocos e publicar design
 - **Pré:** OPERADOR logado
-- **Passos:** `/totem` → aba Aparência → upload logo, escolher cor primária → Salvar → recarregar totem
+- **Passos:** `/conteudo` → editar tema/blocos no Totem Studio → Salvar rascunho → Publicar nos totens
 - **Esperado:**
-  - `PUT /api/hoteis/{hotelId}/config` → `200`
-  - **Banco:** `hotel_config` atualizado
-  - Totem re-fetcha config via heartbeat ou reload → aparência aplicada (logo na IdlePage, cor dos botões)
+  - `PUT /api/hoteis/{hotelId}/totem-design/draft` → `200`
+  - `POST /api/hoteis/{hotelId}/totem-design/publish` → `200`
+  - Totem renderiza o design publicado na IdlePage
 
 ### TC-121 — Config persiste entre reinícios do totem
-- **Passos:** configurar → fechar navegador → reabrir
-- **Esperado:** `localStorage.totemConfig` + `GET /api/hoteis/{hotelId}/config` → aparência mantida
+- **Passos:** publicar design → fechar navegador do totem → reabrir
+- **Esperado:** design publicado permanece no backend e reaparece na IdlePage
 
 ---
 
-## 2.4 Conteúdo exibido no totem (promoções/mídia)
+## 2.4 Mídia e conteúdo exibido no totem
 
-### TC-130 — Criar conteúdo ativo
-- **Passos:** `/totem` → aba Conteúdo → Novo → título, tipo (IMAGEM/VIDEO), URL, ordem, ativo=true → Salvar
-- **Esperado:** `POST /api/conteudo` → `201`, aparece na lista
+### TC-130 — Enviar mídia para biblioteca do Totem Studio
+- **Passos:** `/conteudo` → Biblioteca de mídia → enviar imagem ou MP4
+- **Esperado:** `POST /api/hoteis/{hotelId}/totem-media` → `201`, mídia aparece na biblioteca e arquivo fica acessível por `/uploads/...`
 
-### TC-131 — Conteúdo ativo aparece na IdlePage do totem
-- **Esperado:** Totem busca `GET /api/conteudo?apenasAtivos=true` e exibe na tela de idle (carrossel)
+### TC-131 — Mídia publicada aparece na IdlePage do totem
+- **Passos:** associar mídia a um bloco, publicar design e recarregar totem na tela idle
+- **Esperado:** Totem busca design publicado e exibe imagem/video no bloco configurado
 
-### TC-132 — Desativar conteúdo o remove da rotação
-- **Passos:** editar → ativo=false → Salvar → recarregar totem
-- **Esperado:** conteúdo some da IdlePage
+### TC-132 — Vídeo roda em loop no preview e no totem
+- **Passos:** adicionar bloco de vídeo, selecionar MP4, observar preview e idle publicada
+- **Esperado:** vídeo renderiza com `muted loop autoPlay playsInline` no admin e no totem
 
-### TC-133 — Excluir conteúdo
-- **Esperado:** `DELETE /api/conteudo/{id}` → `200`, removido do banco
+### TC-133 — Remover mídia da biblioteca
+- **Esperado:** `DELETE /api/hoteis/{hotelId}/totem-media/{assetId}` → `204`, registro removido e arquivo local apagado quando possível
 
 ---
 
@@ -667,7 +689,7 @@ POST /api/reservas {
 }
 
 -- Criar totem
-POST /api/hoteis/1/totens { nome: "Totem Lobby", localizacao: "Recepção" }
+POST /api/hoteis/1/totens { nome: "Totem Lobby" }
 -- Copiar o codigo retornado
 ```
 
@@ -698,7 +720,14 @@ Para cada execução da suíte, preencher tabela:
 | TC-030 | 2026-04-24 | ⚠️ | Reserva criada, mas checkout/DOB não persistiram como informado no formulário. |
 | TC-050 | 2026-04-24 | ⚠️ | Check-in concluiu sem câmera real; fallback manual bypassou DOB e `face_descriptor` ficou vazio. |
 | TC-050 | 2026-04-28 | ✅ | Check-in biométrico com Human concluiu para `PAGE-9450220-15`; `face_descriptor` JSON válido com 1024 dimensões e chave digital ativa. |
+| TC-050 | 2026-05-05 | ✅ | Retestado manualmente pelo usuário com câmera real. Navegador interno não valida câmera, mas fluxo alternativo por DOB foi exercitado em `HML-DOB-OK`. |
+| TC-053 | 2026-05-05 | ✅ | `HML-JA-CHECKIN` bloqueou novo check-in na tela de confirmação. |
+| TC-054 | 2026-05-05 | ✅ | `HML-CANCELADA` exibiu aviso de reserva cancelada e não permitiu avançar. |
+| TC-055 | 2026-05-05 | ✅ | DOB incorreto bloqueou; DOB correto `01/01/1990` emitiu chave para `HML-DOB-OK`. Banco confirmou `CHECKIN_REALIZADO` e chave ativa. |
 | TC-110 | 2026-04-28 | ✅ | Porta `/porta/615` liberou o mesmo rosto usado no check-in. |
 | TC-111 | 2026-04-28 | ✅ | Porta negou rosto diferente/condição negativa conforme teste manual do usuário. |
+| TC-110 | 2026-05-05 | ✅ | Retestado manualmente pelo usuário com câmera real; mesmo rosto liberou acesso. |
+| TC-111 | 2026-05-05 | ✅ | Retestado manualmente pelo usuário; rosto diferente/condição negativa foi negado ou falhou com mensagem clara. |
+| TC-112 | 2026-05-05 | ✅ | API retornou erro controlado para quarto sem check-in ativo (`799`) e para quarto com check-in ativo sem face (`704`). |
 | TC-055 | 2026-04-24 | ❌ | Fallback manual não exigiu data de nascimento. |
 | TC-060 | 2026-04-24 | ⚠️ | Checkout concluiu, mas fluxo real diverge do roteiro. |
