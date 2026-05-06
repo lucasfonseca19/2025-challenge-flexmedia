@@ -58,9 +58,23 @@ Verificar saúde: `GET http://localhost:8080/actuator/health` → `{"status":"UP
 - `docs/backend.md` — entidades, endpoints e padrões do backend
 - `docs/frontend-admin.md` — auth, rotas, páginas, serviços
 - `docs/frontend-totem.md` — fluxo, páginas, Human, i18n
+- `docs/REQUISITOS_CHALLENGE.md` — requisitos do enunciado, entregas e aderência do MVP
 - `docs/OPERACAO_LOCAL.md` — operação local, queries e contratos de homologação
 - `docs/CENARIOS_TESTE.md` — tracker vivo de QA manual
 - `docs/TASKS.md` — histórico legado; não usar como fonte atual
+
+## Workflow obrigatório para agentes
+
+Antes de implementar:
+- Leia `docs/ARQUITETURA.md`.
+- Leia o documento específico da superfície alterada.
+- Para requisitos de entrega, leia `docs/REQUISITOS_CHALLENGE.md`.
+- Para validação, consulte `docs/CENARIOS_TESTE.md`.
+
+Depois de implementar:
+- Atualize docs afetados no mesmo commit ou em commit separado de docs.
+- Rode build/teste compatível com a superfície alterada.
+- Não use documentos fora deste repo como fonte direta sem consolidar aqui.
 
 ## Fluxo principal do hóspede (totem)
 

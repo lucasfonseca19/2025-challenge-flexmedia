@@ -81,6 +81,7 @@ O totem busca o design publicado e renderiza a idle customizada.
 - `docs/backend.md`: detalhes do backend.
 - `docs/frontend-admin.md`: detalhes do painel admin.
 - `docs/frontend-totem.md`: detalhes do totem.
+- `docs/REQUISITOS_CHALLENGE.md`: requisitos do enunciado e aderencia do MVP.
 - `docs/OPERACAO_LOCAL.md`: comandos, banco e contratos locais.
 - `docs/CENARIOS_TESTE.md`: tracker de homologacao manual.
 - `AGENTS.md` e `CLAUDE.md`: contexto resumido para agentes.

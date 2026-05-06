@@ -162,6 +162,7 @@ Tipos aceitos:
 - `docs/backend.md`: pacotes, entidades e endpoints do backend.
 - `docs/frontend-admin.md`: rotas, servicos e estrutura do painel admin.
 - `docs/frontend-totem.md`: fluxo do totem, Human, i18n e runtime.
+- `docs/REQUISITOS_CHALLENGE.md`: requisitos do enunciado, entregas e aderencia do MVP.
 - `docs/OPERACAO_LOCAL.md`: comandos locais, queries e contratos de homologacao.
 - `docs/CENARIOS_TESTE.md`: tracker vivo de QA manual.
 - `docs/TASKS.md`: historico legado de planejamento, nao fonte atual de arquitetura.
