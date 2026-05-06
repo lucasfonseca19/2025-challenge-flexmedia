@@ -42,4 +42,46 @@ export interface TotemConfig {
     urlMidia: string
     ordemExibicao: number
   }[]
+  design?: TotemDesign | null
+}
+
+export type TotemBlockType = 'hero' | 'cta' | 'carousel' | 'banner' | 'amenities' | 'video' | 'footer' | 'language'
+
+export interface TotemTheme {
+  brandName: string
+  primaryColor: string
+  backgroundColor: string
+  textColor: string
+  surfaceColor: string
+  fontFamily: string
+}
+
+export interface TotemLayout {
+  template: string
+  density: 'compact' | 'comfortable' | 'spacious'
+  screen: 'portrait' | 'landscape'
+}
+
+export interface TotemBlock {
+  id: string
+  type: TotemBlockType
+  visible: boolean
+  title: string
+  subtitle?: string
+  imageUrl?: string
+  videoUrl?: string
+  alignment?: 'left' | 'center' | 'right'
+  variant?: string
+  backgroundColor?: string
+  overlay?: number
+  items?: string[]
+}
+
+export interface TotemDesign {
+  id?: number
+  hotelId?: number
+  status?: 'DRAFT' | 'PUBLISHED'
+  theme: TotemTheme
+  layout: TotemLayout
+  blocks: TotemBlock[]
 }

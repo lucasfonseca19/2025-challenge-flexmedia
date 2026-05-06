@@ -1,5 +1,43 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 *, *::before, *::after { box-sizing: border-box; }
 
-body { margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #0f172a; color: #f1f5f9; }
+html {
+  background: #101513;
+}
+
+body {
+  margin: 0;
+  font-family: 'Satoshi', 'Outfit', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: #101513;
+  color: #eef3ef;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease, opacity 180ms ease;
+}
+
+button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.studio-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.04);
+  padding: 0.625rem 0.75rem;
+  color: #ffffff;
+  outline: none;
+}
+
+.studio-input:focus {
+  border-color: rgb(215 251 232 / 0.65);
+}

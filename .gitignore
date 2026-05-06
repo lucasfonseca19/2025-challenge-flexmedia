@@ -7,6 +7,9 @@ backend/target/
 frontend-totem/dist/
 frontend-admin/dist/
 
+# Runtime uploads
+backend/uploads/
+
 # Node
 node_modules/
 frontend-totem/node_modules/

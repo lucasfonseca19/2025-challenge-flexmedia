@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 html, body, #root {
   width: 100%;
@@ -9,7 +9,7 @@ html, body, #root {
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Satoshi', 'Outfit', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 * {

@@ -1,6 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
+import { totemDesignService } from '../services/api'
+import type { TotemDesign } from '../types'
+import TotemDesignRenderer from '../components/TotemDesignRenderer'
 
 const PROMO_SLIDES = [
   {
@@ -26,18 +29,37 @@ const PROMO_SLIDES = [
 export default function IdlePage() {
   const navigate = useNavigate()
   const { resetar, totemConfig } = useTotem()
+  const [design, setDesign] = useState<TotemDesign | null>(totemConfig?.design ?? null)
   const conteudo = [...(totemConfig?.conteudo ?? [])].sort((a, b) => a.ordemExibicao - b.ordemExibicao)
 
   useEffect(() => {
     resetar()
-  }, [])
+  }, [resetar])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hotelId = Number(params.get('hotelId') ?? totemConfig?.hotelId ?? localStorage.getItem('totem_hotel_id') ?? '')
+    if (!hotelId) return
+
+    localStorage.setItem('totem_hotel_id', String(hotelId))
+    totemDesignService.buscarPublicado(hotelId)
+      .then(data => setDesign(data))
+      .catch(() => setDesign(null))
+  }, [totemConfig?.hotelId])
+
+  if (design) {
+    return (
+      <div onClick={() => navigate('/selecionar-idioma')}>
+        <TotemDesignRenderer design={design} />
+      </div>
+    )
+  }
 
   return (
     <div
-      className="flex flex-col items-center justify-between h-screen w-screen bg-slate-900 text-white p-6 lg:p-12 cursor-pointer select-none"
+      className="flex min-h-[100dvh] w-screen cursor-pointer select-none flex-col items-center justify-between bg-[#101513] p-6 text-white lg:p-12"
       onClick={() => navigate('/selecionar-idioma')}
     >
-      {/* Header */}
       <div className="flex flex-col items-center gap-4 mt-8 lg:mt-16">
         {totemConfig?.config?.logoUrl && (
           <img src={totemConfig.config.logoUrl} alt="Logo" className="h-16 object-contain mb-4" />
@@ -45,21 +67,19 @@ export default function IdlePage() {
         <h1 className="text-4xl lg:text-7xl font-bold tracking-tight text-white">
           {totemConfig?.config?.nomeExibido ?? 'CheckIn Hub'}
         </h1>
-        <p className="text-lg lg:text-2xl text-slate-400">Bem-vindo · Welcome · Bienvenido</p>
+        <p className="text-lg lg:text-2xl text-[#9eb2aa]">Bem-vindo · Welcome · Bienvenido</p>
       </div>
 
-      {/* Instrução central */}
       <div className="flex flex-col items-center gap-6">
-        <div className="w-32 h-1 bg-blue-500 rounded-full animate-pulse" />
-        <p className="text-xl lg:text-3xl text-slate-300 font-light">Toque para iniciar · Touch to start · Toque para comenzar</p>
-        <div className="flex gap-6 mt-6 text-3xl lg:text-5xl">
-          <span>🇧🇷</span>
-          <span>🇺🇸</span>
-          <span>🇪🇸</span>
+        <div className="h-1 w-32 animate-pulse rounded-full bg-[#d7fbe8]" />
+        <p className="text-xl font-light text-slate-300 lg:text-3xl">Toque para iniciar · Touch to start · Toque para comenzar</p>
+        <div className="mt-6 flex gap-3 text-base lg:text-xl">
+          <span className="rounded-2xl bg-white/10 px-5 py-3 font-semibold">PT</span>
+          <span className="rounded-2xl bg-white/10 px-5 py-3 font-semibold">EN</span>
+          <span className="rounded-2xl bg-white/10 px-5 py-3 font-semibold">ES</span>
         </div>
       </div>
 
-      {/* Promoções */}
       <div className="w-full max-w-4xl mb-8">
         {conteudo.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

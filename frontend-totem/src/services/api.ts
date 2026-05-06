@@ -1,4 +1,4 @@
-import type { Reserva, ChaveEmitida, TotemConfig } from '../types'
+import type { Reserva, ChaveEmitida, TotemConfig, TotemDesign } from '../types'
 
 const apiBaseURL =
   import.meta.env.VITE_API_BASE_URL ??
@@ -101,4 +101,9 @@ export const totemConfigService = {
 
   heartbeat: (totemId: number): Promise<void> =>
     post(`/totens/${totemId}/heartbeat`),
+}
+
+export const totemDesignService = {
+  buscarPublicado: (hotelId: number): Promise<TotemDesign | null> =>
+    get(`/hoteis/${hotelId}/totem-design/published`),
 }

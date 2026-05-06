@@ -84,6 +84,8 @@ public class SecurityConfig {
                 .requestMatchers(new AntPathRequestMatcher("/api/totens/*/heartbeat", HttpMethod.POST.name())).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/totens/codigo/**")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/hoteis/*/config", HttpMethod.GET.name())).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/hoteis/*/totem-design/published", HttpMethod.GET.name())).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/uploads/**", HttpMethod.GET.name())).permitAll()
                 // Demais endpoints exigem autenticação
                 .anyRequest().authenticated()
             )

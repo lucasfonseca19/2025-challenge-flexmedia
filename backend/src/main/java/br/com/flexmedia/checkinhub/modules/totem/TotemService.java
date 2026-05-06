@@ -7,6 +7,7 @@ import br.com.flexmedia.checkinhub.modules.hotel.Hotel;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelConfig;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelConfigService;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelRepository;
+import br.com.flexmedia.checkinhub.modules.totemdesign.TotemDesignService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class TotemService {
     private final HotelRepository hotelRepository;
     private final HotelConfigService hotelConfigService;
     private final ConteudoTotemRepository conteudoTotemRepository;
+    private final TotemDesignService totemDesignService;
 
     public List<TotemResponseDTO> listarPorHotel(Long hotelId) {
         return totemRepository.findByHotelId(hotelId).stream()
@@ -89,6 +91,7 @@ public class TotemService {
                         .urlMidia(c.getUrlMidia())
                         .ordemExibicao(c.getOrdemExibicao())
                         .build()).toList())
+                .design(totemDesignService.buscarPublicado(totem.getHotel().getId()))
                 .build();
     }
 

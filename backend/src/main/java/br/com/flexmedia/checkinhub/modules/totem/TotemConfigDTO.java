@@ -1,5 +1,6 @@
 package br.com.flexmedia.checkinhub.modules.totem;
 
+import br.com.flexmedia.checkinhub.modules.totemdesign.dto.TotemDesignDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class TotemConfigDTO {
     private Long hotelId;
     private ConfigDTO config;
     private List<ConteudoDTO> conteudo;
+    private TotemDesignDTO design;
 
     @Data
     @Builder
