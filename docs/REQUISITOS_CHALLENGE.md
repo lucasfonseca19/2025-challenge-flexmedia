@@ -42,6 +42,14 @@ Restricoes:
 - manter arquivos organizados e corretamente nomeados;
 - video pitch com ate 3 minutos e link publico.
 
+## Checklist de pre-entrega
+
+Antes de empacotar a entrega final:
+
+- revisar o repositorio para remover arquivos, instrucoes e artefatos ligados ao uso de IA que nao facam parte do produto entregue;
+- revisar arquivos de contexto para agentes, prompts/instrucoes operacionais, skills locais, tooling auxiliar e artefatos temporarios;
+- garantir que permanencam no repositorio apenas codigo, assets, documentacao e configuracoes realmente necessarios para avaliacao do projeto.
+
 ## Personas e requisitos obrigatorios
 
 ### FlexMedia

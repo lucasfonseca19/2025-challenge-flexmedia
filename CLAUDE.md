@@ -76,6 +76,10 @@ Depois de implementar:
 - Rode build/teste compatível com a superfície alterada.
 - Não use documentos fora deste repo como fonte direta sem consolidar aqui.
 
+Antes da entrega final:
+- Quando o usuário disser que está prestes a entregar o projeto, lembre de revisar e remover do repositório quaisquer arquivos, instruções ou artefatos ligados ao uso de IA que não devam fazer parte da entrega final.
+- Exemplos típicos: arquivos de contexto para agentes, instruções operacionais de IA, skills auxiliares, pastas/tooling local e artefatos temporários criados só para desenvolvimento com IA.
+
 ## Fluxo principal do hóspede (totem)
 
 ```
