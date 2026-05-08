@@ -29,6 +29,7 @@ import {
 } from '@phosphor-icons/react'
 import { hotelService, totemDesignService, totemMediaService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { FONTS } from '../constants/fonts'
 import type { TotemBlock, TotemBlockType, TotemDesign, TotemMediaAsset } from '../types'
 import TotemDesignRenderer from '../components/TotemDesignRenderer'
 
@@ -114,7 +115,7 @@ export default function ContentPage() {
   const [design, setDesign] = useState<TotemDesign>(EMPTY_DESIGN)
   const [midias, setMidias] = useState<TotemMediaAsset[]>([])
   const [selectedBlockId, setSelectedBlockId] = useState('hero')
-  const [tab, setTab] = useState<'design' | 'media' | 'publish'>('design')
+  const [tab, setTab] = useState<'design' | 'publish'>('design')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -184,29 +185,20 @@ export default function ContentPage() {
     }
   }
 
-  async function upload(file: File | undefined) {
+  async function uploadForBlock(file: File | undefined, kind: 'image' | 'video', blockId: string) {
     if (!file) return
     setUploading(true)
     setError(null)
     try {
       const asset = await totemMediaService.upload(hotelId, file)
-      setMidias(current => [asset, ...current])
-      setMessage('Mídia adicionada à biblioteca.')
+      const previousUrl = design.blocks.find(block => block.id === blockId)?.[kind === 'image' ? 'imageUrl' : 'videoUrl']
+      setMidias(current => [asset, ...current.filter(item => item.publicUrl !== previousUrl)])
+      updateBlock(blockId, kind === 'image' ? { imageUrl: asset.publicUrl } : { videoUrl: asset.publicUrl })
+      setMessage('Mídia atualizada no bloco.')
     } catch {
       setError('Arquivo inválido ou acima do limite permitido.')
     } finally {
       setUploading(false)
-    }
-  }
-
-  async function removerMidia(assetId: number) {
-    setError(null)
-    try {
-      await totemMediaService.remover(hotelId, assetId)
-      setMidias(current => current.filter(asset => asset.id !== assetId))
-      setMessage('Mídia removida.')
-    } catch {
-      setError('Não foi possível remover a mídia.')
     }
   }
 
@@ -308,13 +300,13 @@ export default function ContentPage() {
         )}
 
         <div className="mb-5 flex flex-wrap gap-2">
-          {(['design', 'media', 'publish'] as const).map(nextTab => (
+          {(['design', 'publish'] as const).map(nextTab => (
             <button
               key={nextTab}
               onClick={() => setTab(nextTab)}
               className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab === nextTab ? 'bg-[#d7fbe8] text-[#10201d]' : 'bg-white/8 text-[#aabbb4] hover:bg-white/12 hover:text-white'}`}
             >
-              {nextTab === 'design' ? 'Design' : nextTab === 'media' ? 'Mídia' : 'Publicação'}
+              {nextTab === 'design' ? 'Design' : 'Publicação'}
             </button>
           ))}
         </div>
@@ -369,16 +361,6 @@ export default function ContentPage() {
                 </>
               )}
 
-              {tab === 'media' && (
-                <MediaPanel
-                  midias={midias}
-                  uploading={uploading}
-                  onUpload={upload}
-                  onRemove={removerMidia}
-                  onUse={asset => selectedBlock && updateBlock(selectedBlock.id, asset.mimeType.startsWith('video') ? { videoUrl: asset.publicUrl } : { imageUrl: asset.publicUrl })}
-                />
-              )}
-
               {tab === 'publish' && (
                 <PublishPanel design={design} onSave={() => salvarDraft()} onPublish={publicar} saving={saving} />
               )}
@@ -400,7 +382,9 @@ export default function ContentPage() {
                 <BlockEditor
                   block={selectedBlock}
                   midias={midias}
+                  uploading={uploading}
                   onChange={patch => updateBlock(selectedBlock.id, patch)}
+                  onUpload={(kind, file) => uploadForBlock(file, kind, selectedBlock.id)}
                 />
               ) : (
                 <p className="text-sm text-[#9eb2aa]">Selecione ou adicione um bloco para editar.</p>
@@ -417,6 +401,15 @@ export default function ContentPage() {
                   <ColorField label="Texto" value={design.theme.textColor} onChange={value => updateTheme('textColor', value)} />
                   <ColorField label="Superfície" value={design.theme.surfaceColor} onChange={value => updateTheme('surfaceColor', value)} />
                 </div>
+                <Field label="Fonte">
+                  <select value={design.theme.fontFamily} onChange={event => updateTheme('fontFamily', event.target.value)} className="studio-input">
+                    {FONTS.map(font => (
+                      <option key={font.id} value={font.id} style={{ fontFamily: `'${font.id}', system-ui, sans-serif` }}>
+                        {font.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
                 <Field label="Densidade">
                   <select value={design.layout.density} onChange={event => updateLayout('density', event.target.value as TotemDesign['layout']['density'])} className="studio-input">
                     <option value="compact">Compacta</option>
@@ -466,11 +459,16 @@ function SortableBlock({ block, selected, onSelect, onToggle, onRemove }: {
   )
 }
 
-function BlockEditor({ block, midias, onChange }: {
+function BlockEditor({ block, midias, uploading, onChange, onUpload }: {
   block: TotemBlock
   midias: TotemMediaAsset[]
+  uploading: boolean
   onChange: (patch: Partial<TotemBlock>) => void
+  onUpload: (kind: 'image' | 'video', file: File | undefined) => void
 }) {
+  const acceptsImage = block.type === 'hero' || block.type === 'carousel'
+  const acceptsVideo = block.type === 'video'
+
   return (
     <div className="space-y-4">
       <Field label="Título">
@@ -486,28 +484,32 @@ function BlockEditor({ block, midias, onChange }: {
           <option value="right">Direita</option>
         </select>
       </Field>
-      <Field label="Imagem">
-        <select value={block.imageUrl ?? ''} onChange={event => onChange({ imageUrl: event.target.value })} className="studio-input">
-          <option value="">Sem imagem</option>
-          {midias.filter(asset => asset.mimeType.startsWith('image')).map(asset => (
-            <option key={asset.id} value={asset.publicUrl}>{asset.originalName}</option>
-          ))}
-        </select>
-      </Field>
-      {block.type === 'video' && (
-        <Field label="Vídeo">
-          <select value={block.videoUrl ?? ''} onChange={event => onChange({ videoUrl: event.target.value })} className="studio-input">
-            <option value="">Sem vídeo</option>
-            {midias.filter(asset => asset.mimeType.startsWith('video')).map(asset => (
-              <option key={asset.id} value={asset.publicUrl}>{asset.originalName}</option>
-            ))}
-          </select>
-        </Field>
+      {acceptsImage && (
+        <MediaField
+          kind="image"
+          assets={midias}
+          selectedUrl={block.imageUrl}
+          uploading={uploading}
+          onUpload={file => onUpload('image', file)}
+          onClear={() => onChange({ imageUrl: undefined })}
+        />
+      )}
+      {acceptsVideo && (
+        <MediaField
+          kind="video"
+          assets={midias}
+          selectedUrl={block.videoUrl}
+          uploading={uploading}
+          onUpload={file => onUpload('video', file)}
+          onClear={() => onChange({ videoUrl: undefined })}
+        />
       )}
       <ColorField label="Fundo do bloco" value={block.backgroundColor ?? '#ffffff'} onChange={value => onChange({ backgroundColor: value })} />
-      <Field label="Overlay da imagem">
+      {block.type === 'hero' && (
+        <Field label="Overlay da imagem">
         <input type="range" min={0} max={75} value={block.overlay ?? 28} onChange={event => onChange({ overlay: Number(event.target.value) })} className="w-full accent-[#d7fbe8]" />
-      </Field>
+        </Field>
+      )}
       {(block.type === 'amenities' || block.type === 'carousel') && (
         <Field label="Itens, um por linha">
           <textarea
@@ -521,42 +523,67 @@ function BlockEditor({ block, midias, onChange }: {
   )
 }
 
-function MediaPanel({ midias, uploading, onUpload, onUse, onRemove }: {
-  midias: TotemMediaAsset[]
+function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }: {
+  kind: 'image' | 'video'
+  assets: TotemMediaAsset[]
+  selectedUrl?: string
   uploading: boolean
   onUpload: (file: File | undefined) => void
-  onUse: (asset: TotemMediaAsset) => void
-  onRemove: (assetId: number) => void
+  onClear: () => void
 }) {
+  const selectedAsset = assets.find(asset => asset.publicUrl === selectedUrl)
+  const label = kind === 'image' ? 'Imagem' : 'Vídeo'
+  const uploadLabel = selectedUrl
+    ? kind === 'image' ? 'Substituir imagem' : 'Substituir vídeo'
+    : kind === 'image' ? 'Enviar imagem' : 'Enviar vídeo'
+  const accept = kind === 'image' ? 'image/jpeg,image/png,image/webp' : 'video/mp4'
+
   return (
     <div>
-      <PanelTitle icon={<CloudArrowUp size={19} />} title="Biblioteca de mídia" />
-      <label className="mb-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#d7fbe8]/35 bg-[#d7fbe8]/8 p-5 text-center text-sm text-[#d8fff4] hover:bg-[#d7fbe8]/12">
-        <CloudArrowUp size={28} weight="duotone" />
-        <span className="mt-2 font-semibold">{uploading ? 'Enviando arquivo...' : 'Enviar imagem ou vídeo'}</span>
-        <span className="mt-1 text-xs text-[#9eb2aa]">JPG, PNG, WEBP até 8 MB; MP4 até 80 MB</span>
-        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => onUpload(event.target.files?.[0])} disabled={uploading} />
-      </label>
-      <div className="space-y-3">
-        {midias.length === 0 ? (
-          <p className="rounded-2xl bg-white/[0.04] p-4 text-sm text-[#9eb2aa]">Nenhuma mídia enviada ainda.</p>
-        ) : midias.map(asset => (
-          <div key={asset.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-            <div className="overflow-hidden rounded-xl bg-black/20">
-              {asset.mimeType.startsWith('image') ? (
-                <img src={asset.publicUrl} alt={asset.originalName} className="h-28 w-full object-cover" />
-              ) : (
-                <video src={asset.publicUrl} className="h-28 w-full object-cover" muted loop autoPlay playsInline />
-              )}
+      <span className="mb-1.5 block text-xs font-medium text-[#9eb2aa]">{label}</span>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+        <div className="overflow-hidden rounded-xl bg-black/20">
+          {selectedUrl ? (
+            kind === 'image' ? (
+              <img src={selectedUrl} alt={selectedAsset?.originalName ?? 'Mídia selecionada'} className="h-32 w-full object-cover" />
+            ) : (
+              <video src={selectedUrl} className="h-32 w-full object-cover" muted loop autoPlay playsInline />
+            )
+          ) : (
+            <div className="flex h-32 flex-col items-center justify-center text-center text-sm text-[#9eb2aa]">
+              <CloudArrowUp size={26} weight="duotone" />
+              <span className="mt-2">Nenhuma mídia selecionada</span>
             </div>
-            <p className="mt-3 truncate text-sm font-semibold text-white">{asset.originalName}</p>
-            <p className="text-xs text-[#9eb2aa]">{formatBytes(asset.sizeBytes)}</p>
-            <div className="mt-3 flex gap-2">
-              <button onClick={() => onUse(asset)} className="flex-1 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15">Usar</button>
-              <button onClick={() => onRemove(asset.id)} className="rounded-xl bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/15">Remover</button>
+          )}
+        </div>
+
+        {selectedUrl && (
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{selectedAsset?.originalName ?? 'Mídia selecionada'}</p>
+              {selectedAsset && <p className="text-xs text-[#9eb2aa]">{formatBytes(selectedAsset.sizeBytes)}</p>}
             </div>
+            <button type="button" onClick={onClear} className="shrink-0 rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-[#d8fff4] hover:bg-white/12">
+              Remover do bloco
+            </button>
           </div>
-        ))}
+        )}
+
+        <label className="mt-3 flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-[#d7fbe8]/35 bg-[#d7fbe8]/8 px-3 py-2 text-xs font-semibold text-[#d8fff4] hover:bg-[#d7fbe8]/12">
+          <CloudArrowUp className="mr-2" size={16} />
+          {uploading ? 'Enviando arquivo...' : uploadLabel}
+          <input
+            type="file"
+            accept={accept}
+            className="hidden"
+            disabled={uploading}
+            onChange={event => {
+              onUpload(event.target.files?.[0])
+              event.target.value = ''
+            }}
+          />
+      </label>
+
       </div>
     </div>
   )

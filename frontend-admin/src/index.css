@@ -8,7 +8,7 @@ html {
 
 body {
   margin: 0;
-  font-family: 'Satoshi', 'Outfit', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   background: #101513;
   color: #eef3ef;
 }
@@ -40,4 +40,23 @@ button:active {
 
 .studio-input:focus {
   border-color: rgb(215 251 232 / 0.65);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.totem-block-enter {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-snap-x > * {
+  scroll-snap-align: start;
 }
