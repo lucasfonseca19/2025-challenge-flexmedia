@@ -42,13 +42,22 @@ A configuracao do totem e persistida em `localStorage` para permitir kiosk mode 
 
 ## Idle customizada
 
-`IdlePage` usa o design publicado do Totem Studio quando disponivel:
+`IdlePage` opera em modo attract — tela de repouso que convida o hóspede a interagir:
 
-- `totemConfig.design` vindo do endpoint de configuracao publica;
-- fallback por `totemDesignService.buscarPublicado(hotelId)`;
-- fallback final para conteudo/configuracao legados.
+- Busca `TotemDesign` publicado via `totemDesignService.buscarPublicado(hotelId)`;
+- Se o design tem bloco `video` visível, ele vira o vídeo de fundo do attract mode;
+- Se tem bloco `hero` com imagem, ela vira o background do attract;
+- Sem mídia, usa cor primária com gradientes sutis;
+- Texto "Toque para começar" com breathing animation (`animate-breathe`);
+- CTAs "Check-in" e "Check-out" navegam para `/selecionar-idioma?fluxo=checkin|checkout`;
+- Language pills permitem pular direto para `/buscar-reserva` com idioma pré-definido;
+- Fallback final para configuração legada quando não há design publicado.
 
-`TotemDesignRenderer` renderiza blocos de hero, CTA, galeria, banner, amenidades, video, idiomas e rodape. Videos usam `muted loop autoPlay playsInline`.
+Fontes são carregadas dinamicamente via `useFontLoader` que injeta `<link>` no `<head>`. Seis fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk.
+
+Animações: blocos entram com `totem-block-enter` (staggered fade-up), breathing no indicador de toque, `touch-press` para feedback tátil nos botões.
+
+`TotemDesignRenderer` renderiza blocos de hero, CTA, galeria, banner, amenidades, video, idiomas e rodape. Videos usam `muted loop autoPlay playsInline`. Carousel usa scroll horizontal com snap.
 
 ## Human e biometria
 

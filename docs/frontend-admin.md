@@ -59,15 +59,18 @@ Arquivos principais:
 
 - `src/pages/ContentPage.tsx`: editor do Totem Studio.
 - `src/components/TotemDesignRenderer.tsx`: renderer de preview.
+- `src/constants/fonts.ts`: fontes disponíveis para customização.
 - `src/types/index.ts`: tipos `TotemDesign`, `TotemBlock` e `TotemMediaAsset`.
 
 Comportamento esperado:
 
-- carregar rascunho e biblioteca de midia do hotel;
-- editar tema, layout e blocos;
-- usar imagens/videos da biblioteca;
-- preview renderizar igual ao totem, incluindo video em loop;
+- carregar rascunho e biblioteca de mídia do hotel;
+- editar tema (incluindo fonte com dropdown de 6 opções), layout e blocos;
+- usar imagens/vídeos da biblioteca;
+- preview renderiza igual ao totem, incluindo vídeo em loop e fontes dinâmicas;
 - salvar rascunho e publicar para os totens.
+
+Fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk (todas via CDN gratuito).
 
 ## Padroes de UI
 
