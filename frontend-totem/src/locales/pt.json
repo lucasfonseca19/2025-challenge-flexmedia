@@ -4,7 +4,10 @@
     "boasVindas": "Bem-vindo",
     "instrucao": "Toque na tela para iniciar",
     "btnCheckin": "Fazer Check-in",
-    "btnCheckout": "Fazer Check-out"
+    "btnCheckout": "Fazer Check-out",
+    "entradaLabel": "Entrada",
+    "saidaLabel": "Saída",
+    "toqueComecar": "Toque para começar"
   },
   "selecionarIdioma": {
     "titulo": "Selecione seu idioma",

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
 import { totemConfigService } from '../services/api'
+import { KioskButton, KioskInput, KioskShell } from '../components/KioskShell'
 
 export default function SetupPage() {
   const [codigo, setCodigo] = useState('')
@@ -28,29 +29,32 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-screen bg-slate-900 text-white gap-8">
-      <h1 className="text-4xl font-bold">Configuração do Totem</h1>
-      <p className="text-slate-400 text-lg">Digite o código fornecido pelo administrador</p>
-      <div className="flex flex-col gap-4 w-full max-w-sm">
-        <input
+    <KioskShell
+      eyebrow="Ativação"
+      title="Configuração do Totem"
+      subtitle="Digite o código fornecido pelo administrador para vincular este equipamento ao hotel."
+      maxWidth="max-w-xl"
+    >
+      <div className="flex w-full flex-col gap-4">
+        <KioskInput
           type="text"
           value={codigo}
           onChange={e => setCodigo(e.target.value.toUpperCase())}
           onKeyDown={e => e.key === 'Enter' && associar()}
           placeholder="Ex: LOBBY1"
           maxLength={10}
-          className="w-full px-6 py-5 text-3xl text-center font-mono tracking-widest bg-slate-800 border-2 border-slate-600 focus:border-blue-500 rounded-2xl outline-none uppercase"
+          className="text-center font-mono uppercase tracking-widest"
           autoFocus
         />
-        {erro && <p className="text-red-400 text-center">{erro}</p>}
-        <button
+        {erro && <p className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-center text-red-100">{erro}</p>}
+        <KioskButton
           onClick={associar}
           disabled={carregando || !codigo.trim()}
-          className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xl font-semibold rounded-2xl transition-colors"
+          className="w-full"
         >
           {carregando ? 'Verificando...' : 'Associar Totem'}
-        </button>
+        </KioskButton>
       </div>
-    </div>
+    </KioskShell>
   )
 }

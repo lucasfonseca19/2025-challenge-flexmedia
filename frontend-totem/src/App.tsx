@@ -4,7 +4,6 @@ import { TotemProvider, useTotem } from './context/TotemContext'
 import { totemConfigService } from './services/api'
 import IdlePage from './pages/IdlePage'
 import SetupPage from './pages/SetupPage'
-import LanguagePage from './pages/LanguagePage'
 import SearchReservationPage from './pages/SearchReservationPage'
 import ConfirmDataPage from './pages/ConfirmDataPage'
 import FacialRecognitionPage from './pages/FacialRecognitionPage'
@@ -46,7 +45,6 @@ function AppContent() {
     <Routes>
       <Route path="/setup" element={<SetupPage />} />
       <Route path="/" element={<IdlePage />} />
-      <Route path="/selecionar-idioma" element={<LanguagePage />} />
       <Route path="/buscar-reserva" element={<SearchReservationPage />} />
       <Route path="/confirmar-dados" element={<ConfirmDataPage />} />
       <Route path="/facial" element={<FacialRecognitionPage />} />
