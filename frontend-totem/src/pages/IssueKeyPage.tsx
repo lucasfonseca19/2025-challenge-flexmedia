@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
 import { chavesService } from '../services/api'
+import { KioskButton, KioskPanel, KioskShell } from '../components/KioskShell'
 
 export default function IssueKeyPage() {
   const navigate = useNavigate()
@@ -33,57 +34,60 @@ export default function IssueKeyPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-screen bg-slate-900 text-white gap-8">
-<h2 className="text-3xl md:text-5xl font-bold text-center">{t.emitirChave.titulo}</h2>
-
+    <KioskShell
+      eyebrow="Chave digital"
+      title={t.emitirChave.titulo}
+      subtitle={emitindo ? t.geral.carregando : t.emitirChave.instrucao}
+      maxWidth="max-w-3xl"
+    >
       {emitindo && (
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-lg md:text-2xl text-slate-400">{t.geral.carregando}</p>
+          <div className="h-16 w-16 animate-spin rounded-full border-4 border-white/20 border-t-[var(--kiosk-primary)]" />
+          <p className="text-lg opacity-70 md:text-2xl">{t.geral.carregando}</p>
         </div>
       )}
 
       {!emitindo && chave && (
-        <div className="flex flex-col items-center gap-6">
-          {/* Placeholder de QR Code */}
-          <div className="bg-white p-6 rounded-3xl shadow-2xl">
-            <div className="w-36 h-36 md:w-48 md:h-48 bg-slate-800 grid grid-cols-8 grid-rows-8 gap-0.5 p-2 rounded">
+        <div className="grid items-center gap-6 md:grid-cols-[auto_1fr]">
+          <div className="rounded-[1.35rem] bg-white p-5 shadow-[0_28px_80px_-50px_rgba(0,0,0,0.9)]">
+            <div className="grid h-40 w-40 grid-cols-8 grid-rows-8 gap-0.5 rounded bg-slate-950 p-2 md:h-52 md:w-52">
               {Array.from({ length: 64 }).map((_, i) => (
                 <div
                   key={i}
-                  className={`rounded-sm ${Math.random() > 0.5 ? 'bg-white' : 'bg-slate-900'}`}
+                  className={`rounded-sm ${((i * 7) + chave.token.charCodeAt(i % chave.token.length)) % 3 === 0 ? 'bg-white' : 'bg-slate-950'}`}
                 />
               ))}
             </div>
           </div>
-          <div className="text-center">
-            <p className="text-xl text-slate-400">Token</p>
-            <p className="text-2xl md:text-4xl font-mono font-bold tracking-widest mt-1">{chave.token}</p>
-            <p className="text-lg text-slate-500 mt-1">{t.emitirChave.quarto}: {reserva?.quartoNumero}</p>
-            <p className="text-lg text-slate-500 mt-1">Tipo: {chave.tipo}</p>
-          </div>
-          <p className="text-base md:text-xl text-slate-300 text-center px-6 md:px-16">{t.emitirChave.instrucao}</p>
-          <button
+          <KioskPanel className="p-5 md:p-8">
+            <p className="text-sm font-bold uppercase opacity-55">Token</p>
+            <p className="mt-3 break-all font-mono text-2xl font-bold tracking-widest md:text-4xl">{chave.token}</p>
+            <div className="mt-6 grid gap-2 text-lg opacity-70">
+              <p>{t.emitirChave.quarto}: {reserva?.quartoNumero}</p>
+              <p>Tipo: {chave.tipo}</p>
+            </div>
+          </KioskPanel>
+          <KioskButton
             onClick={concluir}
-            className="mt-4 px-8 py-4 md:px-16 md:py-5 bg-green-600 hover:bg-green-500 text-white text-lg md:text-2xl font-semibold rounded-2xl transition-colors active:scale-95"
+            className="md:col-span-2"
           >
             {t.emitirChave.btnConcluir}
-          </button>
+          </KioskButton>
         </div>
       )}
 
       {!emitindo && erro && (
         <div className="flex flex-col items-center gap-6">
-          <span className="text-8xl">❌</span>
-          <p className="text-lg md:text-2xl text-red-400 text-center px-6 md:px-16">{erro}</p>
-          <button
+          <span className="flex h-28 w-28 items-center justify-center rounded-full border border-red-300/30 bg-red-300/12 text-6xl text-red-100">!</span>
+          <p className="text-center text-lg text-red-100 md:text-2xl">{erro}</p>
+          <KioskButton
             onClick={() => navigate('/')}
-            className="px-8 py-3 md:px-12 md:py-4 bg-slate-700 hover:bg-slate-600 text-white text-base md:text-xl rounded-2xl transition-colors"
+            variant="secondary"
           >
             {t.geral.btnVoltar}
-          </button>
+          </KioskButton>
         </div>
       )}
-    </div>
+    </KioskShell>
   )
 }

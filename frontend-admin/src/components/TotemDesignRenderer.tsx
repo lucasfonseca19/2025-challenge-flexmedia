@@ -1,5 +1,7 @@
-import type { TotemBlock, TotemDesign } from '../types'
+import type { TotemDesign } from '../types'
 import { FONTS } from '../constants/fonts'
+
+export type TotemPreviewScreen = 'idle' | 'search' | 'confirm' | 'facial' | 'key' | 'checkout'
 
 interface Props {
   design: TotemDesign
@@ -7,11 +9,11 @@ interface Props {
 }
 
 export default function TotemDesignRenderer({ design, scale = 'preview' }: Props) {
-  const visibleBlocks = design.blocks.filter(block => block.visible)
-  const compact = design.layout.density === 'compact'
-  const spacious = design.layout.density === 'spacious'
   const font = FONTS.find(f => f.id === design.theme.fontFamily)
   const fontStack = font ? `'${font.id}', system-ui, sans-serif` : 'system-ui, sans-serif'
+  const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible)
+  const videoBlock = design.blocks.find(block => block.type === 'video' && block.visible && block.videoUrl)
+  const footerBlock = design.blocks.find(block => block.type === 'footer' && block.visible)
 
   return (
     <div
@@ -23,174 +25,174 @@ export default function TotemDesignRenderer({ design, scale = 'preview' }: Props
       }}
     >
       <link rel="stylesheet" href={font?.href} />
+      {videoBlock?.videoUrl && (
+        <video src={videoBlock.videoUrl} className="absolute inset-0 h-full w-full object-cover" muted loop autoPlay playsInline />
+      )}
+      {!videoBlock?.videoUrl && heroBlock?.imageUrl && (
+        <img src={heroBlock.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      <div className="absolute inset-0" style={{ background: `rgba(0, 0, 0, ${(heroBlock?.overlay ?? 42) / 100})` }} />
       <div
-        className="absolute inset-0 -z-10 opacity-[0.12]"
+        className="absolute inset-0 opacity-[0.14]"
         style={{
           background:
-            `radial-gradient(ellipse at 20% 80%, ${design.theme.primaryColor} 0, transparent 50%), ` +
-            `radial-gradient(ellipse at 80% 20%, ${design.theme.surfaceColor} 0, transparent 45%)`,
+            `radial-gradient(ellipse at 18% 82%, ${design.theme.primaryColor} 0, transparent 50%), ` +
+            `linear-gradient(180deg, rgba(255,255,255,0.08), transparent 35%)`,
         }}
       />
-      <div className={`flex min-h-full flex-col ${compact ? 'gap-3 p-5' : spacious ? 'gap-7 p-9' : 'gap-5 p-7'}`}>
-        {visibleBlocks.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-center">
-            <div>
-              <p className="text-lg font-semibold">Totem sem blocos ativos</p>
-              <p className="mt-2 text-sm opacity-70">Ative pelo menos um bloco no editor.</p>
+
+      <div className="relative z-10 flex h-full flex-col justify-between p-7">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold opacity-82">
+            <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
+            {design.theme.brandName}
+          </div>
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/75">Tela inicial</span>
+        </header>
+
+        <main>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/58">Autoatendimento</p>
+          <h2 className="mt-2 max-w-[8.5ch] text-5xl font-bold leading-none text-white">{heroBlock?.title || 'Bem-vindo'}</h2>
+          {heroBlock?.subtitle && (
+            <p className="mt-3 max-w-[20rem] text-base leading-snug text-white/72">{heroBlock.subtitle}</p>
+          )}
+        </main>
+
+        <footer>
+          <div className="mb-4 flex justify-center">
+            <div className="animate-pulse rounded-[1.25rem] px-6 py-4 text-sm font-bold text-white" style={{ background: design.theme.primaryColor }}>
+              Toque para começar
             </div>
           </div>
-        ) : (
-          visibleBlocks.map((block, i) => (
-            <div key={block.id} className="totem-block-enter" style={{ animationDelay: `${i * 0.08}s` }}>
-              <RenderBlock block={block} design={design} compact={compact} />
-            </div>
-          ))
-        )}
+          <div className="flex justify-center gap-2">
+            {['PT', 'EN', 'ES'].map(lang => (
+              <span key={lang} className="rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85">
+                {lang}
+              </span>
+            ))}
+          </div>
+          {footerBlock && (
+            <p className="mt-4 text-center text-xs font-medium text-white/58">{footerBlock.title}</p>
+          )}
+        </footer>
       </div>
     </div>
   )
 }
 
-function RenderBlock({ block, design, compact }: { block: TotemBlock; design: TotemDesign; compact: boolean }) {
-  switch (block.type) {
-    case 'hero': return <HeroBlock block={block} design={design} compact={compact} />
-    case 'cta': return <CtaBlock block={block} design={design} />
-    case 'carousel': return <CarouselBlock block={block} design={design} />
-    case 'banner': return <BannerBlock block={block} design={design} />
-    case 'amenities': return <AmenitiesBlock block={block} design={design} />
-    case 'video': return <VideoBlock block={block} design={design} />
-    case 'language': return <LanguageBlock design={design} />
-    case 'footer': return <FooterBlock block={block} />
-    default: return null
-  }
-}
+export function TotemFlowPreview({ design, screen }: { design: TotemDesign; screen: Exclude<TotemPreviewScreen, 'idle'> }) {
+  const font = FONTS.find(f => f.id === design.theme.fontFamily)
+  const fontStack = font ? `'${font.id}', system-ui, sans-serif` : 'system-ui, sans-serif'
+  const spec = FLOW_SPECS[screen]
 
-function HeroBlock({ block, design, compact }: { block: TotemBlock; design: TotemDesign; compact: boolean }) {
-  const align = alignmentClass(block.alignment)
   return (
-    <section
-      className={`relative overflow-hidden rounded-[1.4rem] ${compact ? 'min-h-40 p-5' : 'min-h-56 p-7'} flex items-end`}
-      style={{ background: block.backgroundColor ?? design.theme.surfaceColor }}
+    <div
+      className="relative isolate h-full w-full overflow-hidden rounded-[1.75rem] text-left"
+      style={{
+        background:
+          `linear-gradient(145deg, ${hexToRgba(design.theme.primaryColor, 0.24)}, transparent 34%), ` +
+          `linear-gradient(180deg, rgba(255,255,255,0.05), transparent 42%), ${design.theme.backgroundColor}`,
+        color: design.theme.textColor,
+        fontFamily: fontStack,
+      }}
     >
-      {block.imageUrl && (
-        <img src={block.imageUrl} alt={block.title} className="absolute inset-0 h-full w-full object-cover" />
-      )}
-      <div className="absolute inset-0" style={{ background: `rgba(6, 15, 12, ${(block.overlay ?? 28) / 100})` }} />
-      <div className={`relative max-w-[78%] ${align}`}>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">{design.theme.brandName}</p>
-        <h1 className="mt-2 text-3xl font-bold leading-none">{block.title}</h1>
-        {block.subtitle && <p className="mt-3 text-base font-light leading-snug opacity-85">{block.subtitle}</p>}
-      </div>
-    </section>
-  )
-}
-
-function CtaBlock({ block, design }: { block: TotemBlock; design: TotemDesign }) {
-  return (
-    <section className="grid grid-cols-2 gap-3">
-      {(['checkin', 'checkout'] as const).map(action => {
-        const isPrimary = action === 'checkin'
-        const label = action === 'checkin' ? 'Check-in' : 'Check-out'
-        return (
-          <div
-            key={action}
-            className="rounded-2xl px-5 py-4 shadow-[0_18px_45px_-30px_rgba(0,0,0,0.45)]"
-            style={{ background: isPrimary ? design.theme.primaryColor : design.theme.surfaceColor, color: isPrimary ? '#ffffff' : design.theme.textColor }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-75">{block.title}</p>
-            <p className="mt-3 text-xl font-bold">{label}</p>
-            {block.subtitle && <p className="mt-1 text-sm font-light opacity-75">{block.subtitle}</p>}
+      <link rel="stylesheet" href={font?.href} />
+      <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+      <div className="relative z-10 flex h-full flex-col p-7">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold opacity-80">
+            <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
+            {design.theme.brandName}
           </div>
-        )
-      })}
-    </section>
+          {spec.step && (
+            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold opacity-75">{spec.step}</span>
+          )}
+        </header>
+
+        <main className="flex flex-1 flex-col justify-center">
+          {spec.eyebrow && <p className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-55">{spec.eyebrow}</p>}
+          <h2 className="mt-2 max-w-[9ch] text-4xl font-bold leading-none">{spec.title}</h2>
+          {spec.subtitle && <p className="mt-3 text-sm leading-snug opacity-65">{spec.subtitle}</p>}
+          {renderPreviewBody(screen, design)}
+        </main>
+      </div>
+    </div>
   )
 }
 
-function CarouselBlock({ block, design }: { block: TotemBlock; design: TotemDesign }) {
-  const items = block.items?.filter(Boolean) ?? []
-  return (
-    <section className="overflow-hidden rounded-2xl p-4" style={{ background: design.theme.surfaceColor }}>
-      <p className="text-sm font-bold">{block.title}</p>
-      <div className="mt-3 flex gap-3 overflow-x-auto scroll-snap-x pb-1">
-        {(block.imageUrl ? [block.imageUrl] : []).concat(items).slice(0, 6).map((item, index) => (
-          <div key={`${item}-${index}`} className="h-24 min-w-32 flex-shrink-0 overflow-hidden rounded-xl bg-black/10 snap-start">
-            {item.startsWith('/') || item.startsWith('http') ? (
-              <img src={item} alt={`${block.title} ${index + 1}`} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center p-3 text-sm font-light opacity-75">{item}</div>
-            )}
+const FLOW_SPECS: Record<Exclude<TotemPreviewScreen, 'idle'>, { eyebrow: string; title: string; subtitle: string; step: string }> = {
+  search: { eyebrow: 'Check-in', title: 'Identificação', subtitle: 'Informe o código ou CPF para iniciar o atendimento.', step: '1 de 2' },
+  confirm: { eyebrow: 'Conferência', title: 'Confirmar dados', subtitle: 'Revise os dados antes de continuar.', step: '2 de 2' },
+  facial: { eyebrow: '', title: 'Reconhecimento facial', subtitle: '', step: '' },
+  key: { eyebrow: '', title: 'Chave emitida', subtitle: '', step: '' },
+  checkout: { eyebrow: 'Check-out', title: 'Confirmar saída', subtitle: 'Finalize sua estadia com segurança.', step: '2 de 2' },
+}
+
+function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, design: TotemDesign) {
+  if (screen === 'confirm' || screen === 'checkout') {
+    return (
+      <div className="mt-7 rounded-2xl border border-white/12 p-4 text-sm" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
+        {['Hóspede', 'Quarto', 'Check-in', 'Check-out'].map((label, index) => (
+          <div key={label} className="flex justify-between border-b border-white/10 py-2 last:border-0">
+            <span className="opacity-60">{label}</span>
+            <span className="font-semibold">{index === 1 ? '1208' : index === 0 ? 'Maria Silva' : '24/05/2026'}</span>
           </div>
         ))}
+        <div className="mt-4 rounded-xl px-4 py-4 text-center text-lg font-bold text-white" style={{ background: design.theme.primaryColor }}>
+          {screen === 'checkout' ? 'Confirmar saída' : 'Confirmar'}
+        </div>
       </div>
-    </section>
-  )
-}
+    )
+  }
 
-function BannerBlock({ block, design }: { block: TotemBlock; design: TotemDesign }) {
-  return (
-    <section className="rounded-2xl p-5" style={{ background: block.backgroundColor ?? design.theme.primaryColor, color: '#ffffff' }}>
-      <p className="text-xl font-bold">{block.title}</p>
-      {block.subtitle && <p className="mt-1 text-sm font-light opacity-80">{block.subtitle}</p>}
-    </section>
-  )
-}
-
-function AmenitiesBlock({ block, design }: { block: TotemBlock; design: TotemDesign }) {
-  const items = block.items?.filter(Boolean).slice(0, 4) ?? []
-  return (
-    <section>
-      <p className="text-sm font-semibold opacity-75">{block.title}</p>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        {items.map(item => (
-          <div key={item} className="rounded-2xl p-4 text-sm font-medium" style={{ background: design.theme.surfaceColor }}>
-            {item}
+  if (screen === 'facial') {
+    return (
+      <div className="mt-7 flex flex-col items-center gap-4">
+        <div className="aspect-square w-48 rounded-[2rem] border-2 border-blue-400/60 bg-black/30">
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="h-10 w-10 rounded-full border-2 border-white/10 bg-white/[0.04]" />
           </div>
-        ))}
+        </div>
+        <p className="text-xs text-white/35">Posicione o rosto para validar sua identidade</p>
+        <div className="w-48 rounded-xl px-4 py-3.5 text-center text-sm font-bold text-white" style={{ background: design.theme.primaryColor }}>
+          Validar rosto
+        </div>
       </div>
-    </section>
-  )
-}
+    )
+  }
 
-function VideoBlock({ block, design }: { block: TotemBlock; design: TotemDesign }) {
-  return (
-    <section className="overflow-hidden rounded-2xl" style={{ background: design.theme.surfaceColor }}>
-      {block.videoUrl ? (
-        <video src={block.videoUrl} className="h-40 w-full object-cover" muted loop autoPlay playsInline />
-      ) : (
-        <div className="flex h-40 items-center justify-center text-sm font-light opacity-65">Vídeo não selecionado</div>
-      )}
-      <div className="p-4">
-        <p className="font-bold">{block.title}</p>
-        {block.subtitle && <p className="mt-1 text-sm font-light opacity-75">{block.subtitle}</p>}
+  if (screen === 'key') {
+    return (
+      <div className="mt-7 grid grid-cols-[0.8fr_1fr] gap-4">
+        <div className="aspect-square rounded-2xl bg-white p-3">
+          <div className="h-full w-full rounded-xl bg-slate-950" />
+        </div>
+        <div className="rounded-2xl border border-white/12 p-4 text-sm" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
+          <p className="font-bold opacity-60">Token</p>
+          <p className="mt-3 font-mono text-lg font-bold">A91F-28CB</p>
+        </div>
       </div>
-    </section>
-  )
-}
+    )
+  }
 
-function LanguageBlock({ design }: { design: TotemDesign }) {
   return (
-    <section className="flex justify-center gap-2">
-      {(['PT', 'EN', 'ES'] as const).map(lang => (
-        <span key={lang} className="rounded-xl px-4 py-2 text-sm font-semibold" style={{ background: design.theme.surfaceColor }}>
-          {lang}
-        </span>
-      ))}
-    </section>
+    <div className="mt-7 rounded-2xl border border-white/12 p-4" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
+      <div className="rounded-xl border border-white/12 bg-black/10 px-4 py-4 text-xl font-semibold opacity-55">
+        RES-001
+      </div>
+      <div className="mt-4 rounded-xl px-4 py-4 text-center text-lg font-bold text-white" style={{ background: design.theme.primaryColor }}>
+        Buscar
+      </div>
+    </div>
   )
 }
 
-function FooterBlock({ block }: { block: TotemBlock }) {
-  return (
-    <footer className="mt-auto text-center text-sm font-light opacity-70">
-      <p className="font-semibold">{block.title}</p>
-      {block.subtitle && <p className="mt-1">{block.subtitle}</p>}
-    </footer>
-  )
-}
-
-function alignmentClass(alignment?: TotemBlock['alignment']) {
-  if (alignment === 'center') return 'mx-auto text-center'
-  if (alignment === 'right') return 'ml-auto text-right'
-  return 'mr-auto text-left'
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex.trim().replace('#', '')
+  const value = normalized.length === 3
+    ? normalized.split('').map(char => char + char).join('')
+    : normalized
+  if (!/^[0-9a-fA-F]{6}$/.test(value)) return `rgba(15, 118, 110, ${alpha})`
+  const n = Number.parseInt(value, 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }

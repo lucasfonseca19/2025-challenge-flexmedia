@@ -1,108 +1,77 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import {
-  ArrowsOutCardinal,
+  CaretLeft,
+  CaretRight,
   Check,
   CloudArrowUp,
-  Eye,
-  EyeSlash,
   ImageSquare,
-  Layout,
+  Monitor,
   Palette,
-  Plus,
-  Rows,
-  Trash,
+  SlidersHorizontal,
 } from '@phosphor-icons/react'
 import { hotelService, totemDesignService, totemMediaService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { FONTS } from '../constants/fonts'
-import type { TotemBlock, TotemBlockType, TotemDesign, TotemMediaAsset } from '../types'
-import TotemDesignRenderer from '../components/TotemDesignRenderer'
+import type { TotemBlock, TotemDesign, TotemMediaAsset } from '../types'
+import TotemDesignRenderer, { TotemFlowPreview, type TotemPreviewScreen } from '../components/TotemDesignRenderer'
 
-const BLOCK_LABELS: Record<TotemBlockType, string> = {
-  hero: 'Capa',
-  cta: 'Ações',
-  carousel: 'Galeria',
-  banner: 'Banner',
-  amenities: 'Amenidades',
-  video: 'Vídeo',
-  footer: 'Rodapé',
-  language: 'Idiomas',
-}
+const PREVIEW_SCREENS: Array<{ id: TotemPreviewScreen; label: string; kind: 'idle' | 'flow' }> = [
+  { id: 'idle', label: 'Tela inicial', kind: 'idle' },
+  { id: 'search', label: 'Busca', kind: 'flow' },
+  { id: 'confirm', label: 'Confirmação', kind: 'flow' },
+  { id: 'facial', label: 'Biometria', kind: 'flow' },
+  { id: 'key', label: 'Chave', kind: 'flow' },
+  { id: 'checkout', label: 'Check-out', kind: 'flow' },
+]
 
 const EMPTY_DESIGN: TotemDesign = {
   theme: {
     brandName: 'CheckIn Hub',
     primaryColor: '#0f766e',
-    backgroundColor: '#f8fafc',
-    textColor: '#10201d',
-    surfaceColor: '#ffffff',
+    backgroundColor: '#101513',
+    textColor: '#f7fbf8',
+    surfaceColor: '#18211d',
     fontFamily: 'Satoshi',
   },
   layout: {
-    template: 'lobby-elegante',
+    template: 'premium-utilitario',
     density: 'comfortable',
     screen: 'portrait',
   },
   blocks: [
-    { id: 'hero', type: 'hero', visible: true, title: 'Boas-vindas', subtitle: 'Toque para iniciar seu atendimento', alignment: 'left', variant: 'imageSplit', overlay: 28 },
-    { id: 'actions', type: 'cta', visible: true, title: 'Comece por aqui', subtitle: 'Check-in e check-out em poucos passos', variant: 'dual' },
-    { id: 'amenities', type: 'amenities', visible: true, title: 'Durante sua estadia', items: ['Wi-Fi de alta velocidade', 'Restaurante aberto até 23h', 'Equipe disponível 24h'], variant: 'tiles' },
-    { id: 'footer', type: 'footer', visible: true, title: 'CheckIn Hub', subtitle: 'Bem-vindo, Welcome, Bienvenido' },
+    { id: 'hero', type: 'hero', visible: true, title: 'Bem-vindo', subtitle: 'Toque para começar', alignment: 'left', variant: 'attract', overlay: 42 },
+    { id: 'background-video', type: 'video', visible: true, title: 'Vídeo de fundo', variant: 'background' },
+    { id: 'actions', type: 'cta', visible: true, title: 'Atendimento', subtitle: 'Check-in e check-out', variant: 'dual' },
+    { id: 'language', type: 'language', visible: true, title: 'Idiomas' },
+    { id: 'footer', type: 'footer', visible: true, title: 'Recepção disponível 24h', subtitle: 'Procure nossa equipe se precisar de ajuda' },
   ],
 }
 
-const TEMPLATES: Array<{ id: string; name: string; description: string; design: TotemDesign }> = [
+const STYLE_PRESETS: Array<{ id: string; name: string; description: string; design: TotemDesign }> = [
   {
-    id: 'lobby-elegante',
-    name: 'Lobby elegante',
-    description: 'Visual limpo, acolhedor e ideal para hotéis urbanos.',
+    id: 'premium-utilitario',
+    name: 'Premium utilitário',
+    description: 'Base neutra, contraste alto e aparência de equipamento bem acabado.',
     design: EMPTY_DESIGN,
   },
   {
-    id: 'resort-visual',
-    name: 'Resort visual',
-    description: 'Mais imagem, mais respiro e chamadas promocionais.',
+    id: 'lobby-claro',
+    name: 'Lobby claro',
+    description: 'Mais luminoso, ideal para hotéis com identidade leve.',
     design: {
       ...EMPTY_DESIGN,
-      theme: { ...EMPTY_DESIGN.theme, primaryColor: '#0e7490', backgroundColor: '#eef8f7', textColor: '#10212a' },
-      layout: { template: 'resort-visual', density: 'spacious', screen: 'portrait' },
-      blocks: [
-        { id: 'hero', type: 'hero', visible: true, title: 'Sua estadia começa aqui', subtitle: 'Check-in rápido para aproveitar melhor o hotel', alignment: 'left', variant: 'immersive', overlay: 34 },
-        { id: 'carousel', type: 'carousel', visible: true, title: 'Experiências do hotel', items: ['Piscina aquecida', 'Spa com reserva na recepção', 'Café da manhã até 10h30'] },
-        { id: 'actions', type: 'cta', visible: true, title: 'Autoatendimento', subtitle: 'Escolha o fluxo desejado', variant: 'dual' },
-        { id: 'footer', type: 'footer', visible: true, title: 'Equipe disponível 24h', subtitle: 'Procure a recepção para solicitações especiais' },
-      ],
+      theme: { ...EMPTY_DESIGN.theme, primaryColor: '#0e7490', backgroundColor: '#eef8f7', textColor: '#10212a', surfaceColor: '#ffffff' },
+      layout: { template: 'lobby-claro', density: 'comfortable', screen: 'portrait' },
     },
   },
   {
-    id: 'executivo-compacto',
-    name: 'Executivo compacto',
-    description: 'Interface objetiva para alto volume de hóspedes.',
+    id: 'terminal-compacto',
+    name: 'Terminal compacto',
+    description: 'Denso, objetivo e pensado para alto fluxo de hóspedes.',
     design: {
       ...EMPTY_DESIGN,
-      theme: { ...EMPTY_DESIGN.theme, primaryColor: '#475569', backgroundColor: '#f4f7f5', textColor: '#111827' },
-      layout: { template: 'executivo-compacto', density: 'compact', screen: 'portrait' },
-      blocks: [
-        { id: 'hero', type: 'hero', visible: true, title: 'Check-in digital', subtitle: 'Toque para começar', alignment: 'left', variant: 'minimal', overlay: 20 },
-        { id: 'actions', type: 'cta', visible: true, title: 'Atendimento', subtitle: 'Processo seguro e rápido', variant: 'dual' },
-        { id: 'language', type: 'language', visible: true, title: 'Idiomas' },
-        { id: 'footer', type: 'footer', visible: true, title: 'CheckIn Hub', subtitle: 'Totem de autoatendimento' },
-      ],
+      theme: { ...EMPTY_DESIGN.theme, primaryColor: '#475569', backgroundColor: '#111827', textColor: '#f8fafc', surfaceColor: '#1f2937' },
+      layout: { template: 'terminal-compacto', density: 'compact', screen: 'portrait' },
     },
   },
 ]
@@ -114,16 +83,19 @@ export default function ContentPage() {
   const [hoteis, setHoteis] = useState<{ id: number; nome: string }[]>([])
   const [design, setDesign] = useState<TotemDesign>(EMPTY_DESIGN)
   const [midias, setMidias] = useState<TotemMediaAsset[]>([])
-  const [selectedBlockId, setSelectedBlockId] = useState('hero')
   const [tab, setTab] = useState<'design' | 'publish'>('design')
+  const [previewScreen, setPreviewScreen] = useState<TotemPreviewScreen>('idle')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
-  const selectedBlock = design.blocks.find(block => block.id === selectedBlockId) ?? design.blocks[0]
+  const heroBlock = getBlock(design, 'hero')
+  const videoBlock = getBlock(design, 'video')
+  const footerBlock = getBlock(design, 'footer')
+  const screenIndex = PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen)
+  const currentScreen = PREVIEW_SCREENS[screenIndex] ?? PREVIEW_SCREENS[0]
 
   useEffect(() => {
     if (isAdmin) {
@@ -143,7 +115,6 @@ export default function ContentPage() {
       ])
       setDesign(normalizeDesign(draft))
       setMidias(assets)
-      setSelectedBlockId((draft.blocks?.[0]?.id as string | undefined) ?? 'hero')
     } catch {
       setDesign(EMPTY_DESIGN)
       setMidias([])
@@ -185,16 +156,17 @@ export default function ContentPage() {
     }
   }
 
-  async function uploadForBlock(file: File | undefined, kind: 'image' | 'video', blockId: string) {
+  async function uploadForBlock(file: File | undefined, blockType: TotemBlock['type'], kind: 'image' | 'video') {
     if (!file) return
     setUploading(true)
     setError(null)
     try {
       const asset = await totemMediaService.upload(hotelId, file)
-      const previousUrl = design.blocks.find(block => block.id === blockId)?.[kind === 'image' ? 'imageUrl' : 'videoUrl']
+      const block = getBlock(design, blockType)
+      const previousUrl = kind === 'image' ? block?.imageUrl : block?.videoUrl
       setMidias(current => [asset, ...current.filter(item => item.publicUrl !== previousUrl)])
-      updateBlock(blockId, kind === 'image' ? { imageUrl: asset.publicUrl } : { videoUrl: asset.publicUrl })
-      setMessage('Mídia atualizada no bloco.')
+      upsertBlock(blockType, kind === 'image' ? { imageUrl: asset.publicUrl, visible: true } : { videoUrl: asset.publicUrl, visible: true })
+      setMessage('Mídia atualizada.')
     } catch {
       setError('Arquivo inválido ou acima do limite permitido.')
     } finally {
@@ -202,11 +174,13 @@ export default function ContentPage() {
     }
   }
 
-  function applyTemplate(template: TotemDesign) {
+  function applyPreset(template: TotemDesign) {
     const next = cloneDesign(template)
-    setDesign(next)
-    setSelectedBlockId(next.blocks[0]?.id ?? 'hero')
-    setMessage('Template aplicado ao rascunho.')
+    setDesign(current => ({
+      ...next,
+      blocks: mergePresetBlocks(current.blocks, next.blocks),
+    }))
+    setMessage('Estilo global aplicado ao rascunho.')
   }
 
   function updateTheme<K extends keyof TotemDesign['theme']>(key: K, value: TotemDesign['theme'][K]) {
@@ -217,38 +191,28 @@ export default function ContentPage() {
     setDesign(current => ({ ...current, layout: { ...current.layout, [key]: value } }))
   }
 
-  function updateBlock(id: string, patch: Partial<TotemBlock>) {
-    setDesign(current => ({
-      ...current,
-      blocks: current.blocks.map(block => block.id === id ? { ...block, ...patch } : block),
-    }))
-  }
-
-  function addBlock(type: TotemBlockType) {
-    const block = createBlock(type)
-    setDesign(current => ({ ...current, blocks: [...current.blocks, block] }))
-    setSelectedBlockId(block.id)
-  }
-
-  function removeBlock(id: string) {
+  function upsertBlock(type: TotemBlock['type'], patch: Partial<TotemBlock>) {
     setDesign(current => {
-      const blocks = current.blocks.filter(block => block.id !== id)
-      setSelectedBlockId(blocks[0]?.id ?? '')
-      return { ...current, blocks }
+      const index = current.blocks.findIndex(block => block.type === type)
+      if (index >= 0) {
+        return {
+          ...current,
+          blocks: current.blocks.map((block, blockIndex) => blockIndex === index ? { ...block, ...patch } : block),
+        }
+      }
+      return {
+        ...current,
+        blocks: [...current.blocks, { ...createBlock(type), ...patch }],
+      }
     })
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    setDesign(current => {
-      const oldIndex = current.blocks.findIndex(block => block.id === active.id)
-      const newIndex = current.blocks.findIndex(block => block.id === over.id)
-      return { ...current, blocks: arrayMove(current.blocks, oldIndex, newIndex) }
-    })
+  function goPreview(offset: number) {
+    const nextIndex = (screenIndex + offset + PREVIEW_SCREENS.length) % PREVIEW_SCREENS.length
+    setPreviewScreen(PREVIEW_SCREENS[nextIndex].id)
   }
 
-  const blockIds = useMemo(() => design.blocks.map(block => block.id), [design.blocks])
+  const visibleBlockCount = useMemo(() => design.blocks.filter(block => block.visible).length, [design.blocks])
 
   return (
     <div className="min-h-full bg-[#101513] p-4 text-[#eef3ef] md:p-8">
@@ -257,10 +221,10 @@ export default function ContentPage() {
           <div>
             <p className="text-sm font-medium text-[#9eb2aa]">Totem Studio</p>
             <h1 className="mt-2 text-4xl font-semibold leading-none text-[#f5fbf7] md:text-5xl">
-              Personalização visual do autoatendimento
+              Identidade do autoatendimento
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-[#aabbb4]">
-              Monte o idle screen do hotel com blocos guiados, biblioteca de mídia, templates e publicação controlada.
+              Defina a aparência global do totem, edite a tela inicial e confira como a identidade se aplica ao fluxo do hóspede.
             </p>
           </div>
 
@@ -316,108 +280,86 @@ export default function ContentPage() {
         ) : (
           <div className="grid gap-5 xl:grid-cols-[360px_minmax(420px,1fr)_360px]">
             <aside className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
-              {tab === 'design' && (
-                <>
-                  <PanelTitle icon={<Layout size={19} />} title="Templates" />
-                  <div className="space-y-2">
-                    {TEMPLATES.map(template => (
-                      <button
-                        key={template.id}
-                        onClick={() => applyTemplate(template.design)}
-                        className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left hover:border-[#d7fbe8]/40 hover:bg-white/[0.07]"
-                      >
-                        <span className="text-sm font-semibold text-white">{template.name}</span>
-                        <span className="mt-1 block text-xs leading-5 text-[#9eb2aa]">{template.description}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mt-6">
-                    <PanelTitle icon={<Rows size={19} />} title="Blocos" />
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                      <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-2">
-                          {design.blocks.map(block => (
-                            <SortableBlock
-                              key={block.id}
-                              block={block}
-                              selected={block.id === selectedBlockId}
-                              onSelect={() => setSelectedBlockId(block.id)}
-                              onToggle={() => updateBlock(block.id, { visible: !block.visible })}
-                              onRemove={() => removeBlock(block.id)}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {(['hero', 'banner', 'carousel', 'amenities', 'video', 'language'] as TotemBlockType[]).map(type => (
-                        <button key={type} onClick={() => addBlock(type)} className="rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-[#d8fff4] hover:bg-white/12">
-                          <Plus className="mr-1 inline" size={13} /> {BLOCK_LABELS[type]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {tab === 'publish' && (
-                <PublishPanel design={design} onSave={() => salvarDraft()} onPublish={publicar} saving={saving} />
+              {tab === 'design' ? (
+                <GlobalDesignPanel
+                  design={design}
+                  onApplyPreset={applyPreset}
+                  onThemeChange={updateTheme}
+                  onLayoutChange={updateLayout}
+                />
+              ) : (
+                <PublishPanel design={design} saving={saving} visibleBlockCount={visibleBlockCount} onSave={() => salvarDraft()} onPublish={publicar} />
               )}
             </aside>
 
             <main className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <PanelTitle icon={<ImageSquare size={19} />} title="Preview do totem" />
-                <span className="rounded-lg bg-white/8 px-3 py-1 text-xs text-[#9eb2aa]">Portrait 9:16</span>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-white">{currentScreen.label}</p>
+                  <p className="text-xs text-[#9eb2aa]">Portrait 9:16</p>
+                </div>
               </div>
-              <div className="mx-auto aspect-[9/16] max-h-[780px] overflow-hidden rounded-[2rem] border border-white/10 bg-black p-2 shadow-[0_30px_100px_-60px_rgba(0,0,0,1)]">
-                <TotemDesignRenderer design={design} />
+
+              <div className="relative mx-auto flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => goPreview(-1)}
+                  className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/8 text-[#d8fff4] hover:bg-white/12 md:flex"
+                  aria-label="Tela anterior"
+                >
+                  <CaretLeft size={22} />
+                </button>
+
+                <div className="aspect-[9/16] h-[min(74vh,780px)] max-h-[780px] max-w-full flex-none overflow-hidden rounded-[2rem] border border-white/10 bg-black p-2 shadow-[0_30px_100px_-60px_rgba(0,0,0,1)]">
+                  {previewScreen === 'idle'
+                    ? <TotemDesignRenderer design={design} />
+                    : <TotemFlowPreview design={design} screen={previewScreen} />}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => goPreview(1)}
+                  className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/8 text-[#d8fff4] hover:bg-white/12 md:flex"
+                  aria-label="Próxima tela"
+                >
+                  <CaretRight size={22} />
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {PREVIEW_SCREENS.map(screen => (
+                  <button
+                    key={screen.id}
+                    type="button"
+                    onClick={() => setPreviewScreen(screen.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${previewScreen === screen.id ? 'bg-[#d7fbe8] text-[#10201d]' : 'bg-white/8 text-[#9eb2aa] hover:bg-white/12 hover:text-white'}`}
+                  >
+                    {screen.label}
+                  </button>
+                ))}
               </div>
             </main>
 
             <aside className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
-              <PanelTitle icon={<Palette size={19} />} title="Propriedades" />
-              {selectedBlock ? (
-                <BlockEditor
-                  block={selectedBlock}
+              {tab === 'design' ? (
+                <ScreenContentPanel
+                  screen={currentScreen}
+                  heroBlock={heroBlock}
+                  videoBlock={videoBlock}
+                  footerBlock={footerBlock}
                   midias={midias}
                   uploading={uploading}
-                  onChange={patch => updateBlock(selectedBlock.id, patch)}
-                  onUpload={(kind, file) => uploadForBlock(file, kind, selectedBlock.id)}
+                  onHeroChange={patch => upsertBlock('hero', patch)}
+                  onFooterChange={patch => upsertBlock('footer', patch)}
+                  onUploadImage={file => uploadForBlock(file, 'hero', 'image')}
+                  onUploadVideo={file => uploadForBlock(file, 'video', 'video')}
+                  onClearImage={() => upsertBlock('hero', { imageUrl: undefined })}
+                  onClearVideo={() => upsertBlock('video', { videoUrl: undefined })}
                 />
               ) : (
-                <p className="text-sm text-[#9eb2aa]">Selecione ou adicione um bloco para editar.</p>
+                <PublishPanel design={design} saving={saving} visibleBlockCount={visibleBlockCount} onSave={() => salvarDraft()} onPublish={publicar} />
               )}
-
-              <div className="mt-6 border-t border-white/10 pt-5">
-                <PanelTitle icon={<Palette size={19} />} title="Marca e layout" />
-                <Field label="Nome exibido">
-                  <input value={design.theme.brandName} onChange={event => updateTheme('brandName', event.target.value)} className="studio-input" />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <ColorField label="Acento" value={design.theme.primaryColor} onChange={value => updateTheme('primaryColor', value)} />
-                  <ColorField label="Fundo" value={design.theme.backgroundColor} onChange={value => updateTheme('backgroundColor', value)} />
-                  <ColorField label="Texto" value={design.theme.textColor} onChange={value => updateTheme('textColor', value)} />
-                  <ColorField label="Superfície" value={design.theme.surfaceColor} onChange={value => updateTheme('surfaceColor', value)} />
-                </div>
-                <Field label="Fonte">
-                  <select value={design.theme.fontFamily} onChange={event => updateTheme('fontFamily', event.target.value)} className="studio-input">
-                    {FONTS.map(font => (
-                      <option key={font.id} value={font.id} style={{ fontFamily: `'${font.id}', system-ui, sans-serif` }}>
-                        {font.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Densidade">
-                  <select value={design.layout.density} onChange={event => updateLayout('density', event.target.value as TotemDesign['layout']['density'])} className="studio-input">
-                    <option value="compact">Compacta</option>
-                    <option value="comfortable">Confortável</option>
-                    <option value="spacious">Espaçosa</option>
-                  </select>
-                </Field>
-              </div>
             </aside>
           </div>
         )}
@@ -426,99 +368,146 @@ export default function ContentPage() {
   )
 }
 
-function SortableBlock({ block, selected, onSelect, onToggle, onRemove }: {
-  block: TotemBlock
-  selected: boolean
-  onSelect: () => void
-  onToggle: () => void
-  onRemove: () => void
+function GlobalDesignPanel({
+  design,
+  onApplyPreset,
+  onThemeChange,
+  onLayoutChange,
+}: {
+  design: TotemDesign
+  onApplyPreset: (template: TotemDesign) => void
+  onThemeChange: <K extends keyof TotemDesign['theme']>(key: K, value: TotemDesign['theme'][K]) => void
+  onLayoutChange: <K extends keyof TotemDesign['layout']>(key: K, value: TotemDesign['layout'][K]) => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id })
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-2xl border p-3 ${selected ? 'border-[#d7fbe8]/60 bg-[#d7fbe8]/10' : 'border-white/10 bg-white/[0.04]'}`}
-    >
-      <div className="flex items-center gap-2">
-        <button {...attributes} {...listeners} className="rounded-lg p-2 text-[#9eb2aa] hover:bg-white/8 hover:text-white" aria-label="Reordenar bloco">
-          <ArrowsOutCardinal size={16} />
-        </button>
-        <button onClick={onSelect} className="min-w-0 flex-1 text-left">
-          <span className="block truncate text-sm font-semibold text-white">{block.title || BLOCK_LABELS[block.type]}</span>
-          <span className="block text-xs text-[#9eb2aa]">{BLOCK_LABELS[block.type]}</span>
-        </button>
-        <button onClick={onToggle} className="rounded-lg p-2 text-[#9eb2aa] hover:bg-white/8 hover:text-white" aria-label="Alternar visibilidade">
-          {block.visible ? <Eye size={16} /> : <EyeSlash size={16} />}
-        </button>
-        <button onClick={onRemove} className="rounded-lg p-2 text-red-300 hover:bg-red-500/10" aria-label="Remover bloco">
-          <Trash size={16} />
-        </button>
+    <>
+      <PanelTitle icon={<SlidersHorizontal size={19} />} title="Estilo global" />
+      <p className="mb-4 text-xs leading-5 text-[#9eb2aa]">
+        Estas escolhas valem para a tela inicial e para todo o fluxo de atendimento.
+      </p>
+
+      <div className="space-y-2">
+        {STYLE_PRESETS.map(preset => (
+          <button
+            key={preset.id}
+            onClick={() => onApplyPreset(preset.design)}
+            className={`w-full rounded-2xl border p-4 text-left ${design.layout.template === preset.id ? 'border-[#d7fbe8]/55 bg-[#d7fbe8]/10' : 'border-white/10 bg-white/[0.04] hover:border-[#d7fbe8]/40 hover:bg-white/[0.07]'}`}
+          >
+            <span className="text-sm font-semibold text-white">{preset.name}</span>
+            <span className="mt-1 block text-xs leading-5 text-[#9eb2aa]">{preset.description}</span>
+          </button>
+        ))}
       </div>
-    </div>
+
+      <div className="mt-6 border-t border-white/10 pt-5">
+        <PanelTitle icon={<Palette size={19} />} title="Marca e tokens" />
+        <Field label="Nome exibido">
+          <input value={design.theme.brandName} onChange={event => onThemeChange('brandName', event.target.value)} className="studio-input" />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <ColorField label="Acento" value={design.theme.primaryColor} onChange={value => onThemeChange('primaryColor', value)} />
+          <ColorField label="Fundo" value={design.theme.backgroundColor} onChange={value => onThemeChange('backgroundColor', value)} />
+          <ColorField label="Texto" value={design.theme.textColor} onChange={value => onThemeChange('textColor', value)} />
+          <ColorField label="Superfície" value={design.theme.surfaceColor} onChange={value => onThemeChange('surfaceColor', value)} />
+        </div>
+        <Field label="Fonte">
+          <select value={design.theme.fontFamily} onChange={event => onThemeChange('fontFamily', event.target.value)} className="studio-input">
+            {FONTS.map(font => (
+              <option key={font.id} value={font.id} style={{ fontFamily: `'${font.id}', system-ui, sans-serif` }}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Densidade do fluxo">
+          <select value={design.layout.density} onChange={event => onLayoutChange('density', event.target.value as TotemDesign['layout']['density'])} className="studio-input">
+            <option value="compact">Compacta</option>
+            <option value="comfortable">Confortável</option>
+            <option value="spacious">Espaçosa</option>
+          </select>
+        </Field>
+      </div>
+    </>
   )
 }
 
-function BlockEditor({ block, midias, uploading, onChange, onUpload }: {
-  block: TotemBlock
+function ScreenContentPanel({
+  screen,
+  heroBlock,
+  videoBlock,
+  footerBlock,
+  midias,
+  uploading,
+  onHeroChange,
+  onFooterChange,
+  onUploadImage,
+  onUploadVideo,
+  onClearImage,
+  onClearVideo,
+}: {
+  screen: { id: TotemPreviewScreen; label: string; kind: 'idle' | 'flow' }
+  heroBlock?: TotemBlock
+  videoBlock?: TotemBlock
+  footerBlock?: TotemBlock
   midias: TotemMediaAsset[]
   uploading: boolean
-  onChange: (patch: Partial<TotemBlock>) => void
-  onUpload: (kind: 'image' | 'video', file: File | undefined) => void
+  onHeroChange: (patch: Partial<TotemBlock>) => void
+  onFooterChange: (patch: Partial<TotemBlock>) => void
+  onUploadImage: (file: File | undefined) => void
+  onUploadVideo: (file: File | undefined) => void
+  onClearImage: () => void
+  onClearVideo: () => void
 }) {
-  const acceptsImage = block.type === 'hero' || block.type === 'carousel'
-  const acceptsVideo = block.type === 'video'
+  if (screen.kind === 'flow') {
+    return (
+      <div>
+        <PanelTitle icon={<Monitor size={19} />} title={screen.label} />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-[#aabbb4]">
+          <p className="font-semibold text-white">Preview sem edição por tela</p>
+          <p className="mt-2">
+            Esta etapa herda fonte, cores e estilo global. Campos, hierarquia e ações permanecem fixos para preservar legibilidade e reduzir atrito de configuração.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
-      <Field label="Título">
-        <input value={block.title ?? ''} onChange={event => onChange({ title: event.target.value })} className="studio-input" />
+      <PanelTitle icon={<ImageSquare size={19} />} title="Tela inicial" />
+      <Field label="Mensagem principal">
+        <input value={heroBlock?.title ?? ''} onChange={event => onHeroChange({ title: event.target.value, visible: true })} className="studio-input" />
       </Field>
-      <Field label="Subtítulo">
-        <textarea value={block.subtitle ?? ''} onChange={event => onChange({ subtitle: event.target.value })} className="studio-input min-h-20 resize-none" />
+      <Field label="Mensagem de apoio">
+        <textarea value={heroBlock?.subtitle ?? ''} onChange={event => onHeroChange({ subtitle: event.target.value, visible: true })} className="studio-input min-h-20 resize-none" />
       </Field>
-      <Field label="Alinhamento">
-        <select value={block.alignment ?? 'left'} onChange={event => onChange({ alignment: event.target.value as TotemBlock['alignment'] })} className="studio-input">
-          <option value="left">Esquerda</option>
-          <option value="center">Centro</option>
-          <option value="right">Direita</option>
-        </select>
+      <MediaField
+        kind="video"
+        assets={midias}
+        selectedUrl={videoBlock?.videoUrl}
+        uploading={uploading}
+        onUpload={onUploadVideo}
+        onClear={onClearVideo}
+      />
+      <MediaField
+        kind="image"
+        assets={midias}
+        selectedUrl={heroBlock?.imageUrl}
+        uploading={uploading}
+        onUpload={onUploadImage}
+        onClear={onClearImage}
+      />
+      <Field label="Escurecimento da mídia">
+        <input type="range" min={0} max={75} value={heroBlock?.overlay ?? 42} onChange={event => onHeroChange({ overlay: Number(event.target.value), visible: true })} className="w-full accent-[#d7fbe8]" />
       </Field>
-      {acceptsImage && (
-        <MediaField
-          kind="image"
-          assets={midias}
-          selectedUrl={block.imageUrl}
-          uploading={uploading}
-          onUpload={file => onUpload('image', file)}
-          onClear={() => onChange({ imageUrl: undefined })}
-        />
-      )}
-      {acceptsVideo && (
-        <MediaField
-          kind="video"
-          assets={midias}
-          selectedUrl={block.videoUrl}
-          uploading={uploading}
-          onUpload={file => onUpload('video', file)}
-          onClear={() => onChange({ videoUrl: undefined })}
-        />
-      )}
-      <ColorField label="Fundo do bloco" value={block.backgroundColor ?? '#ffffff'} onChange={value => onChange({ backgroundColor: value })} />
-      {block.type === 'hero' && (
-        <Field label="Overlay da imagem">
-        <input type="range" min={0} max={75} value={block.overlay ?? 28} onChange={event => onChange({ overlay: Number(event.target.value) })} className="w-full accent-[#d7fbe8]" />
+      <div className="border-t border-white/10 pt-4">
+        <Field label="Rodapé">
+          <input value={footerBlock?.title ?? ''} onChange={event => onFooterChange({ title: event.target.value, visible: true })} className="studio-input" />
         </Field>
-      )}
-      {(block.type === 'amenities' || block.type === 'carousel') && (
-        <Field label="Itens, um por linha">
-          <textarea
-            value={(block.items ?? []).join('\n')}
-            onChange={event => onChange({ items: event.target.value.split('\n').filter(Boolean) })}
-            className="studio-input min-h-28 resize-none"
-          />
+        <Field label="Texto auxiliar do rodapé">
+          <input value={footerBlock?.subtitle ?? ''} onChange={event => onFooterChange({ subtitle: event.target.value, visible: true })} className="studio-input" />
         </Field>
-      )}
+      </div>
     </div>
   )
 }
@@ -532,7 +521,7 @@ function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }:
   onClear: () => void
 }) {
   const selectedAsset = assets.find(asset => asset.publicUrl === selectedUrl)
-  const label = kind === 'image' ? 'Imagem' : 'Vídeo'
+  const label = kind === 'image' ? 'Imagem de fallback' : 'Vídeo de fundo'
   const uploadLabel = selectedUrl
     ? kind === 'image' ? 'Substituir imagem' : 'Substituir vídeo'
     : kind === 'image' ? 'Enviar imagem' : 'Enviar vídeo'
@@ -564,7 +553,7 @@ function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }:
               {selectedAsset && <p className="text-xs text-[#9eb2aa]">{formatBytes(selectedAsset.sizeBytes)}</p>}
             </div>
             <button type="button" onClick={onClear} className="shrink-0 rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-[#d8fff4] hover:bg-white/12">
-              Remover do bloco
+              Remover
             </button>
           </div>
         )}
@@ -582,20 +571,25 @@ function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }:
               event.target.value = ''
             }}
           />
-      </label>
-
+        </label>
       </div>
     </div>
   )
 }
 
-function PublishPanel({ design, saving, onSave, onPublish }: { design: TotemDesign; saving: boolean; onSave: () => void; onPublish: () => void }) {
+function PublishPanel({ design, saving, visibleBlockCount, onSave, onPublish }: {
+  design: TotemDesign
+  saving: boolean
+  visibleBlockCount: number
+  onSave: () => void
+  onPublish: () => void
+}) {
   return (
     <div>
       <PanelTitle icon={<Check size={19} />} title="Publicação" />
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#aabbb4]">
         <p className="font-semibold text-white">Resumo do rascunho</p>
-        <p className="mt-2">{design.blocks.filter(block => block.visible).length} blocos ativos</p>
+        <p className="mt-2">{visibleBlockCount} blocos técnicos ativos</p>
         <p>{design.theme.brandName}</p>
         <p>{design.layout.template} · {design.layout.density}</p>
       </div>
@@ -622,7 +616,7 @@ function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="block">
+    <label className="mb-4 block last:mb-0">
       <span className="mb-1.5 block text-xs font-medium text-[#9eb2aa]">{label}</span>
       {children}
     </label>
@@ -650,17 +644,30 @@ function LoadingStudio() {
   )
 }
 
-function createBlock(type: TotemBlockType): TotemBlock {
-  const id = `${type}-${Date.now()}`
+function getBlock(design: TotemDesign, type: TotemBlock['type']): TotemBlock | undefined {
+  return design.blocks.find(block => block.type === type)
+}
+
+function createBlock(type: TotemBlock['type']): TotemBlock {
+  const labels: Record<TotemBlock['type'], string> = {
+    hero: 'Bem-vindo',
+    cta: 'Atendimento',
+    carousel: 'Galeria',
+    banner: 'Aviso',
+    amenities: 'Durante sua estadia',
+    video: 'Vídeo de fundo',
+    footer: 'Recepção disponível 24h',
+    language: 'Idiomas',
+  }
   return {
-    id,
+    id: `${type}-${Date.now()}`,
     type,
     visible: true,
-    title: BLOCK_LABELS[type],
-    subtitle: type === 'cta' ? 'Escolha o fluxo desejado' : '',
+    title: labels[type],
+    subtitle: type === 'hero' ? 'Toque para começar' : '',
     alignment: 'left',
-    variant: 'default',
-    overlay: 24,
+    variant: type === 'hero' ? 'attract' : 'default',
+    overlay: 42,
     items: type === 'amenities' ? ['Wi-Fi', 'Restaurante', 'Recepção 24h'] : [],
   }
 }
@@ -671,8 +678,27 @@ function normalizeDesign(value: TotemDesign): TotemDesign {
     ...value,
     theme: { ...EMPTY_DESIGN.theme, ...(value.theme ?? {}) },
     layout: { ...EMPTY_DESIGN.layout, ...(value.layout ?? {}) },
-    blocks: Array.isArray(value.blocks) && value.blocks.length > 0 ? value.blocks : EMPTY_DESIGN.blocks,
+    blocks: ensureCoreBlocks(Array.isArray(value.blocks) && value.blocks.length > 0 ? value.blocks : EMPTY_DESIGN.blocks),
   }
+}
+
+function ensureCoreBlocks(blocks: TotemBlock[]): TotemBlock[] {
+  return (['hero', 'video', 'cta', 'language', 'footer'] as TotemBlock['type'][]).reduce((current, type) => {
+    if (current.some(block => block.type === type)) return current
+    return [...current, createBlock(type)]
+  }, blocks)
+}
+
+function mergePresetBlocks(currentBlocks: TotemBlock[], presetBlocks: TotemBlock[]): TotemBlock[] {
+  const currentHero = currentBlocks.find(block => block.type === 'hero')
+  const currentVideo = currentBlocks.find(block => block.type === 'video')
+  const currentFooter = currentBlocks.find(block => block.type === 'footer')
+  return ensureCoreBlocks(presetBlocks).map(block => {
+    if (block.type === 'hero' && currentHero) return { ...block, title: currentHero.title, subtitle: currentHero.subtitle, imageUrl: currentHero.imageUrl, overlay: currentHero.overlay }
+    if (block.type === 'video' && currentVideo) return { ...block, videoUrl: currentVideo.videoUrl }
+    if (block.type === 'footer' && currentFooter) return { ...block, title: currentFooter.title, subtitle: currentFooter.subtitle }
+    return block
+  })
 }
 
 function cloneDesign(value: TotemDesign): TotemDesign {
