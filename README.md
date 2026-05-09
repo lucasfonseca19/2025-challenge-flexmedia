@@ -47,7 +47,7 @@ Credenciais seed:
 Check-in:
 
 ```text
-/ -> /selecionar-idioma -> /buscar-reserva -> /confirmar-dados
+/ -> /buscar-reserva -> /confirmar-dados
 -> /facial -> /emitir-chave -> /obrigado
 ```
 

@@ -126,6 +126,8 @@ Defeitos corrigidos e retestados:
 
 Observação de ambiente:
 - `http://127.0.0.1:5173` foi incluído nas origens CORS de desenvolvimento e a ativação do totem com `5RIKKD` funcionou nesse host.
+- 2026-05-08: refinamento visual do fluxo do totem validado por build (`frontend-totem` e `frontend-admin`) e inspeção parcial no navegador interno em `/setup` e `/selecionar-idioma`; re-homologação completa do Totem Studio continua pendente porque o backend não estava em execução no momento da validação visual.
+- 2026-05-08: Totem Studio reorganizado para editar identidade global e conteúdo da tela inicial, com navegação de preview por telas internas (`Idioma`, `Busca`, `Confirmação`, `Biometria`, `Chave`, `Check-out`) sem edição granular por etapa. Requer re-homologação visual com backend ativo.
 
 ---
 
@@ -289,7 +291,7 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 ### TC-050 — Check-in completo com código de reserva (happy path)
 - **Pré:** totem ativado (TC-041), reserva CONFIRMADA criada (TC-030), câmera disponível no dispositivo
 - **Passos:**
-  1. Idle → tocar tela → vai para `/selecionar-idioma`
+  1. Idle → selecionar idioma na tela → tocar Check-in → vai para `/buscar-reserva`
   2. Escolher Português → vai para `/buscar-reserva`
   3. Digitar código da reserva → Buscar
   4. Conferir dados do hóspede exibidos → Confirmar
@@ -439,6 +441,8 @@ Funcionalidades essenciais que sustentam o produto ao longo do tempo.
   - `PUT /api/hoteis/{hotelId}/totem-design/draft` → `200`
   - `POST /api/hoteis/{hotelId}/totem-design/publish` → `200`
   - Totem renderiza o design publicado na IdlePage
+  - Preview do Studio permite navegar entre `Tela inicial`, `Idioma`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`
+  - Telas internas do fluxo herdam identidade publicada sem exigir customização por etapa
 
 ### TC-121 — Config persiste entre reinícios do totem
 - **Passos:** publicar design → fechar navegador do totem → reabrir

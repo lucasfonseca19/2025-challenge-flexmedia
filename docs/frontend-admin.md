@@ -65,10 +65,14 @@ Arquivos principais:
 Comportamento esperado:
 
 - carregar rascunho e biblioteca de mídia do hotel;
-- editar tema (incluindo fonte com dropdown de 6 opções), layout e blocos;
-- usar imagens/vídeos da biblioteca;
-- preview renderiza igual ao totem, incluindo vídeo em loop e fontes dinâmicas;
+- editar estilo global da plataforma do hotel: nome, fonte, cores e densidade;
+- editar conteúdo específico da tela inicial: mensagem principal, mensagem de apoio, vídeo de fundo, imagem de fallback, escurecimento da mídia e rodapé;
+- usar imagens/vídeos da biblioteca local de mídia;
+- preview renderiza a tela inicial igual ao attract mode do totem, incluindo vídeo de fundo em loop e fontes dinâmicas;
+- preview permite navegar por `Tela inicial`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`;
 - salvar rascunho e publicar para os totens.
+
+O Studio não expõe customização granular de cada tela transacional do hóspede. O gestor edita identidade global e conteúdo da tela inicial; o totem aplica essa identidade automaticamente ao fluxo interno com layout fixo, preservando legibilidade e reduzindo atrito operacional. Os blocos continuam existindo no payload técnico, mas a UI do Studio não apresenta mais lista/reordenação de blocos como tarefa principal do operador.
 
 Fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk (todas via CDN gratuito).
 

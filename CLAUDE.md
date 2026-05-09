@@ -83,7 +83,7 @@ Antes da entrega final:
 ## Fluxo principal do hóspede (totem)
 
 ```
-/ (idle) → /selecionar-idioma → /buscar-reserva → /confirmar-dados
+/ (idle, seleciona idioma) → /buscar-reserva → /confirmar-dados
 → /facial (cadastra rosto) → /emitir-chave → /obrigado
 
 /checkout → busca reserva → confirma saída → /obrigado

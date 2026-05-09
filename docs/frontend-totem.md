@@ -17,9 +17,8 @@ Em desenvolvimento, o Vite proxy redireciona `/api` e `/uploads` para `http://lo
 
 | Rota | Pagina | Uso |
 |---|---|---|
-| `/` | `IdlePage` | Tela de repouso e entrada do fluxo |
+| `/` | `IdlePage` | Tela de repouso e entrada do fluxo com seleção de idioma integrada |
 | `/setup` | `SetupPage` | Ativacao do totem por codigo |
-| `/selecionar-idioma` | `LanguagePage` | Idioma do atendimento |
 | `/buscar-reserva` | `SearchReservationPage` | Busca por codigo ou CPF |
 | `/confirmar-dados` | `ConfirmDataPage` | Confirma dados da reserva |
 | `/facial` | `FacialRecognitionPage` | Cadastra face ou fallback por DOB |
@@ -32,7 +31,7 @@ Em desenvolvimento, o Vite proxy redireciona `/api` e `/uploads` para `http://lo
 
 `TotemContext` guarda:
 
-- idioma atual;
+- idioma atual (selecionado na tela inicial, sem pagina separada);
 - reserva selecionada;
 - fluxo `checkin` ou `checkout`;
 - configuracao persistida do totem;
@@ -48,10 +47,20 @@ A configuracao do totem e persistida em `localStorage` para permitir kiosk mode 
 - Se o design tem bloco `video` visível, ele vira o vídeo de fundo do attract mode;
 - Se tem bloco `hero` com imagem, ela vira o background do attract;
 - Sem mídia, usa cor primária com gradientes sutis;
-- Texto "Toque para começar" com breathing animation (`animate-breathe`);
-- CTAs "Check-in" e "Check-out" navegam para `/selecionar-idioma?fluxo=checkin|checkout`;
-- Language pills permitem pular direto para `/buscar-reserva` com idioma pré-definido;
+- Texto \"Toque para começar\" com breathing animation (`animate-breathe`);
+- CTAs \"Check-in\" e \"Check-out\" navegam para `/buscar-reserva` com fluxo definido e idioma ja selecionado;
+- Language pills na tela inicial alteram o idioma instantaneamente — o texto da tela muda sem navegar para pagina separada;
 - Fallback final para configuração legada quando não há design publicado.
+
+## Identidade visual do fluxo
+
+As telas transacionais do totem (`/setup`, `/buscar-reserva`, `/confirmar-dados`, `/facial`, `/emitir-chave`, `/checkout`, `/obrigado` e `/porta/:quarto`) usam uma camada visual comum em `src/components/KioskShell.tsx`.
+
+Essa camada deriva a identidade do `TotemDesign` publicado quando existir. Caso contrário, usa a configuração legada do totem (`nomeExibido`, `logoUrl`, `corPrimaria`) e um tema padrão. O objetivo é manter o fluxo com aparência premium e consistente sem permitir que cada hotel customize individualmente telas críticas de atendimento.
+
+O Totem Studio controla a identidade, a tela idle e blocos de conteúdo. O fluxo interno herda fonte, marca, cor primária, fundo, texto e superfície, mas preserva layout fixo para reduzir atrito de configuração e proteger legibilidade/usabilidade.
+
+No admin, o Studio expõe a tela inicial como área editável de conteúdo (mensagens, vídeo/imagem de fundo e rodapé) e oferece preview navegável das demais etapas do fluxo. Essas etapas internas são preview-only: refletem o tema publicado, mas não têm campos de edição próprios.
 
 Fontes são carregadas dinamicamente via `useFontLoader` que injeta `<link>` no `<head>`. Seis fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk.
 
