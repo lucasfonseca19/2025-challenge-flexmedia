@@ -98,7 +98,7 @@ export function KioskShell({
 
   return (
     <div className="kiosk-shell" style={shellVars(theme)}>
-      <div className="kiosk-grid" />
+      
       <header className="kiosk-topbar">
         <div className="kiosk-brand">
           {theme.logoUrl ? (

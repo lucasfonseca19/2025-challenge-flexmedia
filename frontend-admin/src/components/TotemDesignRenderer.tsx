@@ -156,7 +156,6 @@ export function TotemFlowPreview({ design, screen }: { design: TotemDesign; scre
       }}
     >
       <link rel="stylesheet" href={font?.href} />
-      <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
       <div className="relative z-10 flex h-full flex-col p-7">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold opacity-80">
