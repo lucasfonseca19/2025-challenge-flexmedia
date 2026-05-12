@@ -34,7 +34,6 @@ export default function SearchReservationPage() {
       eyebrow={fluxo === 'checkout' ? 'Check-out' : 'Check-in'}
       title={t.buscarReserva.titulo}
       subtitle={fluxo === 'checkout' ? 'Localize sua estadia para confirmar a saída.' : 'Informe o código da reserva ou CPF para iniciar o atendimento.'}
-      step="1 de 2"
       maxWidth="max-w-3xl"
     >
       <div className="flex w-full flex-col gap-5">

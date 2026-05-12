@@ -84,7 +84,6 @@ export function KioskShell({
   title,
   eyebrow,
   subtitle,
-  step,
   actions,
   maxWidth = 'max-w-3xl',
 }: {
@@ -92,7 +91,6 @@ export function KioskShell({
   title: string
   eyebrow?: string
   subtitle?: string
-  step?: string
   actions?: ReactNode
   maxWidth?: string
 }) {
@@ -110,7 +108,6 @@ export function KioskShell({
           )}
           <span>{theme.brandName}</span>
         </div>
-        {step && <span className="kiosk-step">{step}</span>}
       </header>
 
       <main className={`kiosk-main ${maxWidth}`}>

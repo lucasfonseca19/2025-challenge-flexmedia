@@ -7,6 +7,11 @@
     "btnCheckout": "Check-out",
     "entradaLabel": "Arrival",
     "saidaLabel": "Departure",
+    "tituloEscolha": "Arrival or departure?",
+    "checkinTitulo": "Check-in",
+    "checkoutTitulo": "Check-out",
+    "checkinDescricao": "Start your stay",
+    "checkoutDescricao": "Close your stay",
     "toqueComecar": "Touch to start"
   },
   "selecionarIdioma": {

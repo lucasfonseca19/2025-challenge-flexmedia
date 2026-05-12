@@ -23,7 +23,6 @@ export default function ConfirmDataPage() {
       eyebrow={fluxo === 'checkout' ? 'Conferência de saída' : 'Conferência de entrada'}
       title={t.confirmarDados.titulo}
       subtitle="Revise os dados antes de continuar."
-      step="2 de 2"
       maxWidth="max-w-3xl"
     >
       <KioskPanel className="flex w-full flex-col gap-4 p-5 text-lg md:gap-5 md:p-8 md:text-2xl">

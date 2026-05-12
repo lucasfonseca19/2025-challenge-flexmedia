@@ -85,16 +85,6 @@ html, body, #root {
   box-shadow: 0 0 0 0.45rem rgba(var(--kiosk-primary-rgb), 0.14);
 }
 
-.kiosk-step {
-  border: 1px solid rgba(var(--kiosk-text-rgb), 0.14);
-  border-radius: 999px;
-  background: rgba(var(--kiosk-surface-rgb), 0.54);
-  padding: 0.65rem 1rem;
-  color: rgba(var(--kiosk-text-rgb), 0.72);
-  font-size: clamp(0.78rem, 1vw, 0.95rem);
-  font-weight: 650;
-}
-
 .kiosk-main {
   position: relative;
   z-index: 2;
@@ -228,6 +218,11 @@ html, body, #root {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes totemContentMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 .animate-breathe {

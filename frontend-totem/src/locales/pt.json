@@ -7,6 +7,11 @@
     "btnCheckout": "Fazer Check-out",
     "entradaLabel": "Entrada",
     "saidaLabel": "Saída",
+    "tituloEscolha": "Entrada ou saída?",
+    "checkinTitulo": "Check-in",
+    "checkoutTitulo": "Check-out",
+    "checkinDescricao": "Entrar na estadia",
+    "checkoutDescricao": "Encerrar estadia",
     "toqueComecar": "Toque para começar"
   },
   "selecionarIdioma": {

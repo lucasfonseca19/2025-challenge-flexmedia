@@ -46,6 +46,17 @@ export interface TotemConfig {
 }
 
 export type TotemBlockType = 'hero' | 'cta' | 'carousel' | 'banner' | 'amenities' | 'video' | 'footer' | 'language'
+export type TotemCarouselSpeed = 'slow' | 'medium' | 'fast' | number
+
+export interface TotemContentItem {
+  id: string
+  text: string
+  mediaUrl?: string
+  mediaType?: 'image' | 'video'
+  backgroundColor?: string
+  textPosition?: 'top' | 'center' | 'bottom'
+  active: boolean
+}
 
 export interface TotemTheme {
   brandName: string
@@ -75,6 +86,8 @@ export interface TotemBlock {
   backgroundColor?: string
   overlay?: number
   items?: string[]
+  contentItems?: TotemContentItem[]
+  speed?: TotemCarouselSpeed
 }
 
 export interface TotemDesign {
