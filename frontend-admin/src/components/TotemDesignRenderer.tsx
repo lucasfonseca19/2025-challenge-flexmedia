@@ -1,7 +1,8 @@
-import type { TotemDesign } from '../types'
+import { useMemo } from 'react'
+import type { TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign } from '../types'
 import { FONTS } from '../constants/fonts'
 
-export type TotemPreviewScreen = 'idle' | 'search' | 'confirm' | 'facial' | 'key' | 'checkout'
+export type TotemPreviewScreen = 'idle' | 'actions' | 'search' | 'confirm' | 'facial' | 'key' | 'checkout'
 
 interface Props {
   design: TotemDesign
@@ -14,6 +15,8 @@ export default function TotemDesignRenderer({ design, scale = 'preview' }: Props
   const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible)
   const videoBlock = design.blocks.find(block => block.type === 'video' && block.visible && block.videoUrl)
   const footerBlock = design.blocks.find(block => block.type === 'footer' && block.visible)
+  const carouselBlock = design.blocks.find(block => block.type === 'carousel' && block.visible)
+  const contentItems = useMemo(() => getActiveContentItems(carouselBlock), [carouselBlock])
 
   return (
     <div
@@ -47,14 +50,11 @@ export default function TotemDesignRenderer({ design, scale = 'preview' }: Props
             <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
             {design.theme.brandName}
           </div>
-          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/75">Tela inicial</span>
         </header>
 
-        <main>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/58">Autoatendimento</p>
-          <h2 className="mt-2 max-w-[8.5ch] text-5xl font-bold leading-none text-white">{heroBlock?.title || 'Bem-vindo'}</h2>
-          {heroBlock?.subtitle && (
-            <p className="mt-3 max-w-[20rem] text-base leading-snug text-white/72">{heroBlock.subtitle}</p>
+        <main className="-mx-7 flex flex-1 items-center overflow-hidden py-8">
+          {contentItems.length > 0 && (
+            <ContentCarousel items={contentItems} speed={carouselBlock?.speed} />
           )}
         </main>
 
@@ -77,6 +77,65 @@ export default function TotemDesignRenderer({ design, scale = 'preview' }: Props
         </footer>
       </div>
     </div>
+  )
+}
+
+function ContentCarousel({ items, speed }: { items: TotemContentItem[]; speed?: TotemCarouselSpeed }) {
+  if (items.length === 1) {
+    return (
+      <div className="mx-auto w-[82%] px-2">
+        <ContentCard item={items[0]} />
+      </div>
+    )
+  }
+
+  const loopItems = [...items, ...items]
+
+  return (
+    <div className="w-full overflow-hidden">
+      <div
+        className="inline-flex min-w-full will-change-transform"
+        style={{ animation: `totemContentMarquee ${getCarouselDuration(speed)}ms linear infinite` }}
+      >
+        {loopItems.map((item, index) => (
+          <div key={`${item.id}-${index}`} className="w-[82%] shrink-0 px-2">
+            <ContentCard item={item} speed={speed} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ContentCard({ item }: { item: TotemContentItem; speed?: TotemCarouselSpeed }) {
+  const hasMedia = Boolean(item.mediaUrl)
+  const backgroundColor = item.backgroundColor || '#1d342b'
+
+  return (
+    <article
+      key={item.id}
+      className="relative min-h-[13.5rem] w-full overflow-hidden rounded-[1.35rem] border border-white/12 p-6 shadow-[0_24px_80px_-50px_rgba(0,0,0,0.9)] backdrop-blur-md"
+      style={{
+        background: hasMedia
+          ? 'rgba(255,255,255,0.09)'
+          : `linear-gradient(145deg, ${hexToRgba(backgroundColor, 0.98)}, ${hexToRgba(backgroundColor, 0.74)})`,
+      }}
+    >
+      {item.mediaUrl && (
+        item.mediaType === 'video' ? (
+          <video src={item.mediaUrl} className="absolute inset-0 h-full w-full object-cover" muted loop autoPlay playsInline />
+        ) : (
+          <img src={item.mediaUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )
+      )}
+      {hasMedia && <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.14),rgba(0,0,0,0.72))]" />}
+      {!hasMedia && <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.18))]" />}
+      <div className={`relative z-10 flex h-full min-h-[10.5rem] ${getTextPositionClass(item.textPosition)}`}>
+        <p className="max-w-full break-words text-[1.48rem] font-semibold leading-[1.1] text-white [overflow-wrap:anywhere]">
+          {item.text}
+        </p>
+      </div>
+    </article>
   )
 }
 
@@ -104,9 +163,6 @@ export function TotemFlowPreview({ design, screen }: { design: TotemDesign; scre
             <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
             {design.theme.brandName}
           </div>
-          {spec.step && (
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold opacity-75">{spec.step}</span>
-          )}
         </header>
 
         <main className="flex flex-1 flex-col justify-center">
@@ -120,15 +176,37 @@ export function TotemFlowPreview({ design, screen }: { design: TotemDesign; scre
   )
 }
 
-const FLOW_SPECS: Record<Exclude<TotemPreviewScreen, 'idle'>, { eyebrow: string; title: string; subtitle: string; step: string }> = {
-  search: { eyebrow: 'Check-in', title: 'Identificação', subtitle: 'Informe o código ou CPF para iniciar o atendimento.', step: '1 de 2' },
-  confirm: { eyebrow: 'Conferência', title: 'Confirmar dados', subtitle: 'Revise os dados antes de continuar.', step: '2 de 2' },
-  facial: { eyebrow: '', title: 'Reconhecimento facial', subtitle: '', step: '' },
-  key: { eyebrow: '', title: 'Chave emitida', subtitle: '', step: '' },
-  checkout: { eyebrow: 'Check-out', title: 'Confirmar saída', subtitle: 'Finalize sua estadia com segurança.', step: '2 de 2' },
+const FLOW_SPECS: Record<Exclude<TotemPreviewScreen, 'idle'>, { eyebrow: string; title: string; subtitle: string }> = {
+  actions: { eyebrow: '', title: 'Entrada ou saída?', subtitle: '' },
+  search: { eyebrow: 'Check-in', title: 'Identificação', subtitle: 'Informe o código ou CPF para iniciar o atendimento.' },
+  confirm: { eyebrow: 'Conferência', title: 'Confirmar dados', subtitle: 'Revise os dados antes de continuar.' },
+  facial: { eyebrow: '', title: 'Reconhecimento facial', subtitle: '' },
+  key: { eyebrow: '', title: 'Chave emitida', subtitle: '' },
+  checkout: { eyebrow: 'Check-out', title: 'Confirmar saída', subtitle: 'Finalize sua estadia com segurança.' },
 }
 
 function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, design: TotemDesign) {
+  if (screen === 'actions') {
+    return (
+      <div className="mt-8 grid grid-cols-2 gap-3">
+        <div className="group relative min-h-36 overflow-hidden rounded-[1.35rem] p-4 text-left text-white shadow-[0_18px_42px_rgba(2,6,23,0.18)]" style={{ background: design.theme.primaryColor }}>
+          <div className="absolute right-4 top-4 h-7 w-7 rounded-full border border-white/22" />
+          <div className="absolute right-6 top-6 h-3 w-3 rounded-full bg-white/82" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">Chegada</p>
+          <p className="mt-7 text-2xl font-bold leading-none">Check-in</p>
+          <p className="mt-2 text-xs font-medium leading-snug text-white/68">Entrar na estadia</p>
+        </div>
+        <div className="relative min-h-36 overflow-hidden rounded-[1.35rem] border p-4 text-left shadow-[0_14px_34px_rgba(2,6,23,0.08)]" style={{ background: hexToRgba(design.theme.surfaceColor, 0.82), borderColor: hexToRgba(design.theme.textColor, 0.1) }}>
+          <div className="absolute right-4 top-4 h-7 w-7 rounded-full border" style={{ borderColor: hexToRgba(design.theme.textColor, 0.18) }} />
+          <div className="absolute right-6 top-6 h-3 w-3 rounded-full" style={{ background: hexToRgba(design.theme.textColor, 0.56) }} />
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-55">Saída</p>
+          <p className="mt-7 text-2xl font-bold leading-none">Check-out</p>
+          <p className="mt-2 text-xs font-medium leading-snug opacity-56">Encerrar estadia</p>
+        </div>
+      </div>
+    )
+  }
+
   if (screen === 'confirm' || screen === 'checkout') {
     return (
       <div className="mt-7 rounded-2xl border border-white/12 p-4 text-sm" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
@@ -195,4 +273,27 @@ function hexToRgba(hex: string, alpha: number): string {
   if (!/^[0-9a-fA-F]{6}$/.test(value)) return `rgba(15, 118, 110, ${alpha})`
   const n = Number.parseInt(value, 16)
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
+
+function getActiveContentItems(block?: TotemBlock): TotemContentItem[] {
+  return Array.isArray(block?.contentItems)
+    ? block.contentItems.filter(item => item.active && item.text.trim().length > 0)
+    : []
+}
+
+function getTextPositionClass(position?: TotemContentItem['textPosition']): string {
+  if (position === 'top') return 'items-start'
+  if (position === 'bottom') return 'items-end'
+  return 'items-center'
+}
+
+function getCarouselDuration(speed?: TotemCarouselSpeed): number {
+  if (typeof speed === 'number') {
+    const normalized = Math.min(100, Math.max(0, speed)) / 100
+    const eased = Math.pow(normalized, 1.35)
+    return Math.round(46000 - eased * 37000)
+  }
+  if (speed === 'slow') return 46000
+  if (speed === 'fast') return 9000
+  return 26000
 }

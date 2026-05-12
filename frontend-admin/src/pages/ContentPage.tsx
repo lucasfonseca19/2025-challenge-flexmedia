@@ -1,22 +1,32 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
+  ArrowDown,
+  ArrowUp,
+  CaretDown,
   CaretLeft,
   CaretRight,
   Check,
   CloudArrowUp,
+  DotsSixVertical,
   ImageSquare,
   Monitor,
   Palette,
+  Plus,
   SlidersHorizontal,
+  Trash,
 } from '@phosphor-icons/react'
 import { hotelService, totemDesignService, totemMediaService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { FONTS } from '../constants/fonts'
-import type { TotemBlock, TotemDesign, TotemMediaAsset } from '../types'
+import type { TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign, TotemMediaAsset } from '../types'
 import TotemDesignRenderer, { TotemFlowPreview, type TotemPreviewScreen } from '../components/TotemDesignRenderer'
 
 const PREVIEW_SCREENS: Array<{ id: TotemPreviewScreen; label: string; kind: 'idle' | 'flow' }> = [
   { id: 'idle', label: 'Tela inicial', kind: 'idle' },
+  { id: 'actions', label: 'Escolha', kind: 'flow' },
   { id: 'search', label: 'Busca', kind: 'flow' },
   { id: 'confirm', label: 'Confirmação', kind: 'flow' },
   { id: 'facial', label: 'Biometria', kind: 'flow' },
@@ -41,6 +51,7 @@ const EMPTY_DESIGN: TotemDesign = {
   blocks: [
     { id: 'hero', type: 'hero', visible: true, title: 'Bem-vindo', subtitle: 'Toque para começar', alignment: 'left', variant: 'attract', overlay: 42 },
     { id: 'background-video', type: 'video', visible: true, title: 'Vídeo de fundo', variant: 'background' },
+    { id: 'hotel-content', type: 'carousel', visible: true, title: 'Conteúdos do hotel', speed: 50, contentItems: [] },
     { id: 'actions', type: 'cta', visible: true, title: 'Atendimento', subtitle: 'Check-in e check-out', variant: 'dual' },
     { id: 'language', type: 'language', visible: true, title: 'Idiomas' },
     { id: 'footer', type: 'footer', visible: true, title: 'Recepção disponível 24h', subtitle: 'Procure nossa equipe se precisar de ajuda' },
@@ -94,6 +105,7 @@ export default function ContentPage() {
   const heroBlock = getBlock(design, 'hero')
   const videoBlock = getBlock(design, 'video')
   const footerBlock = getBlock(design, 'footer')
+  const carouselBlock = getBlock(design, 'carousel')
   const screenIndex = PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen)
   const currentScreen = PREVIEW_SCREENS[screenIndex] ?? PREVIEW_SCREENS[0]
 
@@ -174,6 +186,25 @@ export default function ContentPage() {
     }
   }
 
+  async function uploadForContentItem(itemId: string, file: File | undefined) {
+    if (!file) return
+    setUploading(true)
+    setError(null)
+    try {
+      const asset = await totemMediaService.upload(hotelId, file)
+      setMidias(current => [asset, ...current.filter(item => item.publicUrl !== asset.publicUrl)])
+      patchContentItem(itemId, {
+        mediaUrl: asset.publicUrl,
+        mediaType: asset.mimeType.startsWith('video/') ? 'video' : 'image',
+      })
+      setMessage('Mídia do conteúdo atualizada.')
+    } catch {
+      setError('Arquivo inválido ou acima do limite permitido.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function applyPreset(template: TotemDesign) {
     const next = cloneDesign(template)
     setDesign(current => ({
@@ -205,6 +236,51 @@ export default function ContentPage() {
         blocks: [...current.blocks, { ...createBlock(type), ...patch }],
       }
     })
+  }
+
+  function updateCarouselSpeed(speed: TotemCarouselSpeed) {
+    upsertBlock('carousel', { speed, visible: true })
+  }
+
+  function addContentItem() {
+    upsertBlock('carousel', {
+      visible: true,
+      speed: carouselBlock?.speed ?? 50,
+      contentItems: [...getContentItems(carouselBlock), createContentItem()],
+    })
+  }
+
+  function patchContentItem(itemId: string, patch: Partial<TotemContentItem>) {
+    upsertBlock('carousel', {
+      visible: true,
+      contentItems: getContentItems(carouselBlock).map(item => item.id === itemId ? { ...item, ...patch } : item),
+    })
+  }
+
+  function removeContentItem(itemId: string) {
+    upsertBlock('carousel', {
+      visible: true,
+      contentItems: getContentItems(carouselBlock).filter(item => item.id !== itemId),
+    })
+  }
+
+  function moveContentItem(itemId: string, offset: -1 | 1) {
+    const items = getContentItems(carouselBlock)
+    const index = items.findIndex(item => item.id === itemId)
+    const nextIndex = index + offset
+    if (index < 0 || nextIndex < 0 || nextIndex >= items.length) return
+    const next = [...items]
+    const [item] = next.splice(index, 1)
+    next.splice(nextIndex, 0, item)
+    upsertBlock('carousel', { visible: true, contentItems: next })
+  }
+
+  function reorderContentItems(activeId: string, overId: string) {
+    const items = getContentItems(carouselBlock)
+    const oldIndex = items.findIndex(item => item.id === activeId)
+    const newIndex = items.findIndex(item => item.id === overId)
+    if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return
+    upsertBlock('carousel', { visible: true, contentItems: arrayMove(items, oldIndex, newIndex) })
   }
 
   function goPreview(offset: number) {
@@ -348,10 +424,18 @@ export default function ContentPage() {
                   heroBlock={heroBlock}
                   videoBlock={videoBlock}
                   footerBlock={footerBlock}
+                  carouselBlock={carouselBlock}
                   midias={midias}
                   uploading={uploading}
                   onHeroChange={patch => upsertBlock('hero', patch)}
                   onFooterChange={patch => upsertBlock('footer', patch)}
+                  onCarouselSpeedChange={updateCarouselSpeed}
+                  onAddContentItem={addContentItem}
+                  onContentItemChange={patchContentItem}
+                  onRemoveContentItem={removeContentItem}
+                  onMoveContentItem={moveContentItem}
+                  onReorderContentItems={reorderContentItems}
+                  onUploadContentMedia={uploadForContentItem}
                   onUploadImage={file => uploadForBlock(file, 'hero', 'image')}
                   onUploadVideo={file => uploadForBlock(file, 'video', 'video')}
                   onClearImage={() => upsertBlock('hero', { imageUrl: undefined })}
@@ -436,10 +520,18 @@ function ScreenContentPanel({
   heroBlock,
   videoBlock,
   footerBlock,
+  carouselBlock,
   midias,
   uploading,
   onHeroChange,
   onFooterChange,
+  onCarouselSpeedChange,
+  onAddContentItem,
+  onContentItemChange,
+  onRemoveContentItem,
+  onMoveContentItem,
+  onReorderContentItems,
+  onUploadContentMedia,
   onUploadImage,
   onUploadVideo,
   onClearImage,
@@ -449,10 +541,18 @@ function ScreenContentPanel({
   heroBlock?: TotemBlock
   videoBlock?: TotemBlock
   footerBlock?: TotemBlock
+  carouselBlock?: TotemBlock
   midias: TotemMediaAsset[]
   uploading: boolean
   onHeroChange: (patch: Partial<TotemBlock>) => void
   onFooterChange: (patch: Partial<TotemBlock>) => void
+  onCarouselSpeedChange: (speed: TotemCarouselSpeed) => void
+  onAddContentItem: () => void
+  onContentItemChange: (itemId: string, patch: Partial<TotemContentItem>) => void
+  onRemoveContentItem: (itemId: string) => void
+  onMoveContentItem: (itemId: string, offset: -1 | 1) => void
+  onReorderContentItems: (activeId: string, overId: string) => void
+  onUploadContentMedia: (itemId: string, file: File | undefined) => void
   onUploadImage: (file: File | undefined) => void
   onUploadVideo: (file: File | undefined) => void
   onClearImage: () => void
@@ -475,12 +575,6 @@ function ScreenContentPanel({
   return (
     <div className="space-y-4">
       <PanelTitle icon={<ImageSquare size={19} />} title="Tela inicial" />
-      <Field label="Mensagem principal">
-        <input value={heroBlock?.title ?? ''} onChange={event => onHeroChange({ title: event.target.value, visible: true })} className="studio-input" />
-      </Field>
-      <Field label="Mensagem de apoio">
-        <textarea value={heroBlock?.subtitle ?? ''} onChange={event => onHeroChange({ subtitle: event.target.value, visible: true })} className="studio-input min-h-20 resize-none" />
-      </Field>
       <MediaField
         kind="video"
         assets={midias}
@@ -500,6 +594,17 @@ function ScreenContentPanel({
       <Field label="Escurecimento da mídia">
         <input type="range" min={0} max={75} value={heroBlock?.overlay ?? 42} onChange={event => onHeroChange({ overlay: Number(event.target.value), visible: true })} className="w-full accent-[#d7fbe8]" />
       </Field>
+      <ContentCarouselPanel
+        block={carouselBlock}
+        uploading={uploading}
+        onSpeedChange={onCarouselSpeedChange}
+        onAdd={onAddContentItem}
+        onChange={onContentItemChange}
+        onRemove={onRemoveContentItem}
+        onMove={onMoveContentItem}
+        onReorder={onReorderContentItems}
+        onUploadMedia={onUploadContentMedia}
+      />
       <div className="border-t border-white/10 pt-4">
         <Field label="Rodapé">
           <input value={footerBlock?.title ?? ''} onChange={event => onFooterChange({ title: event.target.value, visible: true })} className="studio-input" />
@@ -508,6 +613,248 @@ function ScreenContentPanel({
           <input value={footerBlock?.subtitle ?? ''} onChange={event => onFooterChange({ subtitle: event.target.value, visible: true })} className="studio-input" />
         </Field>
       </div>
+    </div>
+  )
+}
+
+function ContentCarouselPanel({ block, uploading, onSpeedChange, onAdd, onChange, onRemove, onMove, onReorder, onUploadMedia }: {
+  block?: TotemBlock
+  uploading: boolean
+  onSpeedChange: (speed: TotemCarouselSpeed) => void
+  onAdd: () => void
+  onChange: (itemId: string, patch: Partial<TotemContentItem>) => void
+  onRemove: (itemId: string) => void
+  onMove: (itemId: string, offset: -1 | 1) => void
+  onReorder: (activeId: string, overId: string) => void
+  onUploadMedia: (itemId: string, file: File | undefined) => void
+}) {
+  const items = getContentItems(block)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
+  function toggleExpanded(itemId: string) {
+    setExpandedIds(current => {
+      const next = new Set(current)
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
+      return next
+    })
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id)
+    const overId = event.over ? String(event.over.id) : ''
+    if (overId) onReorder(activeId, overId)
+  }
+
+  return (
+    <section className="border-t border-white/10 pt-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <PanelTitle icon={<ImageSquare size={19} />} title="Conteúdo em destaque" />
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex h-9 items-center gap-1.5 rounded-xl bg-[#d7fbe8] px-3 text-xs font-semibold text-[#10201d] hover:bg-[#c1f1d8]"
+        >
+          <Plus size={14} weight="bold" />
+          Adicionar
+        </button>
+      </div>
+
+      <Field label="Velocidade do carrossel">
+        <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3">
+          <div className="mb-2 flex items-center justify-between text-lg" aria-hidden="true">
+            <span title="Mais lento">🐢</span>
+            <span className="text-xs font-semibold text-[#9eb2aa]">{getSpeedLabel(block?.speed)}</span>
+            <span title="Mais rápido">🐇</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={getSpeedSliderValue(block?.speed)}
+            onChange={event => onSpeedChange(Number(event.target.value))}
+            className="w-full accent-[#d7fbe8]"
+            aria-label="Velocidade do carrossel"
+          />
+        </div>
+      </Field>
+
+      {items.length > 0 && (
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <SortableContentItem
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  total={items.length}
+                  expanded={expandedIds.has(item.id)}
+                  uploading={uploading}
+                  onToggle={() => toggleExpanded(item.id)}
+                  onChange={patch => onChange(item.id, patch)}
+                  onRemove={() => onRemove(item.id)}
+                  onMove={offset => onMove(item.id, offset)}
+                  onUploadMedia={file => onUploadMedia(item.id, file)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+    </section>
+  )
+}
+
+function SortableContentItem({
+  item,
+  index,
+  total,
+  expanded,
+  uploading,
+  onToggle,
+  onChange,
+  onRemove,
+  onMove,
+  onUploadMedia,
+}: {
+  item: TotemContentItem
+  index: number
+  total: number
+  expanded: boolean
+  uploading: boolean
+  onToggle: () => void
+  onChange: (patch: Partial<TotemContentItem>) => void
+  onRemove: () => void
+  onMove: (offset: -1 | 1) => void
+  onUploadMedia: (file: File | undefined) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+  const label = item.text.trim() || 'Conteúdo sem texto'
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-2xl border border-white/10 bg-white/[0.04] p-3 ${isDragging ? 'relative z-20 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.95)]' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-xl bg-white/8 text-[#9eb2aa] active:cursor-grabbing"
+          aria-label="Arrastar para ordenar"
+          {...attributes}
+          {...listeners}
+        >
+          <DotsSixVertical size={18} weight="bold" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/[0.04]"
+          aria-expanded={expanded}
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-white">{label}</span>
+            <span className="mt-0.5 block text-xs text-[#9eb2aa]">{item.active ? 'Ativo' : 'Inativo'} · {item.mediaUrl ? 'com mídia' : 'sem mídia'}</span>
+          </span>
+          <CaretDown size={16} className={`shrink-0 text-[#9eb2aa] transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        <IconButton label="Subir" disabled={index === 0} onClick={() => onMove(-1)}><ArrowUp size={14} /></IconButton>
+        <IconButton label="Descer" disabled={index === total - 1} onClick={() => onMove(1)}><ArrowDown size={14} /></IconButton>
+        <IconButton label="Remover" onClick={onRemove}><Trash size={14} /></IconButton>
+      </div>
+
+      {expanded && (
+        <div className="mt-4">
+          <label className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#d8fff4]">
+            <input
+              type="checkbox"
+              checked={item.active}
+              onChange={event => onChange({ active: event.target.checked })}
+              className="accent-[#d7fbe8]"
+            />
+            Ativo
+          </label>
+
+          <Field label="Texto">
+            <textarea
+              value={item.text}
+              maxLength={120}
+              onChange={event => onChange({ text: event.target.value })}
+              className="studio-input min-h-24 resize-none text-base leading-6"
+              placeholder="Ex.: Rooftop aberto hoje até 23h com vista para a cidade."
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <ColorField
+              label="Fundo do card"
+              value={item.backgroundColor ?? '#1d342b'}
+              onChange={value => onChange({ backgroundColor: value })}
+            />
+            <Field label="Alinhamento">
+              <select
+                value={item.textPosition ?? 'center'}
+                onChange={event => onChange({ textPosition: event.target.value as TotemContentItem['textPosition'] })}
+                className="studio-input"
+              >
+                <option value="top">Topo</option>
+                <option value="center">Centro</option>
+                <option value="bottom">Inferior</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="overflow-hidden rounded-xl bg-black/20">
+            {item.mediaUrl ? (
+              item.mediaType === 'video' ? (
+                <video src={item.mediaUrl} className="h-28 w-full object-cover" muted loop autoPlay playsInline />
+              ) : (
+                <img src={item.mediaUrl} alt="" className="h-28 w-full object-cover" />
+              )
+            ) : (
+              <div className="flex h-24 flex-col items-center justify-center text-center text-xs text-[#9eb2aa]">
+                <CloudArrowUp size={22} weight="duotone" />
+                <span className="mt-1">Mídia opcional</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+            <label className="flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-[#d7fbe8]/35 bg-[#d7fbe8]/8 px-3 py-2 text-xs font-semibold text-[#d8fff4] hover:bg-[#d7fbe8]/12">
+              <CloudArrowUp className="mr-2" size={16} />
+              {uploading ? 'Enviando...' : item.mediaUrl ? 'Substituir mídia' : 'Adicionar mídia'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,video/mp4"
+                className="hidden"
+                disabled={uploading}
+                onChange={event => {
+                  onUploadMedia(event.target.files?.[0])
+                  event.target.value = ''
+                }}
+              />
+            </label>
+            {item.mediaUrl && (
+              <button
+                type="button"
+                onClick={() => onChange({ mediaUrl: undefined, mediaType: undefined })}
+                className="rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-[#d8fff4] hover:bg-white/12"
+              >
+                Remover
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -623,6 +970,21 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+function IconButton({ label, disabled, onClick, children }: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/8 text-[#d8fff4] hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-35"
+    >
+      {children}
+    </button>
+  )
+}
+
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <Field label={label}>
@@ -652,7 +1014,7 @@ function createBlock(type: TotemBlock['type']): TotemBlock {
   const labels: Record<TotemBlock['type'], string> = {
     hero: 'Bem-vindo',
     cta: 'Atendimento',
-    carousel: 'Galeria',
+    carousel: 'Conteúdos do hotel',
     banner: 'Aviso',
     amenities: 'Durante sua estadia',
     video: 'Vídeo de fundo',
@@ -669,6 +1031,8 @@ function createBlock(type: TotemBlock['type']): TotemBlock {
     variant: type === 'hero' ? 'attract' : 'default',
     overlay: 42,
     items: type === 'amenities' ? ['Wi-Fi', 'Restaurante', 'Recepção 24h'] : [],
+    contentItems: type === 'carousel' ? [] : undefined,
+    speed: type === 'carousel' ? 50 : undefined,
   }
 }
 
@@ -683,7 +1047,7 @@ function normalizeDesign(value: TotemDesign): TotemDesign {
 }
 
 function ensureCoreBlocks(blocks: TotemBlock[]): TotemBlock[] {
-  return (['hero', 'video', 'cta', 'language', 'footer'] as TotemBlock['type'][]).reduce((current, type) => {
+  return (['hero', 'video', 'carousel', 'cta', 'language', 'footer'] as TotemBlock['type'][]).reduce((current, type) => {
     if (current.some(block => block.type === type)) return current
     return [...current, createBlock(type)]
   }, blocks)
@@ -693,12 +1057,42 @@ function mergePresetBlocks(currentBlocks: TotemBlock[], presetBlocks: TotemBlock
   const currentHero = currentBlocks.find(block => block.type === 'hero')
   const currentVideo = currentBlocks.find(block => block.type === 'video')
   const currentFooter = currentBlocks.find(block => block.type === 'footer')
+  const currentCarousel = currentBlocks.find(block => block.type === 'carousel')
   return ensureCoreBlocks(presetBlocks).map(block => {
     if (block.type === 'hero' && currentHero) return { ...block, title: currentHero.title, subtitle: currentHero.subtitle, imageUrl: currentHero.imageUrl, overlay: currentHero.overlay }
     if (block.type === 'video' && currentVideo) return { ...block, videoUrl: currentVideo.videoUrl }
     if (block.type === 'footer' && currentFooter) return { ...block, title: currentFooter.title, subtitle: currentFooter.subtitle }
+    if (block.type === 'carousel' && currentCarousel) return { ...block, contentItems: getContentItems(currentCarousel), speed: currentCarousel.speed ?? 50 }
     return block
   })
+}
+
+function createContentItem(): TotemContentItem {
+  return {
+    id: `content-${Date.now()}`,
+    text: '',
+    backgroundColor: '#1d342b',
+    textPosition: 'center',
+    active: true,
+  }
+}
+
+function getContentItems(block?: TotemBlock): TotemContentItem[] {
+  return Array.isArray(block?.contentItems) ? block.contentItems : []
+}
+
+function getSpeedSliderValue(speed?: TotemCarouselSpeed): number {
+  if (typeof speed === 'number') return Math.min(100, Math.max(0, speed))
+  if (speed === 'slow') return 0
+  if (speed === 'fast') return 100
+  return 50
+}
+
+function getSpeedLabel(speed?: TotemCarouselSpeed): string {
+  const value = getSpeedSliderValue(speed)
+  if (value < 34) return 'Calma'
+  if (value > 66) return 'Rápida'
+  return 'Natural'
 }
 
 function cloneDesign(value: TotemDesign): TotemDesign {

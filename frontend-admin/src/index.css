@@ -47,6 +47,11 @@ button:active {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes totemContentMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 .totem-block-enter {
   opacity: 0;
   transform: translateY(16px);
