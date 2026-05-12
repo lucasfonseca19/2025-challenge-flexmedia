@@ -127,7 +127,7 @@ Defeitos corrigidos e retestados:
 Observação de ambiente:
 - `http://127.0.0.1:5173` foi incluído nas origens CORS de desenvolvimento e a ativação do totem com `5RIKKD` funcionou nesse host.
 - 2026-05-08: refinamento visual do fluxo do totem validado por build (`frontend-totem` e `frontend-admin`) e inspeção parcial no navegador interno em `/setup` e `/selecionar-idioma`; re-homologação completa do Totem Studio continua pendente porque o backend não estava em execução no momento da validação visual.
-- 2026-05-08: Totem Studio reorganizado para editar identidade global e conteúdo da tela inicial, com navegação de preview por telas internas (`Idioma`, `Busca`, `Confirmação`, `Biometria`, `Chave`, `Check-out`) sem edição granular por etapa. Requer re-homologação visual com backend ativo.
+- 2026-05-08: Totem Studio reorganizado para editar identidade global e conteúdo da tela inicial, com navegação de preview por telas internas (`Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave`, `Check-out`) sem edição granular por etapa. Requer re-homologação visual com backend ativo.
 
 ---
 
@@ -459,6 +459,10 @@ Funcionalidades essenciais que sustentam o produto ao longo do tempo.
 ### TC-131 — Mídia publicada aparece na IdlePage do totem
 - **Passos:** associar mídia a um bloco, publicar design e recarregar totem na tela idle
 - **Esperado:** Totem busca design publicado e exibe imagem/video no bloco configurado
+
+### TC-131B — Carrossel de conteúdo publicado aparece na IdlePage
+- **Passos:** `/conteudo` → adicionar itens em `Conteúdo em destaque` → escolher velocidade → publicar design → recarregar totem na tela idle
+- **Esperado:** Totem exibe o carrossel central com itens ativos, sem mensagem de apoio fixa, e mantém o botão `Toque para começar` na área inferior
 
 ### TC-132 — Vídeo roda em loop no preview e no totem
 - **Passos:** adicionar bloco de vídeo, selecionar MP4, observar preview e idle publicada

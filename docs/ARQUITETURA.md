@@ -130,10 +130,10 @@ Modelo funcional:
 - `TotemDesign` tem status `DRAFT` ou `PUBLISHED`.
 - `theme`, `layout` e `blocks` sao JSON persistidos em colunas `TEXT`.
 - O admin edita rascunho, visualiza preview e publica.
-- A UI do Studio prioriza identidade global (fonte, cores, densidade) e conteudo da tela inicial (texto, video/imagem de fundo e rodape), evitando que o operador precise manipular blocos estruturais.
-- O totem busca o design publicado e renderiza a idle customizada como attract mode com midia de fundo, mensagem e CTAs.
+- A UI do Studio prioriza identidade global (fonte, cores, densidade) e conteudo da tela inicial (video/imagem de fundo, carrossel de promocoes/eventos/servicos, velocidade e rodape), evitando que o operador precise manipular blocos estruturais.
+- O totem busca o design publicado e renderiza a idle customizada como attract mode com midia de fundo, carrossel central de conteudo e CTAs inferiores.
 - As telas internas do atendimento herdam a identidade publicada por tema, mas mantem layout fixo para proteger contraste, legibilidade e fluxo operacional.
-- O preview do admin permite navegar por tela inicial, busca, confirmacao, biometria, chave e checkout. A tela inicial ja inclui os seletores de idioma integrados, sem etapa separada. As telas de fluxo herdam identidade global e nao sao editaveis individualmente.
+- O preview do admin permite navegar por tela inicial, escolha de Check-in/Check-out, busca, confirmacao, biometria, chave e checkout. A tela inicial ja inclui os seletores de idioma integrados, sem etapa separada. As telas de fluxo herdam identidade global e nao sao editaveis individualmente.
 - Se nao houver design publicado, o totem usa o fluxo visual antigo como fallback.
 
 Endpoints principais:
