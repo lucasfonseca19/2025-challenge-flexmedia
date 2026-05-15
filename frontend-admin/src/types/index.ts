@@ -47,6 +47,7 @@ export type TotemCarouselSpeed = 'slow' | 'medium' | 'fast' | number
 export interface TotemContentItem {
   id: string
   text: string
+  texts?: Partial<Record<'pt' | 'en' | 'es', string>>
   mediaUrl?: string
   mediaType?: 'image' | 'video'
   backgroundColor?: string

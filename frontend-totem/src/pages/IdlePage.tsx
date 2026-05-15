@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
 import { totemDesignService } from '../services/api'
@@ -107,7 +107,7 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
   const heroBlock = design.blocks.find(b => b.type === 'hero' && b.visible)
   const hasLanguage = design.blocks.some(b => b.type === 'language' && b.visible)
   const carouselBlock = design.blocks.find(b => b.type === 'carousel' && b.visible)
-  const contentItems = useMemo(() => getActiveContentItems(carouselBlock), [carouselBlock])
+  const contentItems = useMemo(() => getVisibleContentItems(carouselBlock, idioma), [carouselBlock, idioma])
   const overlayOpacity = heroBlock?.overlay ?? 42
 
   return (
@@ -146,6 +146,7 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
             <FeaturedContentCarousel
               items={contentItems}
               speed={carouselBlock?.speed}
+              idioma={idioma}
             />
           )}
         </main>
@@ -191,14 +192,17 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
   )
 }
 
-function FeaturedContentCarousel({ items, speed }: {
+function FeaturedContentCarousel({ items, speed, idioma }: {
   items: TotemContentItem[]
   speed?: TotemCarouselSpeed
+  idioma: Idioma
 }) {
+  const [viewportRef, viewportWidth] = useMeasuredWidth()
+
   if (items.length === 1) {
     return (
-      <section className="w-full px-2">
-        <FeaturedContentCard item={items[0]} />
+      <section className="flex w-full justify-center px-2">
+        <FeaturedContentCard item={items[0]} idioma={idioma} />
       </section>
     )
   }
@@ -206,14 +210,14 @@ function FeaturedContentCarousel({ items, speed }: {
   const loopItems = [...items, ...items]
 
   return (
-    <section className="w-full overflow-hidden">
+    <section className="w-full overflow-hidden" ref={viewportRef}>
       <div
-        className="inline-flex min-w-full will-change-transform"
+        className="inline-flex w-max will-change-transform"
         style={{ animation: `totemContentMarquee ${getCarouselDuration(speed)}ms linear infinite` }}
       >
         {loopItems.map((item, index) => (
-          <div key={`${item.id}-${index}`} className="min-w-full shrink-0 px-2">
-            <FeaturedContentCard item={item} />
+          <div key={`${item.id}-${index}`} className="flex shrink-0 justify-center px-2" style={{ width: viewportWidth || '100%' }}>
+            <FeaturedContentCard item={item} idioma={idioma} />
           </div>
         ))}
       </div>
@@ -221,15 +225,17 @@ function FeaturedContentCarousel({ items, speed }: {
   )
 }
 
-function FeaturedContentCard({ item }: {
+function FeaturedContentCard({ item, idioma }: {
   item: TotemContentItem
+  idioma: Idioma
 }) {
   const hasMedia = Boolean(item.mediaUrl)
   const backgroundColor = item.backgroundColor || '#1d342b'
+  const text = getLocalizedContentText(item, idioma)
 
   return (
     <article
-      className="relative min-h-[13.5rem] overflow-hidden rounded-[1.35rem] border border-white/12 p-6 shadow-[0_24px_80px_-50px_rgba(0,0,0,0.9)] backdrop-blur-md"
+      className="relative min-h-[13.5rem] w-[82%] overflow-hidden rounded-[1.35rem] border border-white/12 p-6 shadow-[0_24px_80px_-50px_rgba(0,0,0,0.9)] backdrop-blur-md"
       style={{
         background: hasMedia
           ? 'rgba(255,255,255,0.09)'
@@ -247,7 +253,7 @@ function FeaturedContentCard({ item }: {
       {!hasMedia && <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.18))]" />}
       <div className={`relative z-10 flex h-full min-h-[10.5rem] ${getTextPositionClass(item.textPosition)}`}>
         <p className="max-w-full break-words text-[1.48rem] font-semibold leading-[1.1] text-white [overflow-wrap:anywhere]">
-          {item.text}
+          {text}
         </p>
       </div>
     </article>
@@ -478,10 +484,14 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
-function getActiveContentItems(block?: TotemBlock): TotemContentItem[] {
+function getVisibleContentItems(block: TotemBlock | undefined, idioma: Idioma): TotemContentItem[] {
   return Array.isArray(block?.contentItems)
-    ? block.contentItems.filter(item => item.active && item.text.trim().length > 0)
+    ? block.contentItems.filter(item => getLocalizedContentText(item, idioma).trim().length > 0)
     : []
+}
+
+function getLocalizedContentText(item: TotemContentItem, idioma: Idioma): string {
+  return item.texts?.[idioma]?.trim() || item.text?.trim() || item.texts?.pt?.trim() || ''
 }
 
 function getCarouselDuration(speed?: TotemCarouselSpeed): number {
@@ -493,6 +503,26 @@ function getCarouselDuration(speed?: TotemCarouselSpeed): number {
   if (speed === 'slow') return 46000
   if (speed === 'fast') return 9000
   return 26000
+}
+
+function useMeasuredWidth() {
+  const ref = useRef<HTMLElement | null>(null)
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    const updateWidth = () => setWidth(element.clientWidth)
+    updateWidth()
+
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [])
+
+  return [ref, width] as const
 }
 
 function getTextPositionClass(position?: TotemContentItem['textPosition']): string {

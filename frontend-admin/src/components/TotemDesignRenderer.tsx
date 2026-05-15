@@ -1,22 +1,25 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign } from '../types'
 import { FONTS } from '../constants/fonts'
 
 export type TotemPreviewScreen = 'idle' | 'actions' | 'search' | 'confirm' | 'facial' | 'key' | 'checkout'
+type ContentLanguage = 'pt' | 'en' | 'es'
 
 interface Props {
   design: TotemDesign
   scale?: 'preview' | 'runtime'
+  carouselPaused?: boolean
+  language?: ContentLanguage
 }
 
-export default function TotemDesignRenderer({ design, scale = 'preview' }: Props) {
+export default function TotemDesignRenderer({ design, scale = 'preview', carouselPaused = false, language = 'pt' }: Props) {
   const font = FONTS.find(f => f.id === design.theme.fontFamily)
   const fontStack = font ? `'${font.id}', system-ui, sans-serif` : 'system-ui, sans-serif'
   const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible)
   const videoBlock = design.blocks.find(block => block.type === 'video' && block.visible && block.videoUrl)
   const footerBlock = design.blocks.find(block => block.type === 'footer' && block.visible)
   const carouselBlock = design.blocks.find(block => block.type === 'carousel' && block.visible)
-  const contentItems = useMemo(() => getActiveContentItems(carouselBlock), [carouselBlock])
+  const contentItems = useMemo(() => getVisibleContentItems(carouselBlock, language), [carouselBlock, language])
 
   return (
     <div
@@ -54,7 +57,7 @@ export default function TotemDesignRenderer({ design, scale = 'preview' }: Props
 
         <main className="-mx-7 flex flex-1 items-center overflow-hidden py-8">
           {contentItems.length > 0 && (
-            <ContentCarousel items={contentItems} speed={carouselBlock?.speed} />
+            <ContentCarousel items={contentItems} speed={carouselBlock?.speed} paused={carouselPaused} language={language} />
           )}
         </main>
 
@@ -80,11 +83,18 @@ export default function TotemDesignRenderer({ design, scale = 'preview' }: Props
   )
 }
 
-function ContentCarousel({ items, speed }: { items: TotemContentItem[]; speed?: TotemCarouselSpeed }) {
+function ContentCarousel({ items, speed, paused, language }: {
+  items: TotemContentItem[]
+  speed?: TotemCarouselSpeed
+  paused: boolean
+  language: ContentLanguage
+}) {
+  const [viewportRef, viewportWidth] = useMeasuredWidth()
+
   if (items.length === 1) {
     return (
-      <div className="mx-auto w-[82%] px-2">
-        <ContentCard item={items[0]} />
+      <div className="flex w-full justify-center px-2">
+        <ContentCard item={items[0]} language={language} />
       </div>
     )
   }
@@ -92,14 +102,17 @@ function ContentCarousel({ items, speed }: { items: TotemContentItem[]; speed?: 
   const loopItems = [...items, ...items]
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="w-full overflow-hidden" ref={viewportRef}>
       <div
-        className="inline-flex min-w-full will-change-transform"
-        style={{ animation: `totemContentMarquee ${getCarouselDuration(speed)}ms linear infinite` }}
+        className="inline-flex w-max will-change-transform"
+        style={{
+          animation: `totemContentMarquee ${getCarouselDuration(speed)}ms linear infinite`,
+          animationPlayState: paused ? 'paused' : 'running',
+        }}
       >
         {loopItems.map((item, index) => (
-          <div key={`${item.id}-${index}`} className="w-[82%] shrink-0 px-2">
-            <ContentCard item={item} speed={speed} />
+          <div key={`${item.id}-${index}`} className="flex shrink-0 justify-center px-2" style={{ width: viewportWidth || '100%' }}>
+            <ContentCard item={item} language={language} />
           </div>
         ))}
       </div>
@@ -107,14 +120,15 @@ function ContentCarousel({ items, speed }: { items: TotemContentItem[]; speed?: 
   )
 }
 
-function ContentCard({ item }: { item: TotemContentItem; speed?: TotemCarouselSpeed }) {
+function ContentCard({ item, language }: { item: TotemContentItem; language: ContentLanguage }) {
   const hasMedia = Boolean(item.mediaUrl)
   const backgroundColor = item.backgroundColor || '#1d342b'
+  const text = getLocalizedContentText(item, language)
 
   return (
     <article
       key={item.id}
-      className="relative min-h-[13.5rem] w-full overflow-hidden rounded-[1.35rem] border border-white/12 p-6 shadow-[0_24px_80px_-50px_rgba(0,0,0,0.9)] backdrop-blur-md"
+      className="relative min-h-[13.5rem] w-[82%] overflow-hidden rounded-[1.35rem] border border-white/12 p-6 shadow-[0_24px_80px_-50px_rgba(0,0,0,0.9)] backdrop-blur-md"
       style={{
         background: hasMedia
           ? 'rgba(255,255,255,0.09)'
@@ -132,7 +146,7 @@ function ContentCard({ item }: { item: TotemContentItem; speed?: TotemCarouselSp
       {!hasMedia && <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.18))]" />}
       <div className={`relative z-10 flex h-full min-h-[10.5rem] ${getTextPositionClass(item.textPosition)}`}>
         <p className="max-w-full break-words text-[1.48rem] font-semibold leading-[1.1] text-white [overflow-wrap:anywhere]">
-          {item.text}
+          {text}
         </p>
       </div>
     </article>
@@ -274,10 +288,14 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
-function getActiveContentItems(block?: TotemBlock): TotemContentItem[] {
+function getVisibleContentItems(block: TotemBlock | undefined, language: ContentLanguage): TotemContentItem[] {
   return Array.isArray(block?.contentItems)
-    ? block.contentItems.filter(item => item.active && item.text.trim().length > 0)
+    ? block.contentItems.filter(item => getLocalizedContentText(item, language).trim().length > 0)
     : []
+}
+
+function getLocalizedContentText(item: TotemContentItem, language: ContentLanguage): string {
+  return item.texts?.[language]?.trim() || item.text?.trim() || item.texts?.pt?.trim() || ''
 }
 
 function getTextPositionClass(position?: TotemContentItem['textPosition']): string {
@@ -295,4 +313,24 @@ function getCarouselDuration(speed?: TotemCarouselSpeed): number {
   if (speed === 'slow') return 46000
   if (speed === 'fast') return 9000
   return 26000
+}
+
+function useMeasuredWidth() {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    const updateWidth = () => setWidth(element.clientWidth)
+    updateWidth()
+
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [])
+
+  return [ref, width] as const
 }

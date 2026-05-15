@@ -14,6 +14,8 @@ import {
   ImageSquare,
   Monitor,
   Palette,
+  Pause,
+  Play,
   Plus,
   SlidersHorizontal,
   Trash,
@@ -33,6 +35,9 @@ const PREVIEW_SCREENS: Array<{ id: TotemPreviewScreen; label: string; kind: 'idl
   { id: 'key', label: 'Chave', kind: 'flow' },
   { id: 'checkout', label: 'Check-out', kind: 'flow' },
 ]
+
+const CONTENT_LANGUAGES = ['pt', 'en', 'es'] as const
+type ContentLanguage = typeof CONTENT_LANGUAGES[number]
 
 const EMPTY_DESIGN: TotemDesign = {
   theme: {
@@ -96,6 +101,7 @@ export default function ContentPage() {
   const [midias, setMidias] = useState<TotemMediaAsset[]>([])
   const [tab, setTab] = useState<'design' | 'publish'>('design')
   const [previewScreen, setPreviewScreen] = useState<TotemPreviewScreen>('idle')
+  const [previewCarouselPaused, setPreviewCarouselPaused] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -371,9 +377,22 @@ export default function ContentPage() {
             <main className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <PanelTitle icon={<ImageSquare size={19} />} title="Preview do totem" />
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-white">{currentScreen.label}</p>
-                  <p className="text-xs text-[#9eb2aa]">Portrait 9:16</p>
+                <div className="flex items-center gap-3">
+                  {previewScreen === 'idle' && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewCarouselPaused(current => !current)}
+                      className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 text-xs font-semibold text-[#d8fff4] transition-colors hover:bg-white/12"
+                      aria-label={previewCarouselPaused ? 'Retomar carrossel' : 'Pausar carrossel'}
+                    >
+                      {previewCarouselPaused ? <Play size={15} weight="fill" /> : <Pause size={15} weight="fill" />}
+                      {previewCarouselPaused ? 'Play' : 'Pause'}
+                    </button>
+                  )}
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-white">{currentScreen.label}</p>
+                    <p className="text-xs text-[#9eb2aa]">Portrait 9:16</p>
+                  </div>
                 </div>
               </div>
 
@@ -389,7 +408,12 @@ export default function ContentPage() {
 
                 <div className="aspect-[9/16] h-[min(74vh,780px)] max-h-[780px] max-w-full flex-none overflow-hidden rounded-[2rem] border border-white/10 bg-black p-2 shadow-[0_30px_100px_-60px_rgba(0,0,0,1)]">
                   {previewScreen === 'idle'
-                    ? <TotemDesignRenderer design={design} />
+                    ? (
+                        <TotemDesignRenderer
+                          design={design}
+                          carouselPaused={previewCarouselPaused}
+                        />
+                      )
                     : <TotemFlowPreview design={design} screen={previewScreen} />}
                 </div>
 
@@ -415,6 +439,7 @@ export default function ContentPage() {
                   </button>
                 ))}
               </div>
+
             </main>
 
             <aside className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
@@ -730,12 +755,23 @@ function SortableContentItem({
   onMove: (offset: -1 | 1) => void
   onUploadMedia: (file: File | undefined) => void
 }) {
+  const [activeLanguage, setActiveLanguage] = useState<ContentLanguage>('pt')
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
-  const label = item.text.trim() || 'Conteúdo sem texto'
+  const label = getContentItemLabel(item)
+  const languageText = getContentItemText(item, activeLanguage)
+  const languageLabels: Record<ContentLanguage, string> = { pt: 'PT', en: 'EN', es: 'ES' }
+
+  function updateLanguageText(value: string) {
+    const texts = { ...getContentItemTexts(item), [activeLanguage]: value }
+    onChange({
+      texts,
+      text: activeLanguage === 'pt' ? value : texts.pt || item.text || 'VAZIO',
+    })
+  }
 
   return (
     <div
@@ -743,7 +779,7 @@ function SortableContentItem({
       style={style}
       className={`rounded-2xl border border-white/10 bg-white/[0.04] p-3 ${isDragging ? 'relative z-20 shadow-[0_24px_70px_-45px_rgba(0,0,0,0.95)]' : ''}`}
     >
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
         <button
           type="button"
           className="flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-xl bg-white/8 text-[#9eb2aa] active:cursor-grabbing"
@@ -757,43 +793,25 @@ function SortableContentItem({
         <button
           type="button"
           onClick={onToggle}
-          className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/[0.04]"
+          className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl px-2 py-2 text-left hover:bg-white/[0.04]"
           aria-expanded={expanded}
         >
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold text-white">{label}</span>
-            <span className="mt-0.5 block text-xs text-[#9eb2aa]">{item.active ? 'Ativo' : 'Inativo'} · {item.mediaUrl ? 'com mídia' : 'sem mídia'}</span>
+            <span className="mt-0.5 block text-xs text-[#9eb2aa]">{item.mediaUrl ? 'com mídia' : 'sem mídia'}</span>
           </span>
           <CaretDown size={16} className={`shrink-0 text-[#9eb2aa] transition-transform ${expanded ? 'rotate-180' : ''}`} />
         </button>
 
-        <IconButton label="Subir" disabled={index === 0} onClick={() => onMove(-1)}><ArrowUp size={14} /></IconButton>
-        <IconButton label="Descer" disabled={index === total - 1} onClick={() => onMove(1)}><ArrowDown size={14} /></IconButton>
-        <IconButton label="Remover" onClick={onRemove}><Trash size={14} /></IconButton>
+        <div className="flex shrink-0 items-center gap-1">
+          <IconButton label="Subir" disabled={index === 0} onClick={() => onMove(-1)}><ArrowUp size={14} /></IconButton>
+          <IconButton label="Descer" disabled={index === total - 1} onClick={() => onMove(1)}><ArrowDown size={14} /></IconButton>
+          <IconButton label="Remover" onClick={onRemove}><Trash size={14} /></IconButton>
+        </div>
       </div>
 
       {expanded && (
         <div className="mt-4">
-          <label className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#d8fff4]">
-            <input
-              type="checkbox"
-              checked={item.active}
-              onChange={event => onChange({ active: event.target.checked })}
-              className="accent-[#d7fbe8]"
-            />
-            Ativo
-          </label>
-
-          <Field label="Texto">
-            <textarea
-              value={item.text}
-              maxLength={120}
-              onChange={event => onChange({ text: event.target.value })}
-              className="studio-input min-h-24 resize-none text-base leading-6"
-              placeholder="Ex.: Rooftop aberto hoje até 23h com vista para a cidade."
-            />
-          </Field>
-
           <div className="grid grid-cols-2 gap-3">
             <ColorField
               label="Fundo do card"
@@ -853,6 +871,42 @@ function SortableContentItem({
               </button>
             )}
           </div>
+
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-1">
+            {CONTENT_LANGUAGES.map(lang => {
+              const missing = getContentItemText(item, lang).trim().length === 0
+              const selected = activeLanguage === lang
+              return (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => setActiveLanguage(lang)}
+                  className={`relative h-9 flex-1 rounded-lg text-xs font-bold transition-colors ${
+                    selected ? 'bg-[#d7fbe8] text-[#10201d]' : 'text-[#d8fff4] hover:bg-white/8'
+                  }`}
+                  aria-pressed={selected}
+                >
+                  {languageLabels[lang]}
+                  {missing && (
+                    <span
+                      className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-[#ff5b5b] shadow-[0_0_0_2px_rgba(16,21,19,0.95)]"
+                      aria-label={`${languageLabels[lang]} sem texto`}
+                    />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          <Field label={`Texto ${languageLabels[activeLanguage]}`}>
+            <textarea
+              value={languageText}
+              maxLength={120}
+              onChange={event => updateLanguageText(event.target.value)}
+              className="studio-input min-h-24 resize-none text-base leading-6"
+              placeholder="VAZIO"
+            />
+          </Field>
         </div>
       )}
     </div>
@@ -1070,7 +1124,8 @@ function mergePresetBlocks(currentBlocks: TotemBlock[], presetBlocks: TotemBlock
 function createContentItem(): TotemContentItem {
   return {
     id: `content-${Date.now()}`,
-    text: '',
+    text: 'VAZIO',
+    texts: { pt: 'VAZIO', en: '', es: '' },
     backgroundColor: '#1d342b',
     textPosition: 'center',
     active: true,
@@ -1079,6 +1134,24 @@ function createContentItem(): TotemContentItem {
 
 function getContentItems(block?: TotemBlock): TotemContentItem[] {
   return Array.isArray(block?.contentItems) ? block.contentItems : []
+}
+
+function getContentItemTexts(item: TotemContentItem): Record<ContentLanguage, string> {
+  return {
+    pt: item.text ?? '',
+    en: '',
+    es: '',
+    ...(item.texts ?? {}),
+  }
+}
+
+function getContentItemText(item: TotemContentItem, language: ContentLanguage): string {
+  return getContentItemTexts(item)[language] ?? ''
+}
+
+function getContentItemLabel(item: TotemContentItem): string {
+  const texts = getContentItemTexts(item)
+  return CONTENT_LANGUAGES.map(language => texts[language]?.trim()).find(Boolean) || 'VAZIO'
 }
 
 function getSpeedSliderValue(speed?: TotemCarouselSpeed): number {

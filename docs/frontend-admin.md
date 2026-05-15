@@ -67,6 +67,7 @@ Comportamento esperado:
 - carregar rascunho e biblioteca de mídia do hotel;
 - editar estilo global da plataforma do hotel: nome, fonte, cores e densidade;
 - editar conteúdo específico da tela inicial: vídeo de fundo, imagem de fallback, escurecimento da mídia, carrossel de promoções/eventos/serviços, velocidade contínua do carrossel, cards recolhíveis/reordenáveis e rodapé;
+- nos cards do carrossel, editar texto por idioma (`pt`, `en`, `es`); idiomas sem texto aparecem com indicador discreto no editor, e o campo legado `text` continua como fallback técnico;
 - usar imagens/vídeos da biblioteca local de mídia;
 - preview renderiza a tela inicial igual ao attract mode do totem, incluindo vídeo de fundo em loop e fontes dinâmicas;
 - preview permite navegar por `Tela inicial`, `Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`;
