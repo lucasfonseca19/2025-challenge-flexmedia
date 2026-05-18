@@ -40,6 +40,20 @@ class HotelControllerIT {
     }
 
     @Test
+    @WithMockUser(roles = "OPERADOR")
+    void getHoteis_comOperador_retorna403() throws Exception {
+        mockMvc.perform(get("/api/hoteis"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERADOR")
+    void buscarHotelPorId_comOperador_retorna403() throws Exception {
+        mockMvc.perform(get("/api/hoteis/1"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void criarHotel_dadosValidos_retorna201() throws Exception {
         var body = Map.of(

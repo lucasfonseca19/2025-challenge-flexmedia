@@ -19,11 +19,13 @@ public class HotelController {
     private final HotelService hotelService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<HotelResponseDTO> listar(@PageableDefault(size = 20) Pageable pageable) {
         return hotelService.listar(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public HotelResponseDTO buscarPorId(@PathVariable Long id) {
         return hotelService.buscarPorId(id);
     }

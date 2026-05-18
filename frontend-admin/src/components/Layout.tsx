@@ -6,8 +6,6 @@ import { useAuth } from '../context/AuthContext'
 const ADMIN_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: ChartBar },
   { to: '/hoteis', label: 'Hotéis', icon: Buildings },
-  { to: '/reservas', label: 'Reservas', icon: DoorOpen },
-  { to: '/conteudo', label: 'Totem Studio', icon: ImageSquare },
   { to: '/usuarios', label: 'Usuários', icon: Users },
 ]
 
