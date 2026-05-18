@@ -1,6 +1,7 @@
 package br.com.flexmedia.checkinhub.modules.totem;
 
 import br.com.flexmedia.checkinhub.modules.hotel.Hotel;
+import br.com.flexmedia.checkinhub.modules.totemdesign.TotemDesign;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,6 +26,10 @@ public class Totem {
 
     @Column(nullable = false, unique = true, length = 10)
     private String codigo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "design_id")
+    private TotemDesign design;
 
     @Column(name = "ultimo_heartbeat")
     private LocalDateTime ultimoHeartbeat;

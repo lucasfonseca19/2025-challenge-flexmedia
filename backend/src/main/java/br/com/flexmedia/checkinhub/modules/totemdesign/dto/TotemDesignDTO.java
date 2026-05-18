@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public record TotemDesignDTO(
         Long id,
         Long hotelId,
+        String nome,
         TotemDesignStatus status,
         @NotNull JsonNode theme,
         @NotNull JsonNode layout,
@@ -22,6 +23,7 @@ public record TotemDesignDTO(
         return new TotemDesignDTO(
                 design.getId(),
                 design.getHotel().getId(),
+                design.getNome(),
                 design.getStatus(),
                 readJson(objectMapper, design.getTheme()),
                 readJson(objectMapper, design.getLayout()),

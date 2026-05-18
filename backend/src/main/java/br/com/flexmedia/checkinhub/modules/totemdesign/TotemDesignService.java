@@ -44,6 +44,29 @@ public class TotemDesignService {
     @Value("${app.uploads.dir:uploads}")
     private String uploadsDir;
 
+    public List<TotemDesignDTO> listarPresets(Long hotelId) {
+        hotelAutorizado(hotelId);
+        return designRepository.findByHotelIdOrderByUpdatedAtDesc(hotelId)
+                .stream()
+                .map(design -> TotemDesignDTO.from(design, objectMapper))
+                .toList();
+    }
+
+    public TotemDesignDTO salvarPreset(Long hotelId, TotemDesignDTO dto) {
+        Hotel hotel = hotelAutorizado(hotelId);
+        String nome = normalizarNome(dto.nome());
+        TotemDesign design = dto.id() == null
+                ? TotemDesign.builder().hotel(hotel).status(TotemDesignStatus.PUBLISHED).build()
+                : buscarDesignDoHotel(dto.id(), hotelId);
+
+        design.setNome(nome);
+        design.setStatus(TotemDesignStatus.PUBLISHED);
+        design.setTheme(toJson(dto.theme()));
+        design.setLayout(toJson(dto.layout()));
+        design.setBlocks(toJson(dto.blocks()));
+        return TotemDesignDTO.from(designRepository.save(design), objectMapper);
+    }
+
     public TotemDesignDTO buscarDraft(Long hotelId) {
         Hotel hotel = hotelAutorizado(hotelId);
         TotemDesign design = designRepository.findFirstByHotelIdAndStatusOrderByUpdatedAtDesc(hotelId, TotemDesignStatus.DRAFT)
@@ -59,6 +82,7 @@ public class TotemDesignService {
         design.setTheme(toJson(dto.theme()));
         design.setLayout(toJson(dto.layout()));
         design.setBlocks(toJson(dto.blocks()));
+        design.setNome(dto.nome() == null || dto.nome().isBlank() ? "Rascunho" : dto.nome().trim());
         return TotemDesignDTO.from(designRepository.save(design), objectMapper);
     }
 
@@ -69,6 +93,7 @@ public class TotemDesignService {
 
         TotemDesign published = designRepository.findFirstByHotelIdAndStatusOrderByUpdatedAtDesc(hotelId, TotemDesignStatus.PUBLISHED)
                 .orElseGet(() -> TotemDesign.builder().hotel(draft.getHotel()).status(TotemDesignStatus.PUBLISHED).build());
+        published.setNome(draft.getNome() == null || draft.getNome().isBlank() ? "Design publicado" : draft.getNome());
         published.setTheme(draft.getTheme());
         published.setLayout(draft.getLayout());
         published.setBlocks(draft.getBlocks());
@@ -153,6 +178,7 @@ public class TotemDesignService {
     private TotemDesign criarDesignPadrao(Hotel hotel) {
         TotemDesign design = TotemDesign.builder()
                 .hotel(hotel)
+                .nome("Design inicial")
                 .status(TotemDesignStatus.DRAFT)
                 .theme("""
                         {"brandName":"CheckIn Hub","primaryColor":"#0f766e","backgroundColor":"#f8fafc","textColor":"#10201d","surfaceColor":"#ffffff","fontFamily":"Satoshi"}
@@ -165,6 +191,22 @@ public class TotemDesignService {
                         """)
                 .build();
         return designRepository.save(design);
+    }
+
+    private TotemDesign buscarDesignDoHotel(Long designId, Long hotelId) {
+        TotemDesign design = designRepository.findById(designId)
+                .orElseThrow(() -> new ResourceNotFoundException("Design não encontrado: " + designId));
+        if (!design.getHotel().getId().equals(hotelId)) {
+            throw new BusinessException("Design não pertence ao hotel informado.");
+        }
+        return design;
+    }
+
+    private String normalizarNome(String nome) {
+        if (nome == null || nome.isBlank()) {
+            throw new BusinessException("Nome do design é obrigatório.");
+        }
+        return nome.trim();
     }
 
     private Hotel hotelAutorizado(Long hotelId) {

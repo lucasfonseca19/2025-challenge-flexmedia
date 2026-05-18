@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
-import { totemDesignService } from '../services/api'
 import type { Idioma, TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign } from '../types'
 import { useFontLoader, getFontStack } from '../hooks/useFontLoader'
 
@@ -25,7 +24,7 @@ const IDIOMAS: Idioma[] = ['pt', 'en', 'es']
 export default function IdlePage() {
   const navigate = useNavigate()
   const { resetar, totemConfig, idioma, setIdioma, setFluxo, t } = useTotem()
-  const [design, setDesign] = useState<TotemDesign | null>(totemConfig?.design ?? null)
+  const design = totemConfig?.design ?? null
   const [ready, setReady] = useState(false)
   const [step, setStep] = useState<'attract' | 'actions'>('attract')
   const conteudo = [...(totemConfig?.conteudo ?? [])].sort((a, b) => a.ordemExibicao - b.ordemExibicao)
@@ -33,16 +32,6 @@ export default function IdlePage() {
   useFontLoader(design?.theme.fontFamily ?? 'Satoshi')
 
   useEffect(() => { resetar() }, [resetar])
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const hotelId = Number(params.get('hotelId') ?? totemConfig?.hotelId ?? localStorage.getItem('totem_hotel_id') ?? '')
-    if (!hotelId) return
-    localStorage.setItem('totem_hotel_id', String(hotelId))
-    totemDesignService.buscarPublicado(hotelId)
-      .then(data => setDesign(data))
-      .catch(() => setDesign(null))
-  }, [totemConfig?.hotelId])
 
   useEffect(() => {
     const timer = setTimeout(() => setReady(true), 150)

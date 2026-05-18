@@ -51,10 +51,10 @@ Entidades centrais:
 - `Usuario`: usuarios ADMIN e OPERADOR, com OPERADOR vinculado a um hotel.
 - `Reserva`: reserva do hospede, estado do fluxo e `faceDescriptor`.
 - `ChaveDigital`: token emitido apos check-in.
-- `Totem`: dispositivo ativado por `codigo`, com heartbeat para online/offline.
+- `Totem`: dispositivo ativado por `codigo`, com heartbeat para online/offline e preset visual opcional.
 - `HotelConfig`: configuracao simples de marca, logo, cor e idiomas.
 - `ConteudoTotem`: conteudo legado de idle por slides/banners/videos.
-- `TotemDesign`: rascunho/publicado do Totem Studio, com JSON de tema, layout e blocos.
+- `TotemDesign`: preset visual nomeado do Totem Studio, com JSON de tema, layout e blocos.
 - `TotemMediaAsset`: arquivos enviados para uso no Totem Studio.
 - `MetricaDiaria`: agregados por hotel/dia.
 
@@ -124,27 +124,27 @@ Fallback por data de nascimento continua disponivel quando camera/Human nao cons
 
 ## Totem Studio
 
-Totem Studio e a customizacao visual por hotel, editada no admin e renderizada no totem.
+Totem Studio e a customizacao visual por hotel, editada no admin como presets nomeados e renderizada no totem quando um preset e atribuido ao dispositivo.
 
 Modelo funcional:
 
-- `TotemDesign` tem status `DRAFT` ou `PUBLISHED`.
+- `TotemDesign` representa um preset salvo do hotel e possui `nome`, `theme`, `layout` e `blocks`.
 - `theme`, `layout` e `blocks` sao JSON persistidos em colunas `TEXT`.
-- O admin edita rascunho, visualiza preview e publica.
-- A UI do Studio prioriza identidade global (fonte, cores, densidade) e conteudo da tela inicial (video/imagem de fundo, carrossel de promocoes/eventos/servicos, velocidade e rodape), evitando que o operador precise manipular blocos estruturais.
-- O totem busca o design publicado e renderiza a idle customizada como attract mode com midia de fundo, carrossel central de conteudo e CTAs inferiores.
-- As telas internas do atendimento herdam a identidade publicada por tema, mas mantem layout fixo para proteger contraste, legibilidade e fluxo operacional.
+- O admin cria presets nomeados no Studio — do zero (com base interna padrao) ou duplicando um existente para variacoes; salvar nao aplica automaticamente em nenhum dispositivo.
+- A tela `Totens` permite criar/editar dispositivos e atribuir opcionalmente um preset salvo.
+- A UI do Studio prioriza identidade global (fonte, cores) e conteudo da tela inicial (video/imagem de fundo, carrossel de promocoes/eventos/servicos, velocidade e rodape), evitando que o operador precise manipular blocos estruturais. Cada preset salvo pode ser renomeado inline ou duplicado direto na lista de presets.
+- O totem recebe no setup o design atribuido ao seu cadastro e renderiza a idle customizada como attract mode com midia de fundo, carrossel central de conteudo e CTAs inferiores.
+- As telas internas do atendimento herdam a identidade do preset atribuido por tema, mas mantem layout fixo para proteger contraste, legibilidade e fluxo operacional.
 - O preview do admin permite navegar por tela inicial, escolha de Check-in/Check-out, busca, confirmacao, biometria, chave e checkout. A tela inicial ja inclui os seletores de idioma integrados, sem etapa separada. As telas de fluxo herdam identidade global e nao sao editaveis individualmente.
-- Se nao houver design publicado, o totem usa o fluxo visual antigo como fallback.
+- Se o totem nao tiver preset atribuido, o runtime usa o fluxo visual antigo como fallback.
 
 Endpoints principais:
 
 | Metodo | Rota | Auth | Uso |
 |---|---|---|---|
-| GET | `/api/hoteis/{hotelId}/totem-design/draft` | Autenticado | Buscar/criar rascunho |
-| PUT | `/api/hoteis/{hotelId}/totem-design/draft` | Autenticado | Salvar rascunho |
-| POST | `/api/hoteis/{hotelId}/totem-design/publish` | Autenticado | Publicar rascunho |
-| GET | `/api/hoteis/{hotelId}/totem-design/published` | Publico | Totem busca design publicado |
+| GET | `/api/hoteis/{hotelId}/totem-designs` | Autenticado | Listar presets salvos |
+| POST | `/api/hoteis/{hotelId}/totem-designs` | Autenticado | Criar preset |
+| PUT | `/api/hoteis/{hotelId}/totem-designs/{designId}` | Autenticado | Atualizar preset |
 | GET | `/api/hoteis/{hotelId}/totem-media` | Autenticado | Listar midias |
 | POST | `/api/hoteis/{hotelId}/totem-media` | Autenticado | Upload multipart |
 | DELETE | `/api/hoteis/{hotelId}/totem-media/{assetId}` | Autenticado | Remover midia |

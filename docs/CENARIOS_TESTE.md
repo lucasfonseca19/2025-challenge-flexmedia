@@ -95,10 +95,10 @@ Dados criados/validados na execução:
 | TC-110 | ✅ | Retestado com câmera real pelo usuário em 2026-05-05: mesmo rosto usado no check-in liberou acesso. Execução anterior em `/porta/615` também passou. |
 | TC-111 | ✅ | Retestado manualmente pelo usuário em 2026-05-05: tentativa com rosto diferente/condição negativa foi negada ou falhou com mensagem clara. |
 | TC-112 | ✅ | Retestado em 2026-05-05: API retornou `Sem check-in ativo para este quarto` para quarto inexistente `799`. Cenário relacionado de quarto com check-in ativo sem face também foi validado em `/porta/704` e retornou `Sem imagem facial registrada para este hóspede`. |
-| TC-120 | ⏳ | Rehomologar com Totem Studio: rascunho, publicação e renderização no totem. Evidências anteriores cobriam apenas `hotel_config`. |
-| TC-121 | ⏳ | Rehomologar persistência do design publicado após reload do totem. |
+| TC-120 | ⏳ | Rehomologar com Totem Studio: criar preset nomeado, atribuir a um totem e renderizar no runtime. Evidências anteriores cobriam apenas `hotel_config`. |
+| TC-121 | ⏳ | Rehomologar persistência do preset atribuído após reload do totem. |
 | TC-130 | ⏳ | Rehomologar upload pela biblioteca do Totem Studio. Evidências anteriores cobriam apenas `conteudo_totem`. |
-| TC-131 | ⏳ | Rehomologar uso de mídia publicada no design da IdlePage. |
+| TC-131 | ⏳ | Rehomologar uso de mídia no preset atribuído à IdlePage. |
 | TC-132 | ⏳ | Rehomologar vídeo MP4 em loop no preview e no totem. |
 | TC-133 | ⏳ | Rehomologar remoção de mídia pela API nova de Totem Studio. |
 | TC-140 | ⏳ | Revalidar após separação: Dashboard ADMIN deve renderizar visão FlexMedia sem dados simulados. |
@@ -447,19 +447,23 @@ Funcionalidades essenciais que sustentam o produto ao longo do tempo.
 
 ## 2.3 Totem Studio e aparência do totem
 
-### TC-120 — Alterar tema, blocos e publicar design
+### TC-120 — Criar preset, atribuir ao totem e renderizar design
 - **Pré:** OPERADOR logado
-- **Passos:** `/conteudo` → editar tema/blocos no Totem Studio → Salvar rascunho → Publicar nos totens
+- **Passos:** `/conteudo` → clicar "Novo preset" ou selecionar preset existente → informar nome do design → editar tema/blocos no Totem Studio → Salvar → `/totem` → criar/editar dispositivo e selecionar o preset salvo
 - **Esperado:**
-  - `PUT /api/hoteis/{hotelId}/totem-design/draft` → `200`
-  - `POST /api/hoteis/{hotelId}/totem-design/publish` → `200`
-  - Totem renderiza o design publicado na IdlePage
-  - Preview do Studio permite navegar entre `Tela inicial`, `Idioma`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`
-  - Telas internas do fluxo herdam identidade publicada sem exigir customização por etapa
+  - `POST /api/hoteis/{hotelId}/totem-designs` ou `PUT /api/hoteis/{hotelId}/totem-designs/{designId}` retorna `200/201`
+  - `PUT /api/totens/{id}` salva `designId` opcional
+  - Totem renderiza o preset atribuído na IdlePage
+  - Preview do Studio permite navegar entre `Tela inicial`, `Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`
+  - Telas internas do fluxo herdam identidade atribuída sem exigir customização por etapa
+  - Na lista de presets salvos, cada card exibe apenas o nome, com botões de renomear (lápis) e duplicar (copiar)
+  - Botão "Novo preset" cria card com bordas tracejadas e campo de nome focado, indicando design não salvo
+  - Ao abrir o Studio, o primeiro preset já vem selecionado e seu design carregado no editor
+  - Não há seção "Bases visuais" nem campo "Densidade do fluxo"; o design base interno é aplicado automaticamente ao criar um novo preset
 
-### TC-121 — Config persiste entre reinícios do totem
-- **Passos:** publicar design → fechar navegador do totem → reabrir
-- **Esperado:** design publicado permanece no backend e reaparece na IdlePage
+### TC-121 — Preset atribuído persiste entre reinícios do totem
+- **Passos:** salvar preset → atribuir a um totem → fechar navegador do totem → reabrir
+- **Esperado:** preset permanece no backend e reaparece na IdlePage daquele dispositivo
 
 ---
 
@@ -469,16 +473,16 @@ Funcionalidades essenciais que sustentam o produto ao longo do tempo.
 - **Passos:** `/conteudo` → Biblioteca de mídia → enviar imagem ou MP4
 - **Esperado:** `POST /api/hoteis/{hotelId}/totem-media` → `201`, mídia aparece na biblioteca e arquivo fica acessível por `/uploads/...`
 
-### TC-131 — Mídia publicada aparece na IdlePage do totem
-- **Passos:** associar mídia a um bloco, publicar design e recarregar totem na tela idle
-- **Esperado:** Totem busca design publicado e exibe imagem/video no bloco configurado
+### TC-131 — Mídia do preset aparece na IdlePage do totem
+- **Passos:** associar mídia a um bloco, salvar preset, atribuir a um totem e recarregar totem na tela idle
+- **Esperado:** Totem recebe o design atribuído e exibe imagem/video no bloco configurado
 
-### TC-131B — Carrossel de conteúdo publicado aparece na IdlePage
-- **Passos:** `/conteudo` → adicionar itens em `Conteúdo em destaque` → escolher velocidade → publicar design → recarregar totem na tela idle
+### TC-131B — Carrossel de conteúdo do preset aparece na IdlePage
+- **Passos:** `/conteudo` → adicionar itens em `Conteúdo em destaque` → escolher velocidade → salvar preset → atribuir a um totem → recarregar totem na tela idle
 - **Esperado:** Totem exibe o carrossel central com itens ativos, sem mensagem de apoio fixa, e mantém o botão `Toque para começar` na área inferior
 
 ### TC-132 — Vídeo roda em loop no preview e no totem
-- **Passos:** adicionar bloco de vídeo, selecionar MP4, observar preview e idle publicada
+- **Passos:** adicionar bloco de vídeo, selecionar MP4, salvar preset, atribuir a um totem e observar preview e idle
 - **Esperado:** vídeo renderiza com `muted loop autoPlay playsInline` no admin e no totem
 
 ### TC-133 — Remover mídia da biblioteca

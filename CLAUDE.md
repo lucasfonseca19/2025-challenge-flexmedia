@@ -50,7 +50,7 @@ Verificar saúde: `GET http://localhost:8080/actuator/health` → `{"status":"UP
 - IDs: `GenerationType.IDENTITY` em todas as entidades (auto_increment MySQL)
 - Redis: **removido** — não usar
 - Custo: **zero** — nenhuma API paga permitida
-- Totem Studio: customização visual por hotel com rascunho/publicação, upload local de mídia e renderer compartilhado entre admin e totem
+- Totem Studio: customização visual por hotel via presets nomeados, upload local de mídia e renderer compartilhado entre admin e totem; cada totem pode receber um preset opcional na tela Totens
 
 ## Documentos de contexto detalhados
 

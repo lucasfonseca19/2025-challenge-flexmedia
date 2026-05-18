@@ -53,51 +53,62 @@ class TotemDesignServiceTest {
     }
 
     @Test
-    void buscarDraftCriaDesignPadraoQuandoNaoExiste() {
+    void listarPresetsRetornaDesignsNomeadosDoHotel() {
         Hotel hotel = hotel(1L);
         Usuario usuario = usuarioAdmin();
+        TotemDesign design = TotemDesign.builder()
+                .id(10L)
+                .hotel(hotel)
+                .nome("Design Saguão")
+                .status(TotemDesignStatus.PUBLISHED)
+                .theme("{\"brandName\":\"Hotel Prado\"}")
+                .layout("{\"template\":\"premium-utilitario\"}")
+                .blocks("[{\"id\":\"hero\",\"type\":\"hero\",\"visible\":true,\"title\":\"Bem-vindo\"}]")
+                .build();
+
         when(hotelRepository.findById(1L)).thenReturn(Optional.of(hotel));
         when(usuarioRepository.findByEmailAndAtivoTrue("admin@hotel.com")).thenReturn(Optional.of(usuario));
-        when(designRepository.findFirstByHotelIdAndStatusOrderByUpdatedAtDesc(1L, TotemDesignStatus.DRAFT)).thenReturn(Optional.empty());
+        when(designRepository.findByHotelIdOrderByUpdatedAtDesc(1L)).thenReturn(java.util.List.of(design));
+
+        var designs = service.listarPresets(1L);
+
+        assertThat(designs).hasSize(1);
+        assertThat(designs.get(0).nome()).isEqualTo("Design Saguão");
+        assertThat(designs.get(0).theme().get("brandName").asText()).isEqualTo("Hotel Prado");
+    }
+
+    @Test
+    void salvarPresetCriaDesignNomeado() throws Exception {
+        Hotel hotel = hotel(1L);
+        Usuario usuario = usuarioAdmin();
+        TotemDesignDTO request = new TotemDesignDTO(
+                null,
+                1L,
+                "Design Saguão",
+                TotemDesignStatus.PUBLISHED,
+                objectMapper.createObjectNode().put("brandName", "Hotel Prado"),
+                objectMapper.createObjectNode().put("template", "premium-utilitario"),
+                objectMapper.readTree("[{\"id\":\"hero\",\"type\":\"hero\",\"visible\":true,\"title\":\"Bem-vindo\"}]"),
+                null,
+                null
+        );
+
+        when(hotelRepository.findById(1L)).thenReturn(Optional.of(hotel));
+        when(usuarioRepository.findByEmailAndAtivoTrue("admin@hotel.com")).thenReturn(Optional.of(usuario));
         when(designRepository.save(any(TotemDesign.class))).thenAnswer(invocation -> {
             TotemDesign design = invocation.getArgument(0);
             design.setId(10L);
             return design;
         });
 
-        TotemDesignDTO dto = service.buscarDraft(1L);
-
-        assertThat(dto.id()).isEqualTo(10L);
-        assertThat(dto.status()).isEqualTo(TotemDesignStatus.DRAFT);
-        assertThat(dto.theme().get("brandName").asText()).isEqualTo("CheckIn Hub");
-        assertThat(dto.blocks()).isNotEmpty();
-    }
-
-    @Test
-    void publicarCopiaRascunhoParaDesignPublicado() throws Exception {
-        Hotel hotel = hotel(1L);
-        Usuario usuario = usuarioAdmin();
-        TotemDesign draft = TotemDesign.builder()
-                .id(5L)
-                .hotel(hotel)
-                .status(TotemDesignStatus.DRAFT)
-                .theme("{\"brandName\":\"Hotel Prado\"}")
-                .layout("{\"template\":\"lobby-elegante\"}")
-                .blocks("[{\"id\":\"hero\",\"type\":\"hero\",\"visible\":true,\"title\":\"Bem-vindo\"}]")
-                .build();
-
-        when(hotelRepository.findById(1L)).thenReturn(Optional.of(hotel));
-        when(usuarioRepository.findByEmailAndAtivoTrue("admin@hotel.com")).thenReturn(Optional.of(usuario));
-        when(designRepository.findFirstByHotelIdAndStatusOrderByUpdatedAtDesc(1L, TotemDesignStatus.DRAFT)).thenReturn(Optional.of(draft));
-        when(designRepository.findFirstByHotelIdAndStatusOrderByUpdatedAtDesc(1L, TotemDesignStatus.PUBLISHED)).thenReturn(Optional.empty());
-        when(designRepository.save(any(TotemDesign.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        service.publicar(1L);
+        TotemDesignDTO saved = service.salvarPreset(1L, request);
 
         ArgumentCaptor<TotemDesign> captor = ArgumentCaptor.forClass(TotemDesign.class);
         verify(designRepository).save(captor.capture());
+        assertThat(saved.id()).isEqualTo(10L);
+        assertThat(saved.nome()).isEqualTo("Design Saguão");
         assertThat(captor.getValue().getStatus()).isEqualTo(TotemDesignStatus.PUBLISHED);
-        assertThat(objectMapper.readTree(captor.getValue().getTheme()).get("brandName").asText()).isEqualTo("Hotel Prado");
+        assertThat(captor.getValue().getNome()).isEqualTo("Design Saguão");
     }
 
     @Test

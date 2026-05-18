@@ -34,9 +34,9 @@ br.com.flexmedia.checkinhub
 | `Reserva` | Dados do hospede, datas, quarto, status e `faceDescriptor` |
 | `Usuario` | Login, role e hotel vinculado |
 | `HotelConfig` | Nome exibido, logo, cor primaria e idiomas |
-| `Totem` | Dispositivo ativado por `codigo` e heartbeat |
+| `Totem` | Dispositivo ativado por `codigo`, heartbeat e preset visual opcional |
 | `ConteudoTotem` | Conteudo legado de idle |
-| `TotemDesign` | Tema/layout/blocos do Totem Studio em JSON |
+| `TotemDesign` | Preset nomeado do Totem Studio com tema/layout/blocos em JSON |
 | `TotemMediaAsset` | Midias enviadas para o Totem Studio |
 | `ChaveDigital` | Token emitido apos check-in |
 | `MetricaDiaria` | Agregados por hotel/dia |
@@ -83,13 +83,13 @@ br.com.flexmedia.checkinhub
 | Metodo | Rota | Auth | Descricao |
 |---|---|---|---|
 | GET | `/api/hoteis/{hotelId}/totens` | Autenticado | Lista dispositivos |
-| POST | `/api/hoteis/{hotelId}/totens` | Autenticado | Cria dispositivo |
+| POST | `/api/hoteis/{hotelId}/totens` | Autenticado | Cria dispositivo com `designId` opcional |
+| PUT | `/api/totens/{id}` | Autenticado | Atualiza nome e `designId` opcional do dispositivo |
 | DELETE | `/api/totens/{id}` | Autenticado | Remove dispositivo |
 | POST | `/api/totens/{id}/heartbeat` | Publico | Atualiza online/offline |
-| GET | `/api/hoteis/{hotelId}/totem-design/draft` | Autenticado | Busca/cria rascunho |
-| PUT | `/api/hoteis/{hotelId}/totem-design/draft` | Autenticado | Salva rascunho |
-| POST | `/api/hoteis/{hotelId}/totem-design/publish` | Autenticado | Publica rascunho |
-| GET | `/api/hoteis/{hotelId}/totem-design/published` | Publico | Design publicado para o totem |
+| GET | `/api/hoteis/{hotelId}/totem-designs` | Autenticado | Lista presets salvos |
+| POST | `/api/hoteis/{hotelId}/totem-designs` | Autenticado | Cria preset nomeado |
+| PUT | `/api/hoteis/{hotelId}/totem-designs/{designId}` | Autenticado | Atualiza preset nomeado |
 | GET | `/api/hoteis/{hotelId}/totem-media` | Autenticado | Lista midias |
 | POST | `/api/hoteis/{hotelId}/totem-media` | Autenticado | Upload multipart |
 | DELETE | `/api/hoteis/{hotelId}/totem-media/{assetId}` | Autenticado | Remove midia |

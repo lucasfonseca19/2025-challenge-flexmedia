@@ -90,6 +90,7 @@ export interface TotemBlock {
 export interface TotemDesign {
   id?: number
   hotelId?: number
+  nome?: string
   status?: TotemDesignStatus
   theme: TotemTheme
   layout: TotemLayout
@@ -123,6 +124,8 @@ export interface Totem {
   id: number
   nome: string
   codigo: string
+  designId: number | null
+  designName: string | null
   online: boolean
   ultimoHeartbeat: string | null
   hotelId: number

@@ -43,7 +43,7 @@ A configuracao do totem e persistida em `localStorage` para permitir kiosk mode 
 
 `IdlePage` opera em modo attract — tela de repouso que convida o hóspede a interagir:
 
-- Busca `TotemDesign` publicado via `totemDesignService.buscarPublicado(hotelId)`;
+- Usa o `TotemDesign` retornado no setup do dispositivo via `GET /api/totens/codigo/{codigo}`;
 - Se o design tem bloco `video` visível, ele vira o vídeo de fundo do attract mode;
 - Se tem bloco `hero` com imagem, ela vira o background do attract;
 - Sem mídia, usa cor primária com gradientes sutis;
@@ -52,19 +52,19 @@ A configuracao do totem e persistida em `localStorage` para permitir kiosk mode 
 - Texto \"Toque para começar\" com breathing animation (`animate-breathe`);
 - CTAs \"Check-in\" e \"Check-out\" navegam para `/buscar-reserva` com fluxo definido e idioma ja selecionado;
 - Language pills na tela inicial alteram o idioma instantaneamente — o texto da tela muda sem navegar para pagina separada;
-- Fallback final para configuração legada quando não há design publicado.
+- Fallback final para configuração legada quando o totem não tem preset atribuído.
 
 ## Identidade visual do fluxo
 
 As telas transacionais do totem (`/setup`, `/buscar-reserva`, `/confirmar-dados`, `/facial`, `/emitir-chave`, `/checkout`, `/obrigado` e `/porta/:quarto`) usam uma camada visual comum em `src/components/KioskShell.tsx`.
 
-Essa camada deriva a identidade do `TotemDesign` publicado quando existir. Caso contrário, usa a configuração legada do totem (`nomeExibido`, `logoUrl`, `corPrimaria`) e um tema padrão. O objetivo é manter o fluxo com aparência premium e consistente sem permitir que cada hotel customize individualmente telas críticas de atendimento.
+Essa camada deriva a identidade do `TotemDesign` atribuído ao dispositivo quando existir. Caso contrário, usa a configuração legada do totem (`nomeExibido`, `logoUrl`, `corPrimaria`) e um tema padrão. O objetivo é manter o fluxo com aparência premium e consistente sem permitir que cada hotel customize individualmente telas críticas de atendimento.
 
-O Totem Studio controla a identidade, a tela idle e blocos de conteúdo. Na tela inicial, o conteúdo promocional fica no bloco `carousel` do JSON publicado, com itens simples de texto, mídia opcional, status ativo/inativo e velocidade. O fluxo interno herda fonte, marca, cor primária, fundo, texto e superfície, mas preserva layout fixo para reduzir atrito de configuração e proteger legibilidade/usabilidade.
+O Totem Studio controla a identidade, a tela idle e blocos de conteúdo por preset salvo. Na tela inicial, o conteúdo promocional fica no bloco `carousel` do JSON atribuído ao totem, com itens simples de texto, mídia opcional, status ativo/inativo e velocidade. O fluxo interno herda fonte, marca, cor primária, fundo, texto e superfície, mas preserva layout fixo para reduzir atrito de configuração e proteger legibilidade/usabilidade.
 
-A tela fixa de escolha entre check-in e check-out deve permanecer enxuta: título curto, dois alvos de toque grandes e microcopy mínima dentro de cada opção. Ela não expõe edição granular no Studio, mas herda a identidade visual publicada para funcionar bem com diferentes hotéis.
+A tela fixa de escolha entre check-in e check-out deve permanecer enxuta: título curto, dois alvos de toque grandes e microcopy mínima dentro de cada opção. Ela não expõe edição granular no Studio, mas herda a identidade visual atribuída ao totem para funcionar bem com diferentes hotéis.
 
-No admin, o Studio expõe a tela inicial como área editável de conteúdo (mensagens, vídeo/imagem de fundo e rodapé) e oferece preview navegável das demais etapas do fluxo. Essas etapas internas são preview-only: refletem o tema publicado, mas não têm campos de edição próprios.
+No admin, o Studio expõe a tela inicial como área editável de conteúdo (mensagens, vídeo/imagem de fundo e rodapé) e oferece preview navegável das demais etapas do fluxo. Essas etapas internas são preview-only: refletem o tema do preset atual, mas não têm campos de edição próprios.
 
 Fontes são carregadas dinamicamente via `useFontLoader` que injeta `<link>` no `<head>`. Seis fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk.
 

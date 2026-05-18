@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,10 +21,14 @@ public class TotemController {
     @PostMapping("/api/hoteis/{hotelId}/totens")
     public ResponseEntity<TotemResponseDTO> criar(
             @PathVariable Long hotelId,
-            @RequestBody Map<String, String> body) {
-        String nome = body.get("nome");
-        TotemResponseDTO dto = totemService.criar(hotelId, nome);
+            @RequestBody TotemRequestDTO body) {
+        TotemResponseDTO dto = totemService.criar(hotelId, body);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    @PutMapping("/api/totens/{id}")
+    public TotemResponseDTO atualizar(@PathVariable Long id, @RequestBody TotemRequestDTO body) {
+        return totemService.atualizar(id, body);
     }
 
     @GetMapping("/api/totens/codigo/{codigo}")

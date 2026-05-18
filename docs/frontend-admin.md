@@ -77,16 +77,21 @@ Arquivos principais:
 
 Comportamento esperado:
 
-- carregar rascunho e biblioteca de mídia do hotel;
-- editar estilo global da plataforma do hotel: nome, fonte, cores e densidade;
+- carregar biblioteca de mídia do hotel;
+- carregar presets salvos do hotel e permitir selecionar para editar, renomear inline ou duplicar como base para novo design;
+- botão "Novo preset" acima da lista carrega o design base interno e permite criar preset do zero;
+- exigir nome do design ao salvar, como `Design Saguão`;
+- editar estilo global do preset: marca, fonte e cores;
 - editar conteúdo específico da tela inicial: vídeo de fundo, imagem de fallback, escurecimento da mídia, carrossel de promoções/eventos/serviços, velocidade contínua do carrossel, cards recolhíveis/reordenáveis e rodapé;
 - nos cards do carrossel, editar texto por idioma (`pt`, `en`, `es`); idiomas sem texto aparecem com indicador discreto no editor, e o campo legado `text` continua como fallback técnico;
 - usar imagens/vídeos da biblioteca local de mídia;
 - preview renderiza a tela inicial igual ao attract mode do totem, incluindo vídeo de fundo em loop e fontes dinâmicas;
 - preview permite navegar por `Tela inicial`, `Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`;
-- salvar rascunho e publicar para os totens.
+- salvar preset. A aplicacao ao dispositivo acontece na tela `Totens`, nao por publicacao global.
 
-O Studio não expõe customização granular de cada tela transacional do hóspede. O gestor edita identidade global e conteúdo da tela inicial; o totem aplica essa identidade automaticamente ao fluxo interno com layout fixo, preservando legibilidade e reduzindo atrito operacional. Os blocos continuam existindo no payload técnico, mas a UI do Studio não apresenta mais lista/reordenação de blocos como tarefa principal do operador.
+`TotemPage` gerencia apenas dispositivos: lista, codigo de ativacao, status online/offline, criacao, edicao de nome e atribuicao opcional de preset visual.
+
+O Studio não expõe customização granular de cada tela transacional do hóspede. O gestor edita identidade global e conteúdo da tela inicial; o totem aplica essa identidade automaticamente ao fluxo interno com layout fixo quando o preset estiver atribuido ao dispositivo, preservando legibilidade e reduzindo atrito operacional. Os blocos continuam existindo no payload técnico, mas a UI do Studio não apresenta mais lista/reordenação de blocos como tarefa principal do operador.
 
 Fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk (todas via CDN gratuito).
 

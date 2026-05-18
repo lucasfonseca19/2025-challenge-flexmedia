@@ -73,8 +73,10 @@ export const conteudoService = {
 export const totemService = {
   listar: (hotelId: number) =>
     api.get(`/hoteis/${hotelId}/totens`).then(r => r.data as Totem[]),
-  criar: (hotelId: number, data: { nome: string }) =>
+  criar: (hotelId: number, data: { nome: string; designId?: number | null }) =>
     api.post(`/hoteis/${hotelId}/totens`, data).then(r => r.data as Totem),
+  atualizar: (id: number, data: { nome: string; designId?: number | null }) =>
+    api.put(`/totens/${id}`, data).then(r => r.data as Totem),
   remover: (id: number) =>
     api.delete(`/totens/${id}`),
 }
@@ -87,6 +89,12 @@ export const configService = {
 }
 
 export const totemDesignService = {
+  listar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totem-designs`).then(r => r.data),
+  salvar: (hotelId: number, data: { id?: number; nome?: string } & Record<string, unknown>) =>
+    data.id
+      ? api.put(`/hoteis/${hotelId}/totem-designs/${data.id}`, data).then(r => r.data)
+      : api.post(`/hoteis/${hotelId}/totem-designs`, data).then(r => r.data),
   buscarDraft: (hotelId: number) =>
     api.get(`/hoteis/${hotelId}/totem-design/draft`).then(r => r.data),
   salvarDraft: (hotelId: number, data: unknown) =>

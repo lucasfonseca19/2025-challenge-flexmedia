@@ -7,6 +7,8 @@ public record TotemResponseDTO(
         Long hotelId,
         String nome,
         String codigo,
+        Long designId,
+        String designName,
         LocalDateTime ultimoHeartbeat,
         boolean ativo,
         boolean online
@@ -17,6 +19,8 @@ public record TotemResponseDTO(
                 t.getHotel().getId(),
                 t.getNome(),
                 t.getCodigo(),
+                t.getDesign() != null ? t.getDesign().getId() : null,
+                t.getDesign() != null ? t.getDesign().getNome() : null,
                 t.getUltimoHeartbeat(),
                 t.isAtivo(),
                 online

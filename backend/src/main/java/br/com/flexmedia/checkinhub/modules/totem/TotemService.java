@@ -1,5 +1,6 @@
 package br.com.flexmedia.checkinhub.modules.totem;
 
+import br.com.flexmedia.checkinhub.common.exception.BusinessException;
 import br.com.flexmedia.checkinhub.common.exception.ResourceNotFoundException;
 import br.com.flexmedia.checkinhub.modules.conteudo.ConteudoTotem;
 import br.com.flexmedia.checkinhub.modules.conteudo.ConteudoTotemRepository;
@@ -7,7 +8,10 @@ import br.com.flexmedia.checkinhub.modules.hotel.Hotel;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelConfig;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelConfigService;
 import br.com.flexmedia.checkinhub.modules.hotel.HotelRepository;
-import br.com.flexmedia.checkinhub.modules.totemdesign.TotemDesignService;
+import br.com.flexmedia.checkinhub.modules.totemdesign.TotemDesign;
+import br.com.flexmedia.checkinhub.modules.totemdesign.TotemDesignRepository;
+import br.com.flexmedia.checkinhub.modules.totemdesign.dto.TotemDesignDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +28,8 @@ public class TotemService {
     private final HotelRepository hotelRepository;
     private final HotelConfigService hotelConfigService;
     private final ConteudoTotemRepository conteudoTotemRepository;
-    private final TotemDesignService totemDesignService;
+    private final TotemDesignRepository designRepository;
+    private final ObjectMapper objectMapper;
 
     public List<TotemResponseDTO> listarPorHotel(Long hotelId) {
         return totemRepository.findByHotelId(hotelId).stream()
@@ -34,13 +39,31 @@ public class TotemService {
 
     @Transactional
     public TotemResponseDTO criar(Long hotelId, String nome) {
+        return criar(hotelId, new TotemRequestDTO(nome, null));
+    }
+
+    @Transactional
+    public TotemResponseDTO criar(Long hotelId, TotemRequestDTO request) {
         Hotel hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + hotelId));
+        TotemDesign design = buscarDesignDoHotel(hotel, request.designId());
         Totem totem = Totem.builder()
                 .hotel(hotel)
-                .nome(nome)
+                .nome(request.nome())
                 .codigo(gerarCodigoUnico())
+                .design(design)
                 .build();
+        totem = totemRepository.save(totem);
+        return TotemResponseDTO.from(totem, isOnline(totem));
+    }
+
+    @Transactional
+    public TotemResponseDTO atualizar(Long id, TotemRequestDTO request) {
+        Totem totem = totemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Totem não encontrado: " + id));
+        TotemDesign design = buscarDesignDoHotel(totem.getHotel(), request.designId());
+        totem.setNome(request.nome());
+        totem.setDesign(design);
         totem = totemRepository.save(totem);
         return TotemResponseDTO.from(totem, isOnline(totem));
     }
@@ -91,7 +114,7 @@ public class TotemService {
                         .urlMidia(c.getUrlMidia())
                         .ordemExibicao(c.getOrdemExibicao())
                         .build()).toList())
-                .design(totemDesignService.buscarPublicado(totem.getHotel().getId()))
+                .design(totem.getDesign() != null ? TotemDesignDTO.from(totem.getDesign(), objectMapper) : null)
                 .build();
     }
 
@@ -116,5 +139,17 @@ public class TotemService {
             sb.append(chars.charAt(random.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+
+    private TotemDesign buscarDesignDoHotel(Hotel hotel, Long designId) {
+        if (designId == null) {
+            return null;
+        }
+        TotemDesign design = designRepository.findById(designId)
+                .orElseThrow(() -> new ResourceNotFoundException("Design não encontrado: " + designId));
+        if (!design.getHotel().getId().equals(hotel.getId())) {
+            throw new BusinessException("design não pertence ao hotel do totem.");
+        }
+        return design;
     }
 }

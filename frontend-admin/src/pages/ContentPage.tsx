@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -8,13 +8,14 @@ import {
   CaretDown,
   CaretLeft,
   CaretRight,
-  Check,
   CloudArrowUp,
+  Copy,
   DotsSixVertical,
   ImageSquare,
   Monitor,
   Palette,
   Pause,
+  PencilSimple,
   Play,
   Plus,
   SlidersHorizontal,
@@ -63,43 +64,19 @@ const EMPTY_DESIGN: TotemDesign = {
   ],
 }
 
-const STYLE_PRESETS: Array<{ id: string; name: string; description: string; design: TotemDesign }> = [
-  {
-    id: 'premium-utilitario',
-    name: 'Premium utilitário',
-    description: 'Base neutra, contraste alto e aparência de equipamento bem acabado.',
-    design: EMPTY_DESIGN,
-  },
-  {
-    id: 'lobby-claro',
-    name: 'Lobby claro',
-    description: 'Mais luminoso, ideal para hotéis com identidade leve.',
-    design: {
-      ...EMPTY_DESIGN,
-      theme: { ...EMPTY_DESIGN.theme, primaryColor: '#0e7490', backgroundColor: '#eef8f7', textColor: '#10212a', surfaceColor: '#ffffff' },
-      layout: { template: 'lobby-claro', density: 'comfortable', screen: 'portrait' },
-    },
-  },
-  {
-    id: 'terminal-compacto',
-    name: 'Terminal compacto',
-    description: 'Denso, objetivo e pensado para alto fluxo de hóspedes.',
-    design: {
-      ...EMPTY_DESIGN,
-      theme: { ...EMPTY_DESIGN.theme, primaryColor: '#475569', backgroundColor: '#111827', textColor: '#f8fafc', surfaceColor: '#1f2937' },
-      layout: { template: 'terminal-compacto', density: 'compact', screen: 'portrait' },
-    },
-  },
-]
+
 
 export default function ContentPage() {
   const { usuario } = useAuth()
   const isAdmin = usuario?.role === 'ADMIN'
   const [hotelId, setHotelId] = useState(usuario?.hotelId ?? 1)
   const [hoteis, setHoteis] = useState<{ id: number; nome: string }[]>([])
+  const [presets, setPresets] = useState<TotemDesign[]>([])
+  const [selectedPresetId, setSelectedPresetId] = useState<number | null>(null)
+  const [isNewPreset, setIsNewPreset] = useState(false)
+  const [designName, setDesignName] = useState('')
   const [design, setDesign] = useState<TotemDesign>(EMPTY_DESIGN)
   const [midias, setMidias] = useState<TotemMediaAsset[]>([])
-  const [tab, setTab] = useState<'design' | 'publish'>('design')
   const [previewScreen, setPreviewScreen] = useState<TotemPreviewScreen>('idle')
   const [previewCarouselPaused, setPreviewCarouselPaused] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -127,13 +104,22 @@ export default function ContentPage() {
     setLoading(true)
     setError(null)
     try {
-      const [draft, assets] = await Promise.all([
-        totemDesignService.buscarDraft(hotelId),
+      const [savedPresets, assets] = await Promise.all([
+        totemDesignService.listar(hotelId),
         totemMediaService.listar(hotelId),
       ])
-      setDesign(normalizeDesign(draft))
+      setPresets(savedPresets)
+      setIsNewPreset(false)
+      const firstPreset = savedPresets[0]
+      setSelectedPresetId(firstPreset?.id ?? null)
+      setDesignName(firstPreset?.nome ?? '')
+      setDesign(firstPreset ? normalizeDesign(firstPreset) : EMPTY_DESIGN)
       setMidias(assets)
     } catch {
+      setPresets([])
+      setSelectedPresetId(null)
+      setIsNewPreset(false)
+      setDesignName('')
       setDesign(EMPTY_DESIGN)
       setMidias([])
       setError('Não foi possível carregar o Totem Studio deste hotel.')
@@ -146,29 +132,31 @@ export default function ContentPage() {
     carregar()
   }, [carregar])
 
-  async function salvarDraft(nextDesign = design) {
-    setSaving(true)
-    setError(null)
-    try {
-      const saved = await totemDesignService.salvarDraft(hotelId, nextDesign)
-      setDesign(normalizeDesign(saved))
-      setMessage('Rascunho salvo.')
-    } catch {
-      setError('Não foi possível salvar o rascunho.')
-    } finally {
-      setSaving(false)
+  async function salvarPreset(nextDesign = design) {
+    if (!designName.trim()) {
+      setError('Informe um nome para o design.')
+      return
     }
-  }
 
-  async function publicar() {
     setSaving(true)
     setError(null)
     try {
-      await totemDesignService.salvarDraft(hotelId, design)
-      await totemDesignService.publicar(hotelId)
-      setMessage('Design publicado para os totens deste hotel.')
+      const saved = await totemDesignService.salvar(hotelId, {
+        ...nextDesign,
+        id: selectedPresetId ?? undefined,
+        nome: designName.trim(),
+      })
+      setDesign(normalizeDesign(saved))
+      setDesignName(saved.nome ?? designName.trim())
+      setSelectedPresetId(saved.id ?? null)
+      setIsNewPreset(false)
+      setPresets(current => [
+        saved,
+        ...current.filter(preset => preset.id !== saved.id),
+      ])
+      setMessage('Design salvo.')
     } catch {
-      setError('Não foi possível publicar o design.')
+      setError('Não foi possível salvar o design.')
     } finally {
       setSaving(false)
     }
@@ -211,21 +199,69 @@ export default function ContentPage() {
     }
   }
 
-  function applyPreset(template: TotemDesign) {
-    const next = cloneDesign(template)
-    setDesign(current => ({
-      ...next,
-      blocks: mergePresetBlocks(current.blocks, next.blocks),
-    }))
-    setMessage('Estilo global aplicado ao rascunho.')
+  function selectPreset(preset: TotemDesign) {
+    setIsNewPreset(false)
+    setSelectedPresetId(preset.id ?? null)
+    setDesignName(preset.nome ?? '')
+    setDesign(normalizeDesign(preset))
+    setMessage(`Preset "${preset.nome ?? `Design ${preset.id}`}" carregado.`)
+  }
+
+  function duplicatePreset(preset: TotemDesign) {
+    const copy = normalizeDesign({ ...preset, id: undefined, hotelId: undefined, createdAt: undefined, updatedAt: undefined })
+    const theme = { ...copy.theme }
+    const layout = { ...copy.layout }
+    const blocks = copy.blocks.map(b => ({ ...b, id: `${b.type}-${Date.now()}` }))
+    const carousel = blocks.find(b => b.type === 'carousel')
+    if (carousel?.contentItems) {
+      carousel.contentItems = carousel.contentItems.map(item => ({
+        ...item,
+        id: `content-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      }))
+    }
+    setIsNewPreset(false)
+    setSelectedPresetId(null)
+    setDesignName(`${preset.nome ?? `Design ${preset.id}`} cópia`)
+    setDesign({ ...copy, theme, layout, blocks })
+    setMessage('Cópia pronta para salvar como novo preset.')
+  }
+
+  function createNewPreset() {
+    setIsNewPreset(true)
+    setSelectedPresetId(null)
+    setDesignName('')
+    setDesign(EMPTY_DESIGN)
+    setMessage(null)
+    setTimeout(() => {
+      const input = document.getElementById('new-preset-name') as HTMLInputElement | null
+      input?.focus()
+    }, 50)
+  }
+
+  async function renamePreset(preset: TotemDesign, newName: string) {
+    if (!newName.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      const saved = await totemDesignService.salvar(hotelId, {
+        ...preset,
+        id: preset.id,
+        nome: newName.trim(),
+      })
+      setPresets(current => current.map(p => p.id === saved.id ? saved : p))
+      if (selectedPresetId === saved.id) {
+        setDesignName(saved.nome ?? '')
+      }
+      setMessage('Preset renomeado.')
+    } catch {
+      setError('Não foi possível renomear o preset.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function updateTheme<K extends keyof TotemDesign['theme']>(key: K, value: TotemDesign['theme'][K]) {
     setDesign(current => ({ ...current, theme: { ...current.theme, [key]: value } }))
-  }
-
-  function updateLayout<K extends keyof TotemDesign['layout']>(key: K, value: TotemDesign['layout'][K]) {
-    setDesign(current => ({ ...current, layout: { ...current.layout, [key]: value } }))
   }
 
   function upsertBlock(type: TotemBlock['type'], patch: Partial<TotemBlock>) {
@@ -294,8 +330,6 @@ export default function ContentPage() {
     setPreviewScreen(PREVIEW_SCREENS[nextIndex].id)
   }
 
-  const visibleBlockCount = useMemo(() => design.blocks.filter(block => block.visible).length, [design.blocks])
-
   return (
     <div className="min-h-full bg-[#101513] p-4 text-[#eef3ef] md:p-8">
       <div className="mx-auto max-w-[1500px]">
@@ -303,10 +337,10 @@ export default function ContentPage() {
           <div>
             <p className="text-sm font-medium text-[#9eb2aa]">Totem Studio</p>
             <h1 className="mt-2 text-4xl font-semibold leading-none text-[#f5fbf7] md:text-5xl">
-              Identidade do autoatendimento
+              Presets do autoatendimento
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-[#aabbb4]">
-              Defina a aparência global do totem, edite a tela inicial e confira como a identidade se aplica ao fluxo do hóspede.
+              Crie designs nomeados para atribuir a cada dispositivo na tela de Totens.
             </p>
           </div>
 
@@ -322,19 +356,13 @@ export default function ContentPage() {
                 ))}
               </select>
             )}
+            
             <button
-              onClick={() => salvarDraft()}
-              disabled={saving || loading}
-              className="h-11 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-50"
-            >
-              Salvar rascunho
-            </button>
-            <button
-              onClick={publicar}
+              onClick={() => salvarPreset()}
               disabled={saving || loading}
               className="h-11 rounded-xl bg-[#d7fbe8] px-4 text-sm font-semibold text-[#10201d] hover:bg-[#c1f1d8] disabled:opacity-50"
             >
-              Publicar
+              Salvar
             </button>
           </div>
         </header>
@@ -345,33 +373,24 @@ export default function ContentPage() {
           </div>
         )}
 
-        <div className="mb-5 flex flex-wrap gap-2">
-          {(['design', 'publish'] as const).map(nextTab => (
-            <button
-              key={nextTab}
-              onClick={() => setTab(nextTab)}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold ${tab === nextTab ? 'bg-[#d7fbe8] text-[#10201d]' : 'bg-white/8 text-[#aabbb4] hover:bg-white/12 hover:text-white'}`}
-            >
-              {nextTab === 'design' ? 'Design' : 'Publicação'}
-            </button>
-          ))}
-        </div>
-
         {loading ? (
           <LoadingStudio />
         ) : (
           <div className="grid gap-5 xl:grid-cols-[360px_minmax(420px,1fr)_360px]">
             <aside className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
-              {tab === 'design' ? (
-                <GlobalDesignPanel
-                  design={design}
-                  onApplyPreset={applyPreset}
-                  onThemeChange={updateTheme}
-                  onLayoutChange={updateLayout}
-                />
-              ) : (
-                <PublishPanel design={design} saving={saving} visibleBlockCount={visibleBlockCount} onSave={() => salvarDraft()} onPublish={publicar} />
-              )}
+              <GlobalDesignPanel
+                design={design}
+                designName={designName}
+                isNewPreset={isNewPreset}
+                presets={presets}
+                selectedPresetId={selectedPresetId}
+                onDesignNameChange={setDesignName}
+                onSelectPreset={selectPreset}
+                onCreateNew={createNewPreset}
+                onDuplicate={duplicatePreset}
+                onRename={renamePreset}
+                onThemeChange={updateTheme}
+              />
             </aside>
 
             <main className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
@@ -443,32 +462,28 @@ export default function ContentPage() {
             </main>
 
             <aside className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
-              {tab === 'design' ? (
-                <ScreenContentPanel
-                  screen={currentScreen}
-                  heroBlock={heroBlock}
-                  videoBlock={videoBlock}
-                  footerBlock={footerBlock}
-                  carouselBlock={carouselBlock}
-                  midias={midias}
-                  uploading={uploading}
-                  onHeroChange={patch => upsertBlock('hero', patch)}
-                  onFooterChange={patch => upsertBlock('footer', patch)}
-                  onCarouselSpeedChange={updateCarouselSpeed}
-                  onAddContentItem={addContentItem}
-                  onContentItemChange={patchContentItem}
-                  onRemoveContentItem={removeContentItem}
-                  onMoveContentItem={moveContentItem}
-                  onReorderContentItems={reorderContentItems}
-                  onUploadContentMedia={uploadForContentItem}
-                  onUploadImage={file => uploadForBlock(file, 'hero', 'image')}
-                  onUploadVideo={file => uploadForBlock(file, 'video', 'video')}
-                  onClearImage={() => upsertBlock('hero', { imageUrl: undefined })}
-                  onClearVideo={() => upsertBlock('video', { videoUrl: undefined })}
-                />
-              ) : (
-                <PublishPanel design={design} saving={saving} visibleBlockCount={visibleBlockCount} onSave={() => salvarDraft()} onPublish={publicar} />
-              )}
+              <ScreenContentPanel
+                screen={currentScreen}
+                heroBlock={heroBlock}
+                videoBlock={videoBlock}
+                footerBlock={footerBlock}
+                carouselBlock={carouselBlock}
+                midias={midias}
+                uploading={uploading}
+                onHeroChange={patch => upsertBlock('hero', patch)}
+                onFooterChange={patch => upsertBlock('footer', patch)}
+                onCarouselSpeedChange={updateCarouselSpeed}
+                onAddContentItem={addContentItem}
+                onContentItemChange={patchContentItem}
+                onRemoveContentItem={removeContentItem}
+                onMoveContentItem={moveContentItem}
+                onReorderContentItems={reorderContentItems}
+                onUploadContentMedia={uploadForContentItem}
+                onUploadImage={file => uploadForBlock(file, 'hero', 'image')}
+                onUploadVideo={file => uploadForBlock(file, 'video', 'video')}
+                onClearImage={() => upsertBlock('hero', { imageUrl: undefined })}
+                onClearVideo={() => upsertBlock('video', { videoUrl: undefined })}
+              />
             </aside>
           </div>
         )}
@@ -479,32 +494,125 @@ export default function ContentPage() {
 
 function GlobalDesignPanel({
   design,
-  onApplyPreset,
+  designName,
+  isNewPreset,
+  presets,
+  selectedPresetId,
+  onDesignNameChange,
+  onSelectPreset,
+  onCreateNew,
+  onDuplicate,
+  onRename,
   onThemeChange,
-  onLayoutChange,
 }: {
   design: TotemDesign
-  onApplyPreset: (template: TotemDesign) => void
+  designName: string
+  isNewPreset: boolean
+  presets: TotemDesign[]
+  selectedPresetId: number | null
+  onDesignNameChange: (value: string) => void
+  onSelectPreset: (preset: TotemDesign) => void
+  onCreateNew: () => void
+  onDuplicate: (preset: TotemDesign) => void
+  onRename: (preset: TotemDesign, newName: string) => void
   onThemeChange: <K extends keyof TotemDesign['theme']>(key: K, value: TotemDesign['theme'][K]) => void
-  onLayoutChange: <K extends keyof TotemDesign['layout']>(key: K, value: TotemDesign['layout'][K]) => void
 }) {
+  const [renamingId, setRenamingId] = useState<number | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  function startRenaming(preset: TotemDesign) {
+    setRenamingId(preset.id ?? null)
+    setRenameValue(preset.nome ?? '')
+  }
+
+  function confirmRename(preset: TotemDesign) {
+    if (renameValue.trim() && renameValue.trim() !== (preset.nome ?? '')) {
+      onRename(preset, renameValue.trim())
+    }
+    setRenamingId(null)
+    setRenameValue('')
+  }
+
   return (
     <>
-      <PanelTitle icon={<SlidersHorizontal size={19} />} title="Estilo global" />
-      <p className="mb-4 text-xs leading-5 text-[#9eb2aa]">
-        Estas escolhas valem para a tela inicial e para todo o fluxo de atendimento.
-      </p>
+      <PanelTitle icon={<SlidersHorizontal size={19} />} title="Presets salvos" />
+
+      <button
+        onClick={onCreateNew}
+        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#d7fbe8]/40 bg-[#d7fbe8]/8 px-4 py-3 text-sm font-semibold text-[#d8fff4] transition-colors hover:bg-[#d7fbe8]/15"
+      >
+        <Plus size={16} weight="bold" />
+        Novo preset
+      </button>
 
       <div className="space-y-2">
-        {STYLE_PRESETS.map(preset => (
-          <button
+        {isNewPreset && (
+          <div className="w-full rounded-2xl border-2 border-dashed border-[#d7fbe8]/50 bg-[#d7fbe8]/10 p-4">
+            <input
+              id="new-preset-name"
+              value={designName}
+              onChange={event => onDesignNameChange(event.target.value)}
+              placeholder="Nome do novo preset"
+              className="w-full rounded-lg border border-[#d7fbe8]/40 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-[#d7fbe8]"
+            />
+          </div>
+        )}
+
+        {presets.length === 0 && !isNewPreset && (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-4 text-xs leading-5 text-[#9eb2aa]">
+            Nenhum preset salvo ainda. Clique em Novo preset para criar o primeiro.
+          </div>
+        )}
+
+        {presets.map(preset => (
+          <div
             key={preset.id}
-            onClick={() => onApplyPreset(preset.design)}
-            className={`w-full rounded-2xl border p-4 text-left ${design.layout.template === preset.id ? 'border-[#d7fbe8]/55 bg-[#d7fbe8]/10' : 'border-white/10 bg-white/[0.04] hover:border-[#d7fbe8]/40 hover:bg-white/[0.07]'}`}
+            className={`w-full rounded-2xl border p-3 text-left ${selectedPresetId === preset.id && !isNewPreset ? 'border-[#d7fbe8]/55 bg-[#d7fbe8]/10' : 'border-white/10 bg-white/[0.04] hover:border-[#d7fbe8]/40 hover:bg-white/[0.07]'}`}
           >
-            <span className="text-sm font-semibold text-white">{preset.name}</span>
-            <span className="mt-1 block text-xs leading-5 text-[#9eb2aa]">{preset.description}</span>
-          </button>
+            {renamingId === preset.id ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={renameValue}
+                  onChange={event => setRenameValue(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') confirmRename(preset)
+                    if (event.key === 'Escape') { setRenamingId(null); setRenameValue('') }
+                  }}
+                  className="min-w-0 flex-1 rounded-lg border border-[#d7fbe8]/40 bg-white/10 px-2 py-1 text-sm text-white outline-none focus:border-[#d7fbe8]"
+                  autoFocus
+                />
+                <button
+                  onClick={() => confirmRename(preset)}
+                  className="shrink-0 rounded-lg bg-[#d7fbe8]/20 px-2 py-1 text-xs font-semibold text-[#d8fff4] hover:bg-[#d7fbe8]/30"
+                >
+                  OK
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onSelectPreset(preset)}
+                  className="min-w-0 flex-1 truncate text-sm font-semibold text-white"
+                >
+                  {preset.nome ?? `Design ${preset.id}`}
+                </button>
+                <button
+                  onClick={() => startRenaming(preset)}
+                  className="shrink-0 rounded-lg p-1.5 text-[#9eb2aa] transition-colors hover:bg-white/10 hover:text-white"
+                  title="Renomear"
+                >
+                  <PencilSimple size={14} />
+                </button>
+                <button
+                  onClick={() => onDuplicate(preset)}
+                  className="shrink-0 rounded-lg p-1.5 text-[#9eb2aa] transition-colors hover:bg-white/10 hover:text-white"
+                  title="Duplicar"
+                >
+                  <Copy size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
@@ -526,13 +634,6 @@ function GlobalDesignPanel({
                 {font.label}
               </option>
             ))}
-          </select>
-        </Field>
-        <Field label="Densidade do fluxo">
-          <select value={design.layout.density} onChange={event => onLayoutChange('density', event.target.value as TotemDesign['layout']['density'])} className="studio-input">
-            <option value="compact">Compacta</option>
-            <option value="comfortable">Confortável</option>
-            <option value="spacious">Espaçosa</option>
           </select>
         </Field>
       </div>
@@ -978,34 +1079,6 @@ function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }:
   )
 }
 
-function PublishPanel({ design, saving, visibleBlockCount, onSave, onPublish }: {
-  design: TotemDesign
-  saving: boolean
-  visibleBlockCount: number
-  onSave: () => void
-  onPublish: () => void
-}) {
-  return (
-    <div>
-      <PanelTitle icon={<Check size={19} />} title="Publicação" />
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-[#aabbb4]">
-        <p className="font-semibold text-white">Resumo do rascunho</p>
-        <p className="mt-2">{visibleBlockCount} blocos técnicos ativos</p>
-        <p>{design.theme.brandName}</p>
-        <p>{design.layout.template} · {design.layout.density}</p>
-      </div>
-      <div className="mt-4 grid gap-2">
-        <button onClick={onSave} disabled={saving} className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-50">
-          Salvar rascunho
-        </button>
-        <button onClick={onPublish} disabled={saving} className="rounded-xl bg-[#d7fbe8] px-4 py-3 text-sm font-semibold text-[#10201d] hover:bg-[#c1f1d8] disabled:opacity-50">
-          Publicar nos totens
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#d8fff4]">
@@ -1107,19 +1180,7 @@ function ensureCoreBlocks(blocks: TotemBlock[]): TotemBlock[] {
   }, blocks)
 }
 
-function mergePresetBlocks(currentBlocks: TotemBlock[], presetBlocks: TotemBlock[]): TotemBlock[] {
-  const currentHero = currentBlocks.find(block => block.type === 'hero')
-  const currentVideo = currentBlocks.find(block => block.type === 'video')
-  const currentFooter = currentBlocks.find(block => block.type === 'footer')
-  const currentCarousel = currentBlocks.find(block => block.type === 'carousel')
-  return ensureCoreBlocks(presetBlocks).map(block => {
-    if (block.type === 'hero' && currentHero) return { ...block, title: currentHero.title, subtitle: currentHero.subtitle, imageUrl: currentHero.imageUrl, overlay: currentHero.overlay }
-    if (block.type === 'video' && currentVideo) return { ...block, videoUrl: currentVideo.videoUrl }
-    if (block.type === 'footer' && currentFooter) return { ...block, title: currentFooter.title, subtitle: currentFooter.subtitle }
-    if (block.type === 'carousel' && currentCarousel) return { ...block, contentItems: getContentItems(currentCarousel), speed: currentCarousel.speed ?? 50 }
-    return block
-  })
-}
+
 
 function createContentItem(): TotemContentItem {
   return {
@@ -1168,9 +1229,7 @@ function getSpeedLabel(speed?: TotemCarouselSpeed): string {
   return 'Natural'
 }
 
-function cloneDesign(value: TotemDesign): TotemDesign {
-  return JSON.parse(JSON.stringify(value))
-}
+
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`

@@ -23,6 +23,9 @@ public class TotemDesign {
     @JoinColumn(name = "hotel_id", nullable = false)
     private Hotel hotel;
 
+    @Column(length = 120)
+    private String nome;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TotemDesignStatus status;
