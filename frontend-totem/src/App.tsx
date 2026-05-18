@@ -13,7 +13,7 @@ import CheckoutPage from './pages/CheckoutPage'
 import ThankYouPage from './pages/ThankYouPage'
 
 function AppContent() {
-  const { totemConfig } = useTotem()
+  const { totemConfig, setTotemConfig, sincronizarConfig } = useTotem()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -24,13 +24,23 @@ function AppContent() {
   }, [navigate, totemConfig])
 
   useEffect(() => {
+    if (!totemConfig?.codigo) return
+    sincronizarConfig()
+  }, [])
+
+  useEffect(() => {
     if (!totemConfig?.id) return
 
-    const interval = setInterval(() => {
-      totemConfigService.heartbeat(totemConfig.id).catch(() => {})
-    }, 60000)
+    async function sendHeartbeat() {
+      try {
+        await totemConfigService.heartbeat(totemConfig.id)
+      } catch {
+        setTotemConfig(null)
+      }
+    }
 
-    totemConfigService.heartbeat(totemConfig.id).catch(() => {})
+    const interval = setInterval(sendHeartbeat, 60000)
+    sendHeartbeat()
 
     return () => clearInterval(interval)
   }, [totemConfig?.id])

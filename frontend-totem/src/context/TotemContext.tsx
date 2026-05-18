@@ -1,6 +1,7 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import type { Idioma, Reserva, TotemConfig } from '../types'
+import { totemConfigService } from '../services/api'
 import pt from '../locales/pt.json'
 import en from '../locales/en.json'
 import es from '../locales/es.json'
@@ -18,6 +19,7 @@ interface TotemContextType {
   totemConfig: TotemConfig | null
   setTotemConfig: (config: TotemConfig | null) => void
   resetar: () => void
+  sincronizarConfig: () => Promise<TotemConfig | null>
 }
 
 const TotemContext = createContext<TotemContextType | null>(null)
@@ -45,6 +47,22 @@ export function TotemProvider({ children }: { children: ReactNode }) {
     setIdioma('pt')
   }
 
+  const sincronizarConfig = useCallback(async (): Promise<TotemConfig | null> => {
+    const codigo = totemConfig?.codigo
+    if (!codigo) {
+      salvarConfig(null)
+      return null
+    }
+    try {
+      const config = await totemConfigService.buscarPorCodigo(codigo)
+      salvarConfig(config)
+      return config
+    } catch {
+      salvarConfig(null)
+      return null
+    }
+  }, [totemConfig?.codigo])
+
   return (
     <TotemContext.Provider
       value={{
@@ -58,6 +76,7 @@ export function TotemProvider({ children }: { children: ReactNode }) {
         totemConfig,
         setTotemConfig: salvarConfig,
         resetar,
+        sincronizarConfig,
       }}
     >
       {children}
