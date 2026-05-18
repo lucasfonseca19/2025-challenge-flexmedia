@@ -31,10 +31,19 @@ Auth persiste `admin_token` e `admin_usuario` no `localStorage`. O interceptor A
 | `/hoteis` | `HotelsPage` | ADMIN |
 | `/usuarios` | `UsersPage` | ADMIN |
 | `/reservas` | `ReservationsPage` | OPERADOR |
-| `/totens` | `TotemPage` | OPERADOR |
+| `/totem` | `TotemPage` | OPERADOR |
 | `/conteudo` | `ContentPage` | OPERADOR |
 
-`/conteudo` e o Totem Studio.
+`/conteudo` e o Totem Studio. Rotas fora do perfil do usuario redirecionam para `/dashboard`: ADMIN nao acessa as telas operacionais do hotel, e OPERADOR nao acessa cadastros globais de hoteis/usuarios.
+
+## Dashboard
+
+`DashboardPage` renderiza experiencias diferentes por perfil:
+
+- `ADMIN`: console FlexMedia de plataforma, com indicadores globais, total de hoteis, usuarios/operadores e atalhos para cadastro de hoteis e usuarios.
+- `OPERADOR`: dashboard operacional do hotel vinculado, chamando `/api/metricas/dashboard?hotelId={hotelId}` para historico, idiomas e totais do dia.
+
+O dashboard nao usa mais dados simulados silenciosos quando o backend falha; em erro de API ou permissao, exibe estado de indisponibilidade.
 
 ## Servicos
 

@@ -57,8 +57,10 @@ Dados criados/validados na execução:
 | TC-001 | ✅ | Backend iniciou, actuator retornou `200`, `db.status=UP`, DataLoader informou admin existente. |
 | TC-002 | ✅ | Totem abriu em `5173` e redirecionou para `/setup`. |
 | TC-003 | ✅ | Admin abriu em `5174` e redirecionou para `/login`. |
-| TC-010 | ✅ | Login ADMIN com `admin@flexmedia.com` funcionou e menu exibiu apenas Dashboard, Hotéis e Usuários. |
-| TC-011 | ✅ | Operador criado pela UI conseguiu login e menu exibiu Dashboard, Reservas e Totem. |
+| TC-010 | ⏳ | Revalidar após separação de perfis: ADMIN deve ver apenas Dashboard, Hotéis e Usuários. |
+| TC-011 | ⏳ | Revalidar após separação de perfis: OPERADOR deve ver Dashboard, Reservas, Totens e Totem Studio. |
+| TC-016 | ⏳ | Validar redirecionamento de ADMIN ao acessar manualmente `/reservas`, `/totem` ou `/conteudo`. |
+| TC-017 | ⏳ | Validar redirecionamento de OPERADOR ao acessar manualmente `/hoteis` ou `/usuarios`. |
 | TC-012 | ✅ | Retestado após correção: senha inválida permanece em `/login` e exibe `E-mail ou senha inválidos.`. |
 | TC-013 | ✅ | Acesso direto a `/dashboard` sem sessão redirecionou para `/login`. |
 | TC-014 | ✅ | Token inválido em rota protegida retornou `401` pela API. |
@@ -99,8 +101,8 @@ Dados criados/validados na execução:
 | TC-131 | ⏳ | Rehomologar uso de mídia publicada no design da IdlePage. |
 | TC-132 | ⏳ | Rehomologar vídeo MP4 em loop no preview e no totem. |
 | TC-133 | ⏳ | Rehomologar remoção de mídia pela API nova de Totem Studio. |
-| TC-140 | ✅ | Dashboard ADMIN renderizou cards e gráficos com dados agregados após massa com 2+ hotéis/check-ins. |
-| TC-141 | ✅ | Dashboard OPERADOR renderizou dados do hotel do operador. |
+| TC-140 | ⏳ | Revalidar após separação: Dashboard ADMIN deve renderizar visão FlexMedia sem dados simulados. |
+| TC-141 | ⏳ | Revalidar após separação: Dashboard OPERADOR deve chamar métricas com `hotelId`. |
 | TC-142 | ✅ | `metricas_diarias` registrou `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=1` para 2026-04-24. |
 | TC-150 | ✅ | Chave foi gerada com token único, `ativa=1` e `data_expiracao`; divergência de nome no documento anotada abaixo. |
 | TC-151 | ✅ | Reemissão de chave para `KEY-9450220` gerou novo token; MySQL confirmou 2 chaves no total e apenas 1 ativa. |
@@ -165,9 +167,9 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 - **Passos:** `/login` → email `admin@flexmedia.com` / senha `admin123` → Entrar
 - **Esperado:**
   - `POST /api/auth/login` retorna `200` com `{ token, email, role: "ADMIN", hotelId: null }`
-  - `localStorage` persiste `auth_token` e dados do usuário
+  - `localStorage` persiste `admin_token` e `admin_usuario`
   - Redireciona para `/dashboard`
-  - Menu lateral exibe: Dashboard, Hotéis, Usuários (NÃO exibe Reservas/Totem)
+  - Menu lateral exibe: Dashboard, Hotéis, Usuários (NÃO exibe Reservas, Totens ou Totem Studio)
 
 ### TC-011 — Login OPERADOR (gestor vinculado a hotel)
 - **Pré:** criar hotel + usuário OPERADOR via `POST /api/auth/register` com role=OPERADOR e `hotelId` válido
@@ -175,7 +177,7 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 - **Esperado:**
   - Token retorna `role: "OPERADOR"`, `hotelId: <id>`
   - Redireciona para `/dashboard`
-  - Menu exibe: Dashboard, Reservas, Totem (NÃO exibe Hotéis/Usuários)
+  - Menu exibe: Dashboard, Reservas, Totens, Totem Studio (NÃO exibe Hotéis/Usuários)
 
 ### TC-012 — Login com credencial inválida
 - **Passos:** `/login` → email correto + senha errada
@@ -189,12 +191,22 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 - **Esperado:** `PrivateRoute` redireciona para `/login`
 
 ### TC-014 — Token expirado/inválido retorna 401
-- **Passos:** editar `localStorage.auth_token` com string inválida → recarregar `/dashboard`
+- **Passos:** editar `localStorage.admin_token` com string inválida → recarregar `/dashboard`
 - **Esperado:** primeira chamada retorna `401` → interceptor axios limpa storage e redireciona para `/login`
 
 ### TC-015 — Logout limpa sessão
 - **Passos:** logado → clicar em Sair
 - **Esperado:** `localStorage` limpo, redireciona para `/login`, voltar no histórico não readquire sessão
+
+### TC-016 — ADMIN não acessa operação de hotel
+- **Pré:** logado como ADMIN
+- **Passos:** acessar manualmente `/reservas`, `/totem` e `/conteudo`
+- **Esperado:** app redireciona para `/dashboard`; menu lateral não exibe Reservas, Totens nem Totem Studio
+
+### TC-017 — OPERADOR não acessa console FlexMedia
+- **Pré:** logado como OPERADOR
+- **Passos:** acessar manualmente `/hoteis` e `/usuarios`
+- **Esperado:** app redireciona para `/dashboard`; menu lateral não exibe Hotéis nem Usuários
 
 ---
 
@@ -480,12 +492,15 @@ Funcionalidades essenciais que sustentam o produto ao longo do tempo.
 - **Passos:** `/dashboard`
 - **Esperado:**
   - `GET /api/metricas/dashboard` (sem `hotelId`) retorna agregado de todos os hotéis
-  - Cards mostram totais (check-ins, check-outs, chaves emitidas)
-  - Gráfico 7 dias renderizado (Recharts)
+  - UI mostra visão FlexMedia/plataforma com hotéis ativos, hotéis cadastrados, operadores ativos e uso global do dia
+  - Não exibe dados mockados quando backend/API falha
 
 ### TC-141 — Dashboard OPERADOR (visão do hotel)
 - **Pré:** logado como OPERADOR
-- **Esperado:** `GET /api/metricas/dashboard?hotelId={hotel}` retorna apenas dados do seu hotel
+- **Esperado:**
+  - `GET /api/metricas/dashboard?hotelId={hotel}` retorna apenas dados do seu hotel
+  - UI mostra histórico e idiomas do hotel quando existirem dados
+  - Não exibe dados mockados quando backend/API falha
 
 ### TC-142 — Métrica incrementa ao fazer check-in
 - **Passos:** anotar contador atual → fazer TC-050 → recarregar dashboard
