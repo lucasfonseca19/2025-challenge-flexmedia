@@ -55,7 +55,6 @@ function RenderBlock({ block, design, onCtaClick, onLanguageClick }: {
     case 'amenities': return <AmenitiesBlock block={block} design={design} />
     case 'video': return <VideoBlock block={block} design={design} />
     case 'language': return <LanguageBlock design={design} onLanguageClick={onLanguageClick} />
-    case 'footer': return <FooterBlock block={block} />
     default: return null
   }
 }
@@ -175,15 +174,6 @@ function LanguageBlock({ design, onLanguageClick }: { design: TotemDesign; onLan
         </button>
       ))}
     </section>
-  )
-}
-
-function FooterBlock({ block }: { block: TotemBlock }) {
-  return (
-    <footer className="mt-auto text-center text-2xl opacity-70">
-      <p className="font-semibold">{block.title}</p>
-      {block.subtitle && <p className="mt-2 font-light">{block.subtitle}</p>}
-    </footer>
   )
 }
 

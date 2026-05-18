@@ -17,7 +17,6 @@ export default function TotemDesignRenderer({ design, scale = 'preview', carouse
   const fontStack = font ? `'${font.id}', system-ui, sans-serif` : 'system-ui, sans-serif'
   const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible)
   const videoBlock = design.blocks.find(block => block.type === 'video' && block.visible && block.videoUrl)
-  const footerBlock = design.blocks.find(block => block.type === 'footer' && block.visible)
   const carouselBlock = design.blocks.find(block => block.type === 'carousel' && block.visible)
   const contentItems = useMemo(() => getVisibleContentItems(carouselBlock, language), [carouselBlock, language])
 
@@ -74,9 +73,6 @@ export default function TotemDesignRenderer({ design, scale = 'preview', carouse
               </span>
             ))}
           </div>
-          {footerBlock && (
-            <p className="mt-4 text-center text-xs font-medium text-white/58">{footerBlock.title}</p>
-          )}
         </footer>
       </div>
     </div>

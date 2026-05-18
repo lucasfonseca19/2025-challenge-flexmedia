@@ -60,7 +60,7 @@ const EMPTY_DESIGN: TotemDesign = {
     { id: 'hotel-content', type: 'carousel', visible: true, title: 'Conteúdos do hotel', speed: 50, contentItems: [] },
     { id: 'actions', type: 'cta', visible: true, title: 'Atendimento', subtitle: 'Check-in e check-out', variant: 'dual' },
     { id: 'language', type: 'language', visible: true, title: 'Idiomas' },
-    { id: 'footer', type: 'footer', visible: true, title: 'Recepção disponível 24h', subtitle: 'Procure nossa equipe se precisar de ajuda' },
+    { id: 'footer', type: 'footer', visible: true, title: '' },
   ],
 }
 
@@ -87,7 +87,6 @@ export default function ContentPage() {
 
   const heroBlock = getBlock(design, 'hero')
   const videoBlock = getBlock(design, 'video')
-  const footerBlock = getBlock(design, 'footer')
   const carouselBlock = getBlock(design, 'carousel')
   const screenIndex = PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen)
   const currentScreen = PREVIEW_SCREENS[screenIndex] ?? PREVIEW_SCREENS[0]
@@ -466,12 +465,10 @@ export default function ContentPage() {
                 screen={currentScreen}
                 heroBlock={heroBlock}
                 videoBlock={videoBlock}
-                footerBlock={footerBlock}
                 carouselBlock={carouselBlock}
                 midias={midias}
                 uploading={uploading}
                 onHeroChange={patch => upsertBlock('hero', patch)}
-                onFooterChange={patch => upsertBlock('footer', patch)}
                 onCarouselSpeedChange={updateCarouselSpeed}
                 onAddContentItem={addContentItem}
                 onContentItemChange={patchContentItem}
@@ -645,12 +642,10 @@ function ScreenContentPanel({
   screen,
   heroBlock,
   videoBlock,
-  footerBlock,
   carouselBlock,
   midias,
   uploading,
   onHeroChange,
-  onFooterChange,
   onCarouselSpeedChange,
   onAddContentItem,
   onContentItemChange,
@@ -666,12 +661,10 @@ function ScreenContentPanel({
   screen: { id: TotemPreviewScreen; label: string; kind: 'idle' | 'flow' }
   heroBlock?: TotemBlock
   videoBlock?: TotemBlock
-  footerBlock?: TotemBlock
   carouselBlock?: TotemBlock
   midias: TotemMediaAsset[]
   uploading: boolean
   onHeroChange: (patch: Partial<TotemBlock>) => void
-  onFooterChange: (patch: Partial<TotemBlock>) => void
   onCarouselSpeedChange: (speed: TotemCarouselSpeed) => void
   onAddContentItem: () => void
   onContentItemChange: (itemId: string, patch: Partial<TotemContentItem>) => void
@@ -731,14 +724,6 @@ function ScreenContentPanel({
         onReorder={onReorderContentItems}
         onUploadMedia={onUploadContentMedia}
       />
-      <div className="border-t border-white/10 pt-4">
-        <Field label="Rodapé">
-          <input value={footerBlock?.title ?? ''} onChange={event => onFooterChange({ title: event.target.value, visible: true })} className="studio-input" />
-        </Field>
-        <Field label="Texto auxiliar do rodapé">
-          <input value={footerBlock?.subtitle ?? ''} onChange={event => onFooterChange({ subtitle: event.target.value, visible: true })} className="studio-input" />
-        </Field>
-      </div>
     </div>
   )
 }
@@ -1138,14 +1123,14 @@ function getBlock(design: TotemDesign, type: TotemBlock['type']): TotemBlock | u
 }
 
 function createBlock(type: TotemBlock['type']): TotemBlock {
-  const labels: Record<TotemBlock['type'], string> = {
+const labels: Record<TotemBlock['type'], string> = {
     hero: 'Bem-vindo',
     cta: 'Atendimento',
     carousel: 'Conteúdos do hotel',
     banner: 'Aviso',
     amenities: 'Durante sua estadia',
     video: 'Vídeo de fundo',
-    footer: 'Recepção disponível 24h',
+    footer: 'Rodapé',
     language: 'Idiomas',
   }
   return {
@@ -1174,7 +1159,7 @@ function normalizeDesign(value: TotemDesign): TotemDesign {
 }
 
 function ensureCoreBlocks(blocks: TotemBlock[]): TotemBlock[] {
-  return (['hero', 'video', 'carousel', 'cta', 'language', 'footer'] as TotemBlock['type'][]).reduce((current, type) => {
+  return (['hero', 'video', 'carousel', 'cta', 'language'] as TotemBlock['type'][]).reduce((current, type) => {
     if (current.some(block => block.type === type)) return current
     return [...current, createBlock(type)]
   }, blocks)

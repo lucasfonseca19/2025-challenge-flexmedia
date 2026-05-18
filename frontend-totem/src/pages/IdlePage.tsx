@@ -167,15 +167,6 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
             <p className="mt-8 text-center text-lg font-light opacity-60 lg:text-xl">{t.telaInicial.instrucao}</p>
           )}
         </div>
-
-        <footer className="animate-fade-in text-center" style={{ animationDelay: '0.4s' }}>
-          {design.blocks.filter(b => b.type === 'footer' && b.visible).map(block => (
-            <div key={block.id}>
-              <p className="mt-4 text-xs font-medium text-white/58">{block.title}</p>
-              {block.subtitle && <p className="mt-2 text-[11px] text-white/45">{block.subtitle}</p>}
-            </div>
-          ))}
-        </footer>
       </div>
     </div>
   )
@@ -314,18 +305,9 @@ function ActionsDesign({ design, t, onNavigate, onBack }: {
               <span className="text-sm font-bold uppercase tracking-[0.16em] opacity-62">{t.telaInicial.saidaLabel}</span>
               <span className="mt-20 block text-5xl font-bold leading-none lg:text-6xl">{t.telaInicial.checkoutTitulo}</span>
               <span className="mt-5 block text-xl font-medium leading-snug text-white/58">{t.telaInicial.checkoutDescricao}</span>
-            </button>
+</button>
           </div>
         </div>
-
-        <footer className="text-center animate-fade-in">
-          {design.blocks.filter(b => b.type === 'footer' && b.visible).map(block => (
-            <div key={block.id}>
-              <p className="text-lg font-semibold opacity-60">{block.title}</p>
-              {block.subtitle && <p className="mt-1 text-sm opacity-50">{block.subtitle}</p>}
-            </div>
-          ))}
-        </footer>
       </div>
     </div>
   )
@@ -455,7 +437,7 @@ function ActionsFallback({ totemConfig, t, onNavigate, onBack }: {
               <span className="text-sm font-bold uppercase tracking-[0.16em] opacity-62">{t.telaInicial.saidaLabel}</span>
               <span className="mt-20 block text-5xl font-bold leading-none lg:text-6xl">{t.telaInicial.checkoutTitulo}</span>
               <span className="mt-5 block text-xl font-medium leading-snug text-white/58">{t.telaInicial.checkoutDescricao}</span>
-            </button>
+</button>
           </div>
         </div>
       </div>

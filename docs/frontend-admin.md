@@ -82,7 +82,7 @@ Comportamento esperado:
 - botão "Novo preset" acima da lista carrega o design base interno e permite criar preset do zero;
 - exigir nome do design ao salvar, como `Design Saguão`;
 - editar estilo global do preset: marca, fonte e cores;
-- editar conteúdo específico da tela inicial: vídeo de fundo, imagem de fallback, escurecimento da mídia, carrossel de promoções/eventos/serviços, velocidade contínua do carrossel, cards recolhíveis/reordenáveis e rodapé;
+- editar conteúdo específico da tela inicial: vídeo de fundo, imagem de fallback, escurecimento da mídia, carrossel de promoções/eventos/serviços, velocidade contínua do carrossel, cards recolhíveis/reordenáveis;
 - nos cards do carrossel, editar texto por idioma (`pt`, `en`, `es`); idiomas sem texto aparecem com indicador discreto no editor, e o campo legado `text` continua como fallback técnico;
 - usar imagens/vídeos da biblioteca local de mídia;
 - preview renderiza a tela inicial igual ao attract mode do totem, incluindo vídeo de fundo em loop e fontes dinâmicas;
