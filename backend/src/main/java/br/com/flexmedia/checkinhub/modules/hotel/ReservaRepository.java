@@ -15,6 +15,8 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
     Optional<Reserva> findByCodigoReserva(String codigoReserva);
 
+    boolean existsByCodigoReserva(String codigoReserva);
+
     Optional<Reserva> findByHospedeCpfAndStatus(String hospedeCpf, StatusReserva status);
 
     @Query("SELECT r FROM Reserva r WHERE r.hospedeCpf = :cpf AND r.status IN :statuses ORDER BY r.dataCheckin DESC")

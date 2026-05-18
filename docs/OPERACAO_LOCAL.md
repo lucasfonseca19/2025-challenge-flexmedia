@@ -90,6 +90,8 @@ created_at
 updated_at
 ```
 
+`codigo_reserva` e preenchido pela API de reservas na criacao. O formato atual e alfanumerico curto, com ate 6 caracteres e sem hifens, para digitacao pelo hospede no totem.
+
 State machine:
 
 ```text

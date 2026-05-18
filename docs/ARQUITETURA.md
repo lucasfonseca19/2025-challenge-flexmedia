@@ -79,6 +79,7 @@ Regras:
 - Endpoints administrativos exigem token.
 - OPERADOR deve atuar somente no hotel associado.
 - ADMIN tem visao global e gerencia hoteis/usuarios.
+- Reservas sao criadas pelo OPERADOR do hotel vinculado. O codigo de reserva e gerado pelo backend como identificador alfanumerico curto, com ate 6 caracteres e sem hifens, para uso pelo hospede no totem.
 
 ## Fluxos principais
 

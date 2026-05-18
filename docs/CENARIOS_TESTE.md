@@ -69,8 +69,8 @@ Dados criados/validados na execução:
 | TC-021 | ✅ | `PUT /api/hoteis/2` atualizou nome/cidade do hotel com `200`. |
 | TC-022 | ✅ | `PATCH /api/hoteis/4/desativar` retornou `204`; `GET /api/hoteis/4` confirmou `ativo=false`. |
 | TC-023 | ✅ | CNPJ duplicado retornou `422` com detalhe `CNPJ já cadastrado`. |
-| TC-030 | ✅ | Retestado após correção: reserva com check-in, check-out e DOB persistiu corretamente no backend/MySQL. |
-| TC-031 | ✅ | Código de reserva duplicado retornou `422` com detalhe `Código de reserva já cadastrado`. |
+| TC-030 | ⏳ | Revalidar após refinamento: criação pelo OPERADOR sem campo de hotel/código, com `codigoReserva` alfanumérico curto gerado pelo backend. |
+| TC-031 | ⏳ | Validar que o código gerado na criação localiza a reserva no totem. |
 | TC-032 | ✅ | Checkout anterior ao check-in retornou `422` com detalhe de validação. |
 | TC-033 | ✅ | `PUT /api/reservas/5` alterou quarto e datas de `RES-P0-EDIT` com `200`. |
 | TC-034 | ✅ | `DELETE /api/reservas/{id}` retornou `204`; busca posterior da reserva excluída retornou `404`. |
@@ -236,17 +236,18 @@ O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
 
 ## 1.4 Cadastro de reservas (OPERADOR)
 
-### TC-030 — Criar reserva manual
+### TC-030 — Criar reserva pelo operador
 - **Pré:** logado como OPERADOR de hotel X
-- **Passos:** `/reservas` → Nova Reserva → preencher Código (único), Hóspede (Nome, CPF, DOB opcional, Email opcional), Quarto, Check-in, Check-out → Salvar
+- **Passos:** `/reservas` → Nova Reserva → preencher Hóspede (Nome, CPF, DOB opcional, Email opcional), Quarto, Check-in, Check-out → Salvar
 - **Esperado:**
   - `POST /api/reservas` retorna `201`
-  - Reserva aparece com status `CONFIRMADA`
-  - **Banco:** linha em `reservas` com `hotel_id = X`, `status = 'CONFIRMADA'`
+  - Reserva aparece com status `CONFIRMADA` e codigo alfanumerico curto, com ate 6 caracteres e sem hifens
+  - O formulario nao solicita hotel nem codigo de reserva para o operador
+  - **Banco:** linha em `reservas` com `hotel_id = X`, `status = 'CONFIRMADA'`, `codigo_reserva` unico
 
-### TC-031 — Código de reserva duplicado bloqueia
-- **Passos:** criar 2 reservas com mesmo `codigoReserva` no mesmo hotel
-- **Esperado:** segundo POST retorna `400`, reserva não criada
+### TC-031 — Código de reserva gerado funciona no totem
+- **Passos:** criar reserva pelo operador → copiar o `codigoReserva` retornado → buscar no totem pelo codigo
+- **Esperado:** `GET /api/checkin/reserva/{codigo}` retorna a reserva correta para o hospede confirmar os dados
 
 ### TC-032 — Data de checkout anterior ao checkin é rejeitada
 - **Passos:** criar reserva com `dataCheckout < dataCheckin`
@@ -700,7 +701,6 @@ POST /api/auth/register { nome: "Op Teste", email: "op@teste.com", senha: "op123
 
 -- 2. Logar como op@teste.com e criar:
 POST /api/reservas {
-  codigoReserva: "RES001",
   hospedeNome: "João Silva",
   hospedeCpf: "123.456.789-00",
   hospedeDataNascimento: "1990-05-15",

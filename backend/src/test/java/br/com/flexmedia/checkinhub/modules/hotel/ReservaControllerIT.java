@@ -22,6 +22,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -96,6 +97,29 @@ class ReservaControllerIT {
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].codigoReserva").value("RES-A"))
                 .andExpect(jsonPath("$.content[0].hotelId").value(hotelA.getId()));
+    }
+
+    @Test
+    @WithMockUser(username = "op-a@test.com", roles = "OPERADOR")
+    void criarReserva_comOperador_geraCodigoCurtoEUsaHotelDoOperador() throws Exception {
+        Map<String, Object> body = Map.of(
+                "hospedeNome", "Hóspede Novo",
+                "hospedeCpf", "987.654.321-00",
+                "hospedeEmail", "novo@test.com",
+                "quartoNumero", "303",
+                "hotelId", hotelB.getId(),
+                "dataCheckin", "2026-05-10",
+                "dataCheckout", "2026-05-12"
+        );
+
+        mockMvc.perform(post("/api/reservas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.codigoReserva").isString())
+                .andExpect(jsonPath("$.codigoReserva").value(org.hamcrest.Matchers.matchesPattern("^[A-Z0-9]{1,6}$")))
+                .andExpect(jsonPath("$.hotelId").value(hotelA.getId()))
+                .andExpect(jsonPath("$.status").value("CONFIRMADA"));
     }
 
     @Test

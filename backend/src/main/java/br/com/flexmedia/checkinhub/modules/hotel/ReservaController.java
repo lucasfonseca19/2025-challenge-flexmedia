@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,6 +19,7 @@ public class ReservaController {
     private final ReservaService reservaService;
 
     @PostMapping
+    @PreAuthorize("hasRole('OPERADOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public ReservaResponseDTO criar(@Valid @RequestBody ReservaRequestDTO dto) {
         return reservaService.criar(dto);

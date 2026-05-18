@@ -45,6 +45,10 @@ Auth persiste `admin_token` e `admin_usuario` no `localStorage`. O interceptor A
 
 O dashboard nao usa mais dados simulados silenciosos quando o backend falha; em erro de API ou permissao, exibe estado de indisponibilidade.
 
+## Reservas
+
+`ReservationsPage` e uma tela operacional do `OPERADOR`. O formulario de nova reserva nao expõe seleção de hotel nem digitação manual de codigo: o hotel vem do usuario logado e o backend retorna um `codigoReserva` alfanumerico curto para o hospede usar no totem. Na edicao, o codigo aparece apenas como informacao gerada e nao deve ser alterado pelo gerente.
+
 ## Servicos
 
 `src/services/api.ts` agrupa:

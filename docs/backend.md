@@ -63,7 +63,7 @@ br.com.flexmedia.checkinhub
 | GET | `/api/hoteis/{id}/config` | Publico | Config simples do totem |
 | PUT | `/api/hoteis/{id}/config` | Autenticado | Salva config simples |
 | GET | `/api/reservas` | Autenticado | Lista reservas por escopo |
-| POST | `/api/reservas` | Autenticado | Cria reserva |
+| POST | `/api/reservas` | OPERADOR | Cria reserva no hotel vinculado e gera codigo alfanumerico curto |
 | PUT | `/api/reservas/{id}` | Autenticado | Atualiza reserva |
 | DELETE | `/api/reservas/{id}` | Autenticado | Remove reserva |
 
@@ -99,6 +99,7 @@ br.com.flexmedia.checkinhub
 - `BusinessException` retorna erro de regra de negocio.
 - `ResourceNotFoundException` retorna recurso inexistente.
 - Falhas de upload retornam `422` com mensagem de negocio.
+- Na criacao de reserva, o backend ignora qualquer `hotelId` arbitrario do operador, usa o hotel vinculado ao JWT e gera `codigoReserva` com ate 6 caracteres alfanumericos, sem hifens.
 - PMS e chamado no check-in/check-out, mas falha externa nao deve bloquear a demo local.
 - `ddl-auto=update` e aceitavel para dev; confirme schema real com `SHOW CREATE TABLE`.
 - Uploads ficam em `backend/uploads/` e nao sao versionados.

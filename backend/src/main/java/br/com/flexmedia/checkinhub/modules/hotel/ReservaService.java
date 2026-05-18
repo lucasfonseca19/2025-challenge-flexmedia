@@ -20,13 +20,10 @@ public class ReservaService {
     private final ReservaRepository reservaRepository;
     private final HotelRepository hotelRepository;
     private final CurrentUserService currentUserService;
+    private final ReservaCodeGenerator reservaCodeGenerator;
 
     @Transactional
     public ReservaResponseDTO criar(ReservaRequestDTO dto) {
-        if (reservaRepository.findByCodigoReserva(dto.codigoReserva()).isPresent()) {
-            throw new BusinessException("Código de reserva já cadastrado: " + dto.codigoReserva());
-        }
-
         if (dto.dataCheckout().isBefore(dto.dataCheckin())) {
             throw new BusinessException("Data de checkout deve ser maior ou igual ao check-in.");
         }
@@ -36,7 +33,7 @@ public class ReservaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + hotelId));
 
         Reserva reserva = Reserva.builder()
-                .codigoReserva(dto.codigoReserva())
+                .codigoReserva(gerarCodigoUnico())
                 .hospedeNome(dto.hospedeNome())
                 .hospedeCpf(dto.hospedeCpf())
                 .hospedeEmail(dto.hospedeEmail())
@@ -99,12 +96,6 @@ public class ReservaService {
         Reserva reserva = findOrThrow(id);
         assertCanAccess(reserva);
 
-        if (!reserva.getCodigoReserva().equals(dto.codigoReserva())) {
-            if (reservaRepository.findByCodigoReserva(dto.codigoReserva()).isPresent()) {
-                throw new BusinessException("Código de reserva já cadastrado: " + dto.codigoReserva());
-            }
-        }
-
         if (dto.dataCheckout().isBefore(dto.dataCheckin())) {
             throw new BusinessException("Data de checkout deve ser maior ou igual ao check-in.");
         }
@@ -113,7 +104,6 @@ public class ReservaService {
         Hotel hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + hotelId));
 
-        reserva.setCodigoReserva(dto.codigoReserva());
         reserva.setHospedeNome(dto.hospedeNome());
         reserva.setHospedeCpf(dto.hospedeCpf());
         reserva.setHospedeEmail(dto.hospedeEmail());
@@ -139,6 +129,16 @@ public class ReservaService {
             return requestedHotelId;
         }
         return currentUserService.getOperatorHotelId(usuario);
+    }
+
+    private String gerarCodigoUnico() {
+        for (int tentativa = 0; tentativa < 20; tentativa++) {
+            String codigo = reservaCodeGenerator.gerarCodigo();
+            if (!reservaRepository.existsByCodigoReserva(codigo)) {
+                return codigo;
+            }
+        }
+        throw new BusinessException("Não foi possível gerar um código de reserva único.");
     }
 
     private void assertCanAccess(Reserva reserva) {
