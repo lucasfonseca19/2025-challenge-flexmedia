@@ -46,7 +46,7 @@ A configuracao do totem e persistida em `localStorage` para permitir kiosk mode 
 - Usa o `TotemDesign` retornado no setup do dispositivo via `GET /api/totens/codigo/{codigo}`;
 - Se o design tem bloco `video` visível, ele vira o vídeo de fundo do attract mode;
 - Se tem bloco `hero` com imagem, ela vira o background do attract;
-- Sem mídia, usa cor primária com gradientes sutis;
+- O Totem Studio exige uma mídia de fundo para a tela inicial antes de salvar novos presets; designs antigos sem mídia ainda caem no fundo neutro do modo para compatibilidade;
 - Se tem bloco `carousel` com `contentItems` ativos, a tela inicial mostra um carrossel central de conteudos curtos do hotel, com velocidade continua ajustada no Studio;
 - Cards do carrossel podem trazer textos por idioma em `texts.pt`, `texts.en` e `texts.es`; o runtime escolhe o texto do idioma atual e usa `text`/`texts.pt` como fallback para designs antigos;
 - Texto \"Toque para começar\" com breathing animation (`animate-breathe`);
@@ -60,11 +60,13 @@ As telas transacionais do totem (`/setup`, `/buscar-reserva`, `/confirmar-dados`
 
 Essa camada deriva a identidade do `TotemDesign` atribuído ao dispositivo quando existir. Caso contrário, usa a configuração legada do totem (`nomeExibido`, `logoUrl`, `corPrimaria`) e um tema padrão. O objetivo é manter o fluxo com aparência premium e consistente sem permitir que cada hotel customize individualmente telas críticas de atendimento.
 
-O Totem Studio controla a identidade, a tela idle e blocos de conteúdo por preset salvo. Na tela inicial, o conteúdo promocional fica no bloco `carousel` do JSON atribuído ao totem, com itens simples de texto, mídia opcional, status ativo/inativo e velocidade. O fluxo interno herda fonte, marca, cor primária, fundo, texto e superfície, mas preserva layout fixo para reduzir atrito de configuração e proteger legibilidade/usabilidade.
+O Totem Studio controla a identidade, a tela idle e blocos de conteúdo por preset salvo. Na tela inicial, o conteúdo promocional fica no bloco `carousel` do JSON atribuído ao totem, com itens simples de texto, mídia opcional, status ativo/inativo e velocidade. O fluxo interno herda fonte, marca, modo claro/escuro e cor de acento, mas não reaproveita vídeo ou imagem de fundo da idle. Em vez disso, `KioskShell` usa fundo transacional fixo por `theme.mode`: light com bege claro (`#F4EFE6`) e superfície `#FFF8EE`, ou dark com carvão (`#171A1F`) e superfície `#232A32`. Presets antigos sem `mode` são tratados como dark. `backgroundColor` e `surfaceColor` legados são ignorados nas telas internas.
+
+A cor de acento (`primaryColor`) pode ser qualquer cor escolhida pelo hotel. O runtime calcula uma variante acessível para botões e estados ativos quando a cor original não sustenta contraste de texto/componente, preservando a cor original apenas como referência decorativa quando necessário. O mesmo cálculo é usado no preview do Studio.
 
 A tela fixa de escolha entre check-in e check-out deve permanecer enxuta: título curto, dois alvos de toque grandes e microcopy mínima dentro de cada opção. Ela não expõe edição granular no Studio, mas herda a identidade visual atribuída ao totem para funcionar bem com diferentes hotéis.
 
-No admin, o Studio expõe a tela inicial como área editável de conteúdo (mensagens, vídeo/imagem de fundo e rodapé) e oferece preview navegável das demais etapas do fluxo. Essas etapas internas são preview-only: refletem o tema do preset atual, mas não têm campos de edição próprios.
+No admin, o Studio expõe a tela inicial como área editável de conteúdo (mensagens, vídeo/imagem de fundo e rodapé) e oferece preview navegável das demais etapas do fluxo. Essas etapas internas são preview-only: devem espelhar o runtime real do totem, refletindo o tema do preset atual sem campos de edição próprios. O frame portrait do runtime e do preview usa a mesma proporcao 9:16; a tela de escolha mantem dois cards lado a lado e reduz a tipografia em frames estreitos para evitar quebra de "Check in" e "Check out".
 
 Fontes são carregadas dinamicamente via `useFontLoader` que injeta `<link>` no `<head>`. Seis fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk.
 

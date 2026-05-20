@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useTotem } from '../context/TotemContext'
 import { getFontStack, useFontLoader } from '../hooks/useFontLoader'
 import type { TotemConfig, TotemTheme } from '../types'
+import { resolveTotemTheme } from '../utils/totemTheme'
 
 type KioskTheme = {
   brandName: string
@@ -10,8 +11,13 @@ type KioskTheme = {
   backgroundColor: string
   textColor: string
   surfaceColor: string
+  borderColor: string
   fontFamily: string
+  onPrimaryColor: string
+  rawPrimaryColor: string
+  primaryAdjusted: boolean
   primaryRgb: string
+  rawPrimaryRgb: string
   surfaceRgb: string
   textRgb: string
 }
@@ -19,11 +25,16 @@ type KioskTheme = {
 const FALLBACK_THEME: KioskTheme = {
   brandName: 'CheckIn Hub',
   primaryColor: '#0f766e',
-  backgroundColor: '#101513',
-  textColor: '#f7fbf8',
-  surfaceColor: '#18211d',
+  backgroundColor: '#171A1F',
+  textColor: '#F4EFE6',
+  surfaceColor: '#232A32',
+  borderColor: '#3A424C',
   fontFamily: 'Satoshi',
+  onPrimaryColor: '#ffffff',
+  rawPrimaryColor: '#0f766e',
+  primaryAdjusted: false,
   primaryRgb: '15, 118, 110',
+  rawPrimaryRgb: '15, 118, 110',
   surfaceRgb: '24, 33, 29',
   textRgb: '247, 251, 248',
 }
@@ -37,44 +48,42 @@ export function useKioskTheme(): KioskTheme {
 }
 
 function buildKioskTheme(totemConfig: TotemConfig | null, theme?: TotemTheme): KioskTheme {
-  const primaryColor = theme?.primaryColor ?? totemConfig?.config?.corPrimaria ?? FALLBACK_THEME.primaryColor
-  const backgroundColor = theme?.backgroundColor ?? FALLBACK_THEME.backgroundColor
-  const textColor = theme?.textColor ?? FALLBACK_THEME.textColor
-  const surfaceColor = theme?.surfaceColor ?? FALLBACK_THEME.surfaceColor
-
-  return {
-    brandName: theme?.brandName ?? totemConfig?.config?.nomeExibido ?? FALLBACK_THEME.brandName,
-    logoUrl: totemConfig?.config?.logoUrl || undefined,
-    primaryColor,
-    backgroundColor,
-    textColor,
-    surfaceColor,
-    fontFamily: theme?.fontFamily ?? FALLBACK_THEME.fontFamily,
-    primaryRgb: hexToRgb(primaryColor) ?? FALLBACK_THEME.primaryRgb,
-    surfaceRgb: hexToRgb(surfaceColor) ?? FALLBACK_THEME.surfaceRgb,
-    textRgb: hexToRgb(textColor) ?? FALLBACK_THEME.textRgb,
+  if (theme) {
+    const resolved = resolveTotemTheme(theme)
+    return {
+      ...resolved,
+      logoUrl: totemConfig?.config?.logoUrl || undefined,
+    }
   }
-}
 
-function hexToRgb(hex: string): string | null {
-  const normalized = hex.trim().replace('#', '')
-  const value = normalized.length === 3
-    ? normalized.split('').map(char => char + char).join('')
-    : normalized
-  if (!/^[0-9a-fA-F]{6}$/.test(value)) return null
-  const n = Number.parseInt(value, 16)
-  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`
+  const resolved = resolveTotemTheme({
+    brandName: totemConfig?.config?.nomeExibido ?? FALLBACK_THEME.brandName,
+    primaryColor: totemConfig?.config?.corPrimaria ?? FALLBACK_THEME.primaryColor,
+    mode: 'dark',
+    backgroundColor: FALLBACK_THEME.backgroundColor,
+    textColor: FALLBACK_THEME.textColor,
+    surfaceColor: FALLBACK_THEME.surfaceColor,
+    fontFamily: FALLBACK_THEME.fontFamily,
+  })
+  return {
+    ...resolved,
+    logoUrl: totemConfig?.config?.logoUrl || undefined,
+  }
 }
 
 function shellVars(theme: KioskTheme): CSSProperties {
   return {
     '--kiosk-primary': theme.primaryColor,
     '--kiosk-primary-rgb': theme.primaryRgb,
+    '--kiosk-primary-raw': theme.rawPrimaryColor,
+    '--kiosk-primary-raw-rgb': theme.rawPrimaryRgb,
+    '--kiosk-on-primary': theme.onPrimaryColor,
     '--kiosk-bg': theme.backgroundColor,
     '--kiosk-text': theme.textColor,
     '--kiosk-text-rgb': theme.textRgb,
     '--kiosk-surface': theme.surfaceColor,
     '--kiosk-surface-rgb': theme.surfaceRgb,
+    '--kiosk-border': theme.borderColor,
     fontFamily: getFontStack(theme.fontFamily),
   } as CSSProperties
 }
@@ -97,32 +106,47 @@ export function KioskShell({
   const theme = useKioskTheme()
 
   return (
-    <div className="kiosk-shell" style={shellVars(theme)}>
-      
-      <header className="kiosk-topbar">
-        <div className="kiosk-brand">
-          {theme.logoUrl ? (
-            <img src={theme.logoUrl} alt="" className="kiosk-brand__logo" />
-          ) : (
-            <span className="kiosk-brand__mark" />
-          )}
-          <span>{theme.brandName}</span>
-        </div>
-      </header>
+    <div className="kiosk-frame">
+      <div className="kiosk-shell" style={shellVars(theme)}>
+        <div className="kiosk-shell__scrim" />
 
-      <main className={`kiosk-main ${maxWidth}`}>
-        {eyebrow && <p className="kiosk-eyebrow">{eyebrow}</p>}
-        <h1 className="kiosk-title">{title}</h1>
-        {subtitle && <p className="kiosk-subtitle">{subtitle}</p>}
-        <div className="kiosk-content">{children}</div>
-        {actions && <div className="kiosk-actions">{actions}</div>}
-      </main>
+        <header className="kiosk-topbar">
+          <div className="kiosk-brand">
+            {theme.logoUrl ? (
+              <img src={theme.logoUrl} alt="" className="kiosk-brand__logo" />
+            ) : (
+              <span className="kiosk-brand__mark" />
+            )}
+            <span>{theme.brandName}</span>
+          </div>
+        </header>
+
+        <main className={`kiosk-main ${maxWidth}`}>
+          {eyebrow && <p className="kiosk-eyebrow">{eyebrow}</p>}
+          <h1 className="kiosk-title">{title}</h1>
+          {subtitle && <p className="kiosk-subtitle">{subtitle}</p>}
+          <div className="kiosk-content">{children}</div>
+          {actions && <div className="kiosk-actions">{actions}</div>}
+        </main>
+      </div>
     </div>
   )
 }
 
 export function KioskPanel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`kiosk-panel ${className}`}>{children}</div>
+}
+
+export function KioskBackButton({
+  children,
+  className = '',
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button {...props} className={`totem-back-button ${className}`}>
+      {children}
+    </button>
+  )
 }
 
 export function KioskButton({

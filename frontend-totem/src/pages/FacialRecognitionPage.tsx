@@ -4,6 +4,7 @@ import { useTotem } from '../context/TotemContext'
 import { checkinService } from '../services/api'
 import { faceRecognitionService } from '../services/faceRecognitionService'
 import type { Idioma } from '../types'
+import { KioskShell } from '../components/KioskShell'
 
 type Modo = 'camera' | 'dataNascimento'
 type StatusCamera = 'carregando' | 'aguardando' | 'processando' | 'sucesso' | 'erro'
@@ -171,15 +172,19 @@ export default function FacialRecognitionPage() {
   const podeCadastrarFace = !!reserva?.id && fluxo !== 'checkout'
 
   return (
-    <div className="flex min-h-[100dvh] w-screen flex-col items-center justify-center bg-[#0c0f0e] p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-6">
-
+    <KioskShell
+      eyebrow="Biometria"
+      title={t.reconhecimentoFacial.titulo}
+      subtitle={modo === 'camera' ? t.reconhecimentoFacial.instrucao : undefined}
+      maxWidth="max-w-sm"
+    >
+      <div className="flex w-full flex-col items-center gap-6">
         {temDataNascimento && (
           <div className="inline-flex gap-1 rounded-2xl border border-white/8 bg-white/[0.04] p-1">
             <button
               onClick={() => trocarModo('camera')}
               className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-                modo === 'camera' ? 'bg-white/15 text-white' : 'text-white/45 hover:text-white/80'
+                modo === 'camera' ? 'bg-[rgba(var(--kiosk-text-rgb),0.14)] text-[var(--kiosk-text)]' : 'text-[color-mix(in_srgb,var(--kiosk-text)_52%,transparent)] hover:text-[var(--kiosk-text)]'
               }`}
             >
               Camera
@@ -187,7 +192,7 @@ export default function FacialRecognitionPage() {
             <button
               onClick={() => trocarModo('dataNascimento')}
               className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-                modo === 'dataNascimento' ? 'bg-white/15 text-white' : 'text-white/45 hover:text-white/80'
+                modo === 'dataNascimento' ? 'bg-[rgba(var(--kiosk-text-rgb),0.14)] text-[var(--kiosk-text)]' : 'text-[color-mix(in_srgb,var(--kiosk-text)_52%,transparent)] hover:text-[var(--kiosk-text)]'
               }`}
             >
               Data nasc.
@@ -197,10 +202,6 @@ export default function FacialRecognitionPage() {
 
         {modo === 'camera' && (
           <div className="flex flex-col items-center gap-5">
-            <h2 className="text-center text-xl font-semibold text-white/90">
-              {t.reconhecimentoFacial.titulo}
-            </h2>
-
             <div className={`relative aspect-square w-full max-w-72 overflow-hidden rounded-[2rem] border-2 ${statusCor[statusCamera]} bg-black/40 transition-colors duration-500`}>
               <video
                 ref={videoRef}
@@ -224,7 +225,7 @@ export default function FacialRecognitionPage() {
               )}
             </div>
 
-            <p className="text-center text-sm leading-relaxed text-white/55">{statusTexto[statusCamera]}</p>
+            <p className="text-center text-sm leading-relaxed text-[color-mix(in_srgb,var(--kiosk-text)_62%,transparent)]">{statusTexto[statusCamera]}</p>
 
             {erroIdentidade && (
               <p className="w-full rounded-xl border border-red-400/20 bg-red-500/8 px-4 py-3 text-sm text-red-200">{erroIdentidade}</p>
@@ -234,13 +235,13 @@ export default function FacialRecognitionPage() {
               <div className="flex w-full max-w-72 flex-col gap-3">
                 <button
                   onClick={capturarEValidar}
-                  className="touch-press w-full rounded-2xl bg-[var(--kiosk-primary,#0f766e)] px-6 py-4 text-lg font-bold text-white"
+                  className="touch-press w-full rounded-2xl bg-[var(--kiosk-primary,#0f766e)] px-6 py-4 text-lg font-bold text-[var(--kiosk-on-primary,#fff)]"
                 >
                   Validar rosto
                 </button>
                 <button
                   onClick={validarManualmente}
-                  className="touch-press w-full rounded-2xl border border-white/12 bg-white/8 px-6 py-4 text-base font-semibold text-white/70"
+                  className="touch-press w-full rounded-2xl border border-[color-mix(in_srgb,var(--kiosk-border)_70%,transparent)] bg-[rgba(var(--kiosk-surface-rgb),0.62)] px-6 py-4 text-base font-semibold text-[color-mix(in_srgb,var(--kiosk-text)_78%,transparent)]"
                 >
                   {t.reconhecimentoFacial.btnManual}
                 </button>
@@ -259,7 +260,7 @@ export default function FacialRecognitionPage() {
 
         {modo === 'dataNascimento' && (
           <div className="flex w-full flex-col gap-5">
-            <h2 className="text-center text-xl font-semibold text-white/90">
+            <h2 className="text-center text-xl font-semibold text-[var(--kiosk-text)]">
               {t.verificacaoIdentidade.labelData}
             </h2>
 
@@ -275,7 +276,7 @@ export default function FacialRecognitionPage() {
                 }}
                 placeholder={t.verificacaoIdentidade.formatoData}
                 maxLength={10}
-                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-4 text-center text-xl tracking-widest text-white outline-none placeholder:text-white/25"
+                className="w-full rounded-xl border border-[color-mix(in_srgb,var(--kiosk-border)_70%,transparent)] bg-[rgba(var(--kiosk-surface-rgb),0.62)] px-4 py-4 text-center text-xl tracking-widest text-[var(--kiosk-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--kiosk-text)_34%,transparent)]"
               />
               {erroData && (
                 <p className="mt-3 text-center text-sm text-red-200/80">{erroData}</p>
@@ -286,13 +287,13 @@ export default function FacialRecognitionPage() {
               <button
                 onClick={confirmarDataNascimento}
                 disabled={confirmandoDob}
-                className="touch-press w-full rounded-2xl bg-[var(--kiosk-primary,#0f766e)] px-6 py-4 text-lg font-bold text-white disabled:opacity-50"
+                className="touch-press w-full rounded-2xl bg-[var(--kiosk-primary,#0f766e)] px-6 py-4 text-lg font-bold text-[var(--kiosk-on-primary,#fff)] disabled:opacity-50"
               >
                 {confirmandoDob ? t.geral.carregando : t.verificacaoIdentidade.btnConfirmar}
               </button>
               <button
                 onClick={() => trocarModo('camera')}
-                className="touch-press w-full rounded-2xl border border-white/12 bg-white/8 px-6 py-4 text-base font-semibold text-white/70"
+                className="touch-press w-full rounded-2xl border border-[color-mix(in_srgb,var(--kiosk-border)_70%,transparent)] bg-[rgba(var(--kiosk-surface-rgb),0.62)] px-6 py-4 text-base font-semibold text-[color-mix(in_srgb,var(--kiosk-text)_78%,transparent)]"
               >
                 {t.geral.btnVoltar}
               </button>
@@ -300,6 +301,6 @@ export default function FacialRecognitionPage() {
           </div>
         )}
       </div>
-    </div>
+    </KioskShell>
   )
 }

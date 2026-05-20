@@ -35,17 +35,17 @@ export function TotemProvider({ children }: { children: ReactNode }) {
 
   const t = traducoes[idioma]
 
-  function salvarConfig(config: TotemConfig | null) {
+  const salvarConfig = useCallback((config: TotemConfig | null) => {
     if (config) localStorage.setItem('totem_config', JSON.stringify(config))
     else localStorage.removeItem('totem_config')
     setTotemConfig(config)
-  }
+  }, [])
 
-  function resetar() {
+  const resetar = useCallback(() => {
     setReserva(null)
     setFluxo(null)
     setIdioma('pt')
-  }
+  }, [])
 
   const sincronizarConfig = useCallback(async (): Promise<TotemConfig | null> => {
     const codigo = totemConfig?.codigo

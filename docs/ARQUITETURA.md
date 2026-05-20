@@ -132,10 +132,12 @@ Modelo funcional:
 - `theme`, `layout` e `blocks` sao JSON persistidos em colunas `TEXT`.
 - O admin cria presets nomeados no Studio — do zero (com base interna padrao) ou duplicando um existente para variacoes; salvar nao aplica automaticamente em nenhum dispositivo.
 - A tela `Totens` permite criar/editar dispositivos e atribuir opcionalmente um preset salvo.
-- A UI do Studio prioriza identidade global (fonte, cores) e conteudo da tela inicial (video/imagem de fundo, carrossel de promocoes/eventos/servicos, velocidade e rodape), evitando que o operador precise manipular blocos estruturais. Cada preset salvo pode ser renomeado inline ou duplicado direto na lista de presets.
+- A UI do Studio prioriza identidade global controlada (fonte, modo claro/escuro e cor de acento) e conteudo da tela inicial (midia unica obrigatoria de fundo, carrossel de promocoes/eventos/servicos, velocidade e rodape), evitando que o operador precise manipular blocos estruturais. Cada preset salvo pode ser renomeado inline ou duplicado direto na lista de presets.
 - O totem recebe no setup o design atribuido ao seu cadastro e renderiza a idle customizada como attract mode com midia de fundo, carrossel central de conteudo e CTAs inferiores.
-- As telas internas do atendimento herdam a identidade do preset atribuido por tema, mas mantem layout fixo para proteger contraste, legibilidade e fluxo operacional.
-- O preview do admin permite navegar por tela inicial, escolha de Check-in/Check-out, busca, confirmacao, biometria, chave e checkout. A tela inicial ja inclui os seletores de idioma integrados, sem etapa separada. As telas de fluxo herdam identidade global e nao sao editaveis individualmente.
+- A midia de fundo da tela inicial aceita imagem JPEG/PNG/WEBP ou video MP4; o Studio substitui os antigos campos separados de video e imagem de fallback por um unico campo "Midia de fundo".
+- As telas internas do atendimento herdam fonte, marca, modo visual e acento do preset atribuido, mas mantem layout e fundo fixos para proteger contraste, legibilidade e fluxo operacional. Midias de fundo da tela inicial nao sao propagadas para essas telas; o runtime usa tokens transacionais neutros por `theme.mode`: light (`#F4EFE6`, `#FFF8EE`, `#211D17`, `#D8CDBB`) ou dark (`#171A1F`, `#232A32`, `#F4EFE6`, `#3A424C`).
+- `primaryColor` permanece livre para aproximar a marca do hotel, mas preview e runtime calculam uma variante acessivel para botoes/estados quando a cor bruta nao atinge contraste minimo. O Studio informa "Ajustada para legibilidade" nesses casos.
+- O preview do admin permite navegar por tela inicial, escolha de Check-in/Check-out, busca, confirmacao, biometria, chave e checkout. A tela inicial ja inclui os seletores de idioma integrados, sem etapa separada. As telas de fluxo herdam identidade global, usam a mesma proporcao portrait 9:16 do runtime e nao sao editaveis individualmente.
 - Se o totem nao tiver preset atribuido, o runtime usa o fluxo visual antigo como fallback.
 
 Endpoints principais:

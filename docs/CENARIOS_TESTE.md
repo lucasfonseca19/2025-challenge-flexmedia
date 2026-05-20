@@ -130,6 +130,10 @@ Observação de ambiente:
 - `http://127.0.0.1:5173` foi incluído nas origens CORS de desenvolvimento e a ativação do totem com `5RIKKD` funcionou nesse host.
 - 2026-05-08: refinamento visual do fluxo do totem validado por build (`frontend-totem` e `frontend-admin`) e inspeção parcial no navegador interno em `/setup` e `/selecionar-idioma`; re-homologação completa do Totem Studio continua pendente porque o backend não estava em execução no momento da validação visual.
 - 2026-05-08: Totem Studio reorganizado para editar identidade global e conteúdo da tela inicial, com navegação de preview por telas internas (`Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave`, `Check-out`) sem edição granular por etapa. Requer re-homologação visual com backend ativo.
+- 2026-05-19: Totem Studio passou a usar mídia única obrigatória para a tela inicial, modo claro/escuro fixo para telas transacionais e acento com ajuste automático de contraste. Builds de `frontend-admin` e `frontend-totem` passaram; re-homologação manual com backend ativo segue pendente para upload real de imagem/vídeo e atribuição de preset a dispositivo.
+- 2026-05-20: paridade da tela `Escolha` validada no Chrome com abas `http://localhost:5174/conteudo` e `http://localhost:5173/`: preview e runtime usam proporção portrait 9:16, mantêm dois cards lado a lado e os títulos `Check in`/`Check out` permanecem em uma linha (`linesApprox=1`). Builds de `frontend-admin` e `frontend-totem` passaram.
+- 2026-05-20: Totem Studio recebeu aviso de largura mínima para viewports abaixo de 1280 px, ocultando o workspace para evitar preview comprimido. Build do `frontend-admin` passou; Chrome em viewport amplo confirmou workspace visível e aviso oculto.
+- 2026-05-20: proporção dos cards da tela `Escolha` corrigida para escalar por largura (`aspect-ratio`), evitando cards altos/estreitos no Studio. Chrome confirmou ratio `1.12` tanto no preview (`148.06 x 132.19`) quanto no runtime (`217.77 x 194.43`), com títulos em uma linha. Builds de `frontend-admin` e `frontend-totem` passaram.
 
 ---
 

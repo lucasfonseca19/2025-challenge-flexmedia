@@ -81,17 +81,20 @@ Comportamento esperado:
 - carregar presets salvos do hotel e permitir selecionar para editar, renomear inline ou duplicar como base para novo design;
 - botão "Novo preset" acima da lista carrega o design base interno e permite criar preset do zero;
 - exigir nome do design ao salvar, como `Design Saguão`;
-- editar estilo global do preset: marca, fonte e cores;
-- editar conteúdo específico da tela inicial: vídeo de fundo, imagem de fallback, escurecimento da mídia, carrossel de promoções/eventos/serviços, velocidade contínua do carrossel, cards recolhíveis/reordenáveis;
+- editar estilo global do preset: marca, fonte, modo claro/escuro e cor de acento;
+- o fundo operacional nao e editavel livremente: o modo claro usa bege claro (`#F4EFE6`) com superficie `#FFF8EE`, e o modo escuro usa carvao (`#171A1F`) com superficie `#232A32`;
+- editar conteúdo específico da tela inicial: campo único "Mídia de fundo" obrigatório (JPEG, PNG, WEBP ou MP4), escurecimento da mídia, carrossel de promoções/eventos/serviços, velocidade contínua do carrossel, cards recolhíveis/reordenáveis;
+- ao escolher uma cor de acento com contraste insuficiente, o Studio preserva a cor como referência de marca e exibe a variante aplicada com o aviso "Ajustada para legibilidade";
 - nos cards do carrossel, editar texto por idioma (`pt`, `en`, `es`); idiomas sem texto aparecem com indicador discreto no editor, e o campo legado `text` continua como fallback técnico;
 - usar imagens/vídeos da biblioteca local de mídia;
-- preview renderiza a tela inicial igual ao attract mode do totem, incluindo vídeo de fundo em loop e fontes dinâmicas;
-- preview permite navegar por `Tela inicial`, `Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`;
+- preview renderiza a tela inicial igual ao attract mode do totem, incluindo mídia de fundo em loop quando for vídeo e fontes dinâmicas;
+- preview permite navegar por `Tela inicial`, `Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`; essas telas devem espelhar o runtime real do totem em frame portrait 9:16, usando mídia da idle somente na tela de escolha e usando fundo transacional fixo por `theme.mode` nas demais etapas;
+- quando a janela tem menos de 1280 px de largura, o Studio oculta os painéis de edição/preview e mostra um aviso de largura mínima para evitar decisões visuais com o preview comprimido;
 - salvar preset. A aplicacao ao dispositivo acontece na tela `Totens`, nao por publicacao global.
 
 `TotemPage` gerencia apenas dispositivos: lista, codigo de ativacao, status online/offline, criacao, edicao de nome e atribuicao opcional de preset visual.
 
-O Studio não expõe customização granular de cada tela transacional do hóspede. O gestor edita identidade global e conteúdo da tela inicial; o totem aplica essa identidade automaticamente ao fluxo interno com layout fixo quando o preset estiver atribuido ao dispositivo, preservando legibilidade e reduzindo atrito operacional. Os blocos continuam existindo no payload técnico, mas a UI do Studio não apresenta mais lista/reordenação de blocos como tarefa principal do operador.
+O Studio não expõe customização granular de cada tela transacional do hóspede. O gestor edita identidade global e conteúdo da tela inicial; o totem aplica essa identidade automaticamente ao fluxo interno com layout fixo quando o preset estiver atribuido ao dispositivo, preservando legibilidade e reduzindo atrito operacional. `backgroundColor` e `surfaceColor` antigos podem existir no JSON para compatibilidade, mas as telas internas ignoram esses valores e usam os tokens fixos do modo claro/escuro. Os blocos continuam existindo no payload técnico, mas a UI do Studio não apresenta mais lista/reordenação de blocos como tarefa principal do operador.
 
 Fontes disponíveis: Satoshi, Outfit, Playfair Display, Cormorant Garamond, DM Sans, Space Grotesk (todas via CDN gratuito).
 

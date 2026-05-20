@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
 import { checkinService, checkoutService } from '../services/api'
-import { KioskButton, KioskInput, KioskShell } from '../components/KioskShell'
+import { KioskBackButton, KioskButton, KioskInput, KioskShell } from '../components/KioskShell'
 
 export default function SearchReservationPage() {
   const navigate = useNavigate()
@@ -59,12 +59,12 @@ export default function SearchReservationPage() {
         </KioskButton>
       </div>
 
-      <button
+      <KioskBackButton
         onClick={() => navigate(-1)}
-        className="mt-8 text-base font-semibold opacity-55 transition-opacity hover:opacity-85 md:text-xl"
+        className="mt-7"
       >
-        {t.geral.btnVoltar}
-      </button>
+        &larr; {t.geral.btnVoltar}
+      </KioskBackButton>
     </KioskShell>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { quartoService, type ValidacaoFaceResponse } from '../services/api'
 import { faceRecognitionService } from '../services/faceRecognitionService'
+import { KioskShell } from '../components/KioskShell'
 
 type Estado = 'camera' | 'processando' | 'resultado'
 
@@ -86,35 +87,37 @@ export default function DoorPage() {
   const acessoPermitido = resultado?.mensagem === 'Acesso liberado'
 
   return (
-    <div className="flex min-h-[100dvh] w-screen flex-col items-center justify-center bg-[#0a0d0c] p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-6">
-
+    <KioskShell
+      eyebrow="Acesso ao quarto"
+      title={`Quarto ${quarto}`}
+      subtitle={estado === 'processando' ? 'Validando identidade...' : 'Posicione o rosto para liberar o acesso'}
+      maxWidth="max-w-sm"
+    >
+      <div className="flex w-full flex-col items-center gap-6">
         {estado === 'resultado' && resultado && (
           <div className={`flex w-full flex-col items-center gap-4 rounded-[2rem] border p-8 text-center ${acessoPermitido ? 'border-green-400/25 bg-green-500/10' : 'border-red-400/25 bg-red-500/10'}`}>
             <span className="text-7xl">{acessoPermitido ? '\u2713' : '\u2717'}</span>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-[var(--kiosk-text)]">
               {acessoPermitido ? 'Acesso liberado' : 'Acesso negado'}
             </p>
             {resultado.hospedeNome && (
-              <p className="text-lg text-white/65">{resultado.hospedeNome}</p>
+              <p className="text-lg text-[color-mix(in_srgb,var(--kiosk-text)_70%,transparent)]">{resultado.hospedeNome}</p>
             )}
-            <p className="text-sm text-white/35">Quarto {quarto}</p>
+            <p className="text-sm text-[color-mix(in_srgb,var(--kiosk-text)_48%,transparent)]">Quarto {quarto}</p>
             {similaridade && similaridade > 0 && (
-              <p className="text-xs text-white/25">
+              <p className="text-xs text-[color-mix(in_srgb,var(--kiosk-text)_38%,transparent)]">
                 {(similaridade * 100).toFixed(0)}%
               </p>
             )}
             {!resultado.sucesso && (
-              <p className="text-sm text-white/55">{resultado.mensagem}</p>
+              <p className="text-sm text-[color-mix(in_srgb,var(--kiosk-text)_62%,transparent)]">{resultado.mensagem}</p>
             )}
-            <p className="mt-2 text-xs text-white/20">Voltando em 6s...</p>
+            <p className="mt-2 text-xs text-[color-mix(in_srgb,var(--kiosk-text)_34%,transparent)]">Voltando em 6s...</p>
           </div>
         )}
 
         {estado !== 'resultado' && (
           <div className="flex flex-col items-center gap-5">
-            <p className="text-lg font-semibold text-white/50">Quarto {quarto}</p>
-
             <div className={`relative aspect-square w-full max-w-72 overflow-hidden rounded-[2rem] border-2 transition-colors duration-300 ${estado === 'processando' ? 'border-yellow-400' : 'border-white/15'}`}>
               <video
                 ref={videoRef}
@@ -133,7 +136,7 @@ export default function DoorPage() {
               )}
             </div>
 
-            <p className="text-center text-sm text-white/45">
+            <p className="text-center text-sm text-[color-mix(in_srgb,var(--kiosk-text)_56%,transparent)]">
               {estado === 'processando' ? 'Validando identidade...' : 'Posicione o rosto para liberar o acesso'}
             </p>
 
@@ -144,7 +147,7 @@ export default function DoorPage() {
             {estado === 'camera' && cameraAtiva && (
               <button
                 onClick={capturarEValidar}
-                className="touch-press w-full max-w-72 rounded-2xl bg-[#0f766e] px-6 py-4 text-lg font-bold text-white"
+                className="touch-press w-full max-w-72 rounded-2xl bg-[var(--kiosk-primary,#0f766e)] px-6 py-4 text-lg font-bold text-[var(--kiosk-on-primary,#fff)]"
               >
                 Capturar
               </button>
@@ -156,6 +159,6 @@ export default function DoorPage() {
           </div>
         )}
       </div>
-    </div>
+    </KioskShell>
   )
 }

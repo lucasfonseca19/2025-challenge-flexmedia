@@ -58,6 +58,7 @@ export interface TotemContentItem {
 export interface TotemTheme {
   brandName: string
   primaryColor: string
+  mode?: 'light' | 'dark'
   backgroundColor: string
   textColor: string
   surfaceColor: string

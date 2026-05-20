@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign } from '../types'
 import { FONTS } from '../constants/fonts'
+import { resolveTotemTheme, type ResolvedTotemTheme } from '../utils/totemTheme'
 
 export type TotemPreviewScreen = 'idle' | 'actions' | 'search' | 'confirm' | 'facial' | 'key' | 'checkout'
 type ContentLanguage = 'pt' | 'en' | 'es'
@@ -15,6 +16,7 @@ interface Props {
 export default function TotemDesignRenderer({ design, scale = 'preview', carouselPaused = false, language = 'pt' }: Props) {
   const font = FONTS.find(f => f.id === design.theme.fontFamily)
   const fontStack = font ? `'${font.id}', system-ui, sans-serif` : 'system-ui, sans-serif'
+  const resolvedTheme = resolveTotemTheme(design.theme)
   const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible)
   const videoBlock = design.blocks.find(block => block.type === 'video' && block.visible && block.videoUrl)
   const carouselBlock = design.blocks.find(block => block.type === 'carousel' && block.visible)
@@ -24,8 +26,8 @@ export default function TotemDesignRenderer({ design, scale = 'preview', carouse
     <div
       className={`relative isolate h-full w-full overflow-hidden text-left ${scale === 'preview' ? 'rounded-[1.75rem]' : ''}`}
       style={{
-        background: design.theme.backgroundColor,
-        color: design.theme.textColor,
+        background: resolvedTheme.backgroundColor,
+        color: resolvedTheme.textColor,
         fontFamily: fontStack,
       }}
     >
@@ -41,7 +43,7 @@ export default function TotemDesignRenderer({ design, scale = 'preview', carouse
         className="absolute inset-0 opacity-[0.14]"
         style={{
           background:
-            `radial-gradient(ellipse at 18% 82%, ${design.theme.primaryColor} 0, transparent 50%), ` +
+            `radial-gradient(ellipse at 18% 82%, ${resolvedTheme.rawPrimaryColor} 0, transparent 50%), ` +
             `linear-gradient(180deg, rgba(255,255,255,0.08), transparent 35%)`,
         }}
       />
@@ -49,8 +51,8 @@ export default function TotemDesignRenderer({ design, scale = 'preview', carouse
       <div className="relative z-10 flex h-full flex-col justify-between p-7">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold opacity-82">
-            <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
-            {design.theme.brandName}
+            <span className="h-2 w-2 rounded-full" style={{ background: resolvedTheme.rawPrimaryColor }} />
+            {resolvedTheme.brandName}
           </div>
         </header>
 
@@ -62,7 +64,7 @@ export default function TotemDesignRenderer({ design, scale = 'preview', carouse
 
         <footer>
           <div className="mb-4 flex justify-center">
-            <div className="animate-pulse rounded-[1.25rem] px-6 py-4 text-sm font-bold text-white" style={{ background: design.theme.primaryColor }}>
+            <div className="animate-pulse rounded-[1.25rem] px-6 py-4 text-sm font-bold" style={{ background: resolvedTheme.primaryColor, color: resolvedTheme.onPrimaryColor }}>
               Toque para começar
             </div>
           </div>
@@ -152,34 +154,84 @@ function ContentCard({ item, language }: { item: TotemContentItem; language: Con
 export function TotemFlowPreview({ design, screen }: { design: TotemDesign; screen: Exclude<TotemPreviewScreen, 'idle'> }) {
   const font = FONTS.find(f => f.id === design.theme.fontFamily)
   const fontStack = font ? `'${font.id}', system-ui, sans-serif` : 'system-ui, sans-serif'
+  const resolvedTheme = resolveTotemTheme(design.theme)
   const spec = FLOW_SPECS[screen]
+  const vars = previewVars(resolvedTheme, fontStack)
+
+  if (screen === 'actions') {
+    return <ActionsFlowPreview design={design} resolvedTheme={resolvedTheme} fontStack={fontStack} fontHref={font?.href} />
+  }
 
   return (
     <div
-      className="relative isolate h-full w-full overflow-hidden rounded-[1.75rem] text-left"
-      style={{
-        background:
-          `linear-gradient(145deg, ${hexToRgba(design.theme.primaryColor, 0.24)}, transparent 34%), ` +
-          `linear-gradient(180deg, rgba(255,255,255,0.05), transparent 42%), ${design.theme.backgroundColor}`,
-        color: design.theme.textColor,
-        fontFamily: fontStack,
-      }}
+      className="kiosk-shell studio-kiosk-shell text-left"
+      style={vars}
     >
       <link rel="stylesheet" href={font?.href} />
-      <div className="relative z-10 flex h-full flex-col p-7">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-semibold opacity-80">
-            <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
-            {design.theme.brandName}
-          </div>
-        </header>
+      <div className="kiosk-shell__scrim" />
+      <header className="kiosk-topbar">
+        <div className="kiosk-brand">
+          <span className="kiosk-brand__mark" />
+          <span>{resolvedTheme.brandName}</span>
+        </div>
+      </header>
 
-        <main className="flex flex-1 flex-col justify-center">
-          {spec.eyebrow && <p className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-55">{spec.eyebrow}</p>}
-          <h2 className="mt-2 max-w-[9ch] text-4xl font-bold leading-none">{spec.title}</h2>
-          {spec.subtitle && <p className="mt-3 text-sm leading-snug opacity-65">{spec.subtitle}</p>}
-          {renderPreviewBody(screen, design)}
-        </main>
+      <main className="kiosk-main max-w-3xl">
+        {spec.eyebrow && <p className="kiosk-eyebrow">{spec.eyebrow}</p>}
+        <h2 className="kiosk-title">{spec.title}</h2>
+        {spec.subtitle && <p className="kiosk-subtitle">{spec.subtitle}</p>}
+        <div className="kiosk-content">{renderPreviewBody(screen, resolvedTheme)}</div>
+      </main>
+    </div>
+  )
+}
+
+function ActionsFlowPreview({ design, resolvedTheme, fontStack, fontHref }: { design: TotemDesign; resolvedTheme: ResolvedTotemTheme; fontStack: string; fontHref?: string }) {
+  const asset = getAttractAsset(design)
+  const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible)
+  const overlayOpacity = Math.min((heroBlock?.overlay ?? 42) + 14, 85)
+
+  return (
+    <div
+      className="relative isolate flex h-full w-full select-none flex-col overflow-hidden rounded-[1.75rem] text-left"
+      style={{ background: resolvedTheme.backgroundColor, color: resolvedTheme.textColor, fontFamily: fontStack }}
+    >
+      <link rel="stylesheet" href={fontHref} />
+      {asset?.type === 'video' && (
+        <video src={asset.url} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
+      )}
+      {asset?.type === 'image' && (
+        <img src={asset.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      {asset && <div className="absolute inset-0" style={{ background: `rgba(0, 0, 0, ${overlayOpacity / 100})` }} />}
+
+      <div className="relative z-10 flex h-full flex-col justify-between p-8">
+        <button type="button" className="totem-back-button self-start">
+          &larr; Voltar
+        </button>
+
+        <div className="totem-choice-stage totem-block-enter">
+          <div className="totem-choice-wrap">
+            <div className="totem-choice-grid">
+              <button type="button" className="totem-choice-card touch-press" style={{ background: resolvedTheme.primaryColor, color: resolvedTheme.onPrimaryColor }}>
+                <span className="totem-choice-card__label">Entrada</span>
+                <span className="totem-choice-card__title">Check in</span>
+              </button>
+              <button
+                type="button"
+                className="totem-choice-card touch-press"
+                style={{
+                  background: hexToRgba(resolvedTheme.surfaceColor, 0.78),
+                  borderColor: hexToRgba(resolvedTheme.borderColor, 0.72),
+                  color: resolvedTheme.textColor,
+                }}
+              >
+                <span className="totem-choice-card__label">Saída</span>
+                <span className="totem-choice-card__title">Check out</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -194,38 +246,17 @@ const FLOW_SPECS: Record<Exclude<TotemPreviewScreen, 'idle'>, { eyebrow: string;
   checkout: { eyebrow: 'Check-out', title: 'Confirmar saída', subtitle: 'Finalize sua estadia com segurança.' },
 }
 
-function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, design: TotemDesign) {
-  if (screen === 'actions') {
-    return (
-      <div className="mt-8 grid grid-cols-2 gap-3">
-        <div className="group relative min-h-36 overflow-hidden rounded-[1.35rem] p-4 text-left text-white shadow-[0_18px_42px_rgba(2,6,23,0.18)]" style={{ background: design.theme.primaryColor }}>
-          <div className="absolute right-4 top-4 h-7 w-7 rounded-full border border-white/22" />
-          <div className="absolute right-6 top-6 h-3 w-3 rounded-full bg-white/82" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-70">Chegada</p>
-          <p className="mt-7 text-2xl font-bold leading-none">Check-in</p>
-          <p className="mt-2 text-xs font-medium leading-snug text-white/68">Entrar na estadia</p>
-        </div>
-        <div className="relative min-h-36 overflow-hidden rounded-[1.35rem] border p-4 text-left shadow-[0_14px_34px_rgba(2,6,23,0.08)]" style={{ background: hexToRgba(design.theme.surfaceColor, 0.82), borderColor: hexToRgba(design.theme.textColor, 0.1) }}>
-          <div className="absolute right-4 top-4 h-7 w-7 rounded-full border" style={{ borderColor: hexToRgba(design.theme.textColor, 0.18) }} />
-          <div className="absolute right-6 top-6 h-3 w-3 rounded-full" style={{ background: hexToRgba(design.theme.textColor, 0.56) }} />
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-55">Saída</p>
-          <p className="mt-7 text-2xl font-bold leading-none">Check-out</p>
-          <p className="mt-2 text-xs font-medium leading-snug opacity-56">Encerrar estadia</p>
-        </div>
-      </div>
-    )
-  }
-
+function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, resolvedTheme: ResolvedTotemTheme) {
   if (screen === 'confirm' || screen === 'checkout') {
     return (
-      <div className="mt-7 rounded-2xl border border-white/12 p-4 text-sm" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
+      <div className="kiosk-panel p-5 text-sm">
         {['Hóspede', 'Quarto', 'Check-in', 'Check-out'].map((label, index) => (
-          <div key={label} className="flex justify-between border-b border-white/10 py-2 last:border-0">
+          <div key={label} className="flex justify-between border-b border-white/10 py-2.5 last:border-0">
             <span className="opacity-60">{label}</span>
             <span className="font-semibold">{index === 1 ? '1208' : index === 0 ? 'Maria Silva' : '24/05/2026'}</span>
           </div>
         ))}
-        <div className="mt-4 rounded-xl px-4 py-4 text-center text-lg font-bold text-white" style={{ background: design.theme.primaryColor }}>
+        <div className="kiosk-button kiosk-button--primary mt-4 flex items-center justify-center">
           {screen === 'checkout' ? 'Confirmar saída' : 'Confirmar'}
         </div>
       </div>
@@ -234,14 +265,14 @@ function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, design: 
 
   if (screen === 'facial') {
     return (
-      <div className="mt-7 flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4">
         <div className="aspect-square w-48 rounded-[2rem] border-2 border-blue-400/60 bg-black/30">
           <div className="flex h-full w-full items-center justify-center">
             <span className="h-10 w-10 rounded-full border-2 border-white/10 bg-white/[0.04]" />
           </div>
         </div>
-        <p className="text-xs text-white/35">Posicione o rosto para validar sua identidade</p>
-        <div className="w-48 rounded-xl px-4 py-3.5 text-center text-sm font-bold text-white" style={{ background: design.theme.primaryColor }}>
+        <p className="text-xs opacity-50">Posicione o rosto para validar sua identidade</p>
+        <div className="kiosk-button kiosk-button--primary flex w-48 items-center justify-center">
           Validar rosto
         </div>
       </div>
@@ -250,11 +281,11 @@ function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, design: 
 
   if (screen === 'key') {
     return (
-      <div className="mt-7 grid grid-cols-[0.8fr_1fr] gap-4">
+      <div className="grid grid-cols-[0.8fr_1fr] gap-4">
         <div className="aspect-square rounded-2xl bg-white p-3">
           <div className="h-full w-full rounded-xl bg-slate-950" />
         </div>
-        <div className="rounded-2xl border border-white/12 p-4 text-sm" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
+        <div className="kiosk-panel p-4 text-sm">
           <p className="font-bold opacity-60">Token</p>
           <p className="mt-3 font-mono text-lg font-bold">A91F-28CB</p>
         </div>
@@ -263,15 +294,44 @@ function renderPreviewBody(screen: Exclude<TotemPreviewScreen, 'idle'>, design: 
   }
 
   return (
-    <div className="mt-7 rounded-2xl border border-white/12 p-4" style={{ background: hexToRgba(design.theme.surfaceColor, 0.72) }}>
-      <div className="rounded-xl border border-white/12 bg-black/10 px-4 py-4 text-xl font-semibold opacity-55">
-        RES-001
+    <div className="flex w-full flex-col gap-5">
+      <div className="kiosk-input opacity-55">
+        Digite seu código ou CPF
       </div>
-      <div className="mt-4 rounded-xl px-4 py-4 text-center text-lg font-bold text-white" style={{ background: design.theme.primaryColor }}>
+      <div className="kiosk-button kiosk-button--primary flex items-center justify-center" style={{ background: resolvedTheme.primaryColor, color: resolvedTheme.onPrimaryColor }}>
         Buscar
       </div>
+      <button type="button" className="totem-back-button mt-2 self-start">
+        &larr; Voltar
+      </button>
     </div>
   )
+}
+
+function getAttractAsset(design: TotemDesign): { type: 'video' | 'image'; url: string } | null {
+  const videoBlock = design.blocks.find(block => block.type === 'video' && block.visible && block.videoUrl)
+  if (videoBlock?.videoUrl) return { type: 'video', url: videoBlock.videoUrl }
+  const heroBlock = design.blocks.find(block => block.type === 'hero' && block.visible && block.imageUrl)
+  if (heroBlock?.imageUrl) return { type: 'image', url: heroBlock.imageUrl }
+  return null
+}
+
+function previewVars(theme: ResolvedTotemTheme, fontStack: string): CSSProperties {
+  return {
+    '--kiosk-primary': theme.primaryColor,
+    '--kiosk-primary-rgb': theme.primaryRgb,
+    '--kiosk-primary-raw': theme.rawPrimaryColor,
+    '--kiosk-primary-raw-rgb': theme.rawPrimaryRgb,
+    '--kiosk-on-primary': theme.onPrimaryColor,
+    '--kiosk-bg': theme.backgroundColor,
+    '--kiosk-text': theme.textColor,
+    '--kiosk-text-rgb': theme.textRgb,
+    '--kiosk-surface': theme.surfaceColor,
+    '--kiosk-surface-rgb': theme.surfaceRgb,
+    '--kiosk-border': theme.borderColor,
+    color: theme.textColor,
+    fontFamily: fontStack,
+  } as CSSProperties
 }
 
 function hexToRgba(hex: string, alpha: number): string {

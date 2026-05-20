@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
 import type { Idioma, TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign } from '../types'
 import { useFontLoader, getFontStack } from '../hooks/useFontLoader'
+import { getTransactionalTokens, resolveTotemTheme, type ResolvedTotemTheme } from '../utils/totemTheme'
 
 type IdleAsset = {
   type: 'video' | 'image'
@@ -57,7 +58,7 @@ export default function IdlePage() {
   if (ready) {
     return step === 'attract'
       ? <AttractFallback totemConfig={totemConfig} conteudo={conteudo} idioma={idioma} t={t} onLanguage={handleLanguage} onActivate={() => setStep('actions')} />
-      : <ActionsFallback totemConfig={totemConfig} t={t} onNavigate={handleNavigate} onBack={() => setStep('attract')} />
+      : <ActionsFallback t={t} onNavigate={handleNavigate} onBack={() => setStep('attract')} />
   }
 
   return <div className="min-h-[100dvh] w-screen bg-[#101513]" />
@@ -68,14 +69,18 @@ function RuntimeScreenFrame({ design, children }: {
   children: ReactNode
 }) {
   const portrait = design.layout.screen !== 'landscape'
+  const tokens = getTransactionalTokens(design.theme.mode)
   const stageStyle = portrait
-    ? { aspectRatio: '9 / 16', height: 'min(100dvh, 177.7778vw)' }
+    ? {
+        aspectRatio: '9 / 16',
+        height: 'min(100dvh, 177.7778vw)',
+      }
     : { aspectRatio: '16 / 9', width: 'min(100vw, 177.7778dvh)' }
 
   return (
     <div
       className="flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden"
-      style={{ background: design.theme.backgroundColor }}
+      style={{ background: tokens.backgroundColor }}
     >
       <div className="max-h-[100dvh] max-w-[100vw] overflow-hidden" style={stageStyle}>
         {children}
@@ -92,7 +97,8 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
   onActivate: () => void
 }) {
   const asset = getAttractAsset(design)
-  const fontStack = getFontStack(design.theme.fontFamily)
+  const resolvedTheme = resolveTotemTheme(design.theme)
+  const fontStack = getFontStack(resolvedTheme.fontFamily)
   const heroBlock = design.blocks.find(b => b.type === 'hero' && b.visible)
   const hasLanguage = design.blocks.some(b => b.type === 'language' && b.visible)
   const carouselBlock = design.blocks.find(b => b.type === 'carousel' && b.visible)
@@ -102,7 +108,7 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
   return (
     <div
       className="relative isolate flex h-full w-full select-none flex-col overflow-hidden"
-      style={{ background: design.theme.backgroundColor, color: design.theme.textColor, fontFamily: fontStack }}
+      style={idleThemeVars(resolvedTheme, fontStack)}
     >
       {asset?.type === 'video' && (
         <video src={asset.url} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
@@ -111,22 +117,24 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
         <img src={asset.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
       )}
 
-      <div className="absolute inset-0" style={{ background: `rgba(0, 0, 0, ${overlayOpacity / 100})` }} />
+      {asset && <div className="absolute inset-0" style={{ background: `rgba(0, 0, 0, ${overlayOpacity / 100})` }} />}
 
-      <div
-        className="absolute inset-0 -z-10 opacity-[0.12]"
-        style={{
-          background:
-            `radial-gradient(ellipse at 20% 80%, ${design.theme.primaryColor} 0, transparent 50%), ` +
-            `radial-gradient(ellipse at 80% 20%, ${design.theme.surfaceColor} 0, transparent 45%)`,
-        }}
-      />
+      {asset && (
+        <div
+          className="absolute inset-0 -z-10 opacity-[0.12]"
+          style={{
+            background:
+              `radial-gradient(ellipse at 20% 80%, ${resolvedTheme.rawPrimaryColor} 0, transparent 50%), ` +
+              `radial-gradient(ellipse at 80% 20%, ${resolvedTheme.surfaceColor} 0, transparent 45%)`,
+          }}
+        />
+      )}
 
       <div className="relative z-10 flex h-full flex-col justify-between p-7">
         <header className="flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2 text-sm font-semibold opacity-82">
-            <span className="h-2 w-2 rounded-full" style={{ background: design.theme.primaryColor }} />
-            {design.theme.brandName}
+            <span className="h-2 w-2 rounded-full" style={{ background: resolvedTheme.rawPrimaryColor }} />
+            {resolvedTheme.brandName}
           </div>
         </header>
 
@@ -140,22 +148,22 @@ function AttractDesign({ design, idioma, t, onLanguage, onActivate }: {
           )}
         </main>
 
-        <div className="totem-block-enter" style={{ animationDelay: '0.2s' }}>
+        <div className="totem-idle-controls totem-block-enter" style={{ animationDelay: '0.2s' }}>
           <button
             onClick={onActivate}
-            className="touch-press animate-breathe mx-auto mb-4 block rounded-[1.25rem] px-6 py-4 text-sm font-bold"
-            style={{ background: design.theme.primaryColor, color: '#ffffff' }}
+            className="totem-idle-start touch-press animate-breathe"
+            style={{ background: resolvedTheme.primaryColor, color: resolvedTheme.onPrimaryColor }}
           >
             {t.telaInicial.toqueComecar}
           </button>
 
           {hasLanguage ? (
-            <div className="flex justify-center gap-2">
+            <div className="totem-idle-languages">
               {IDIOMAS.map(lang => (
                 <button
                   key={lang}
                   onClick={() => onLanguage(lang)}
-                  className={`touch-press rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase text-white/85 backdrop-blur-md transition-all ${
+                  className={`totem-idle-language touch-press ${
                     idioma === lang ? 'border-white/40 bg-white/25 shadow-[0_0_24px_rgba(255,255,255,0.12)]' : 'border-white/12 bg-white/10'
                   }`}
                 >
@@ -247,14 +255,15 @@ function ActionsDesign({ design, t, onNavigate, onBack }: {
   onBack: () => void
 }) {
   const asset = getAttractAsset(design)
-  const fontStack = getFontStack(design.theme.fontFamily)
+  const resolvedTheme = resolveTotemTheme(design.theme)
+  const fontStack = getFontStack(resolvedTheme.fontFamily)
   const heroBlock = design.blocks.find(b => b.type === 'hero' && b.visible)
   const overlayOpacity = heroBlock?.overlay ?? 42
 
   return (
     <div
       className="relative isolate flex h-full w-full select-none flex-col overflow-hidden"
-      style={{ background: design.theme.backgroundColor, color: design.theme.textColor, fontFamily: fontStack }}
+      style={idleThemeVars(resolvedTheme, fontStack)}
     >
       {asset?.type === 'video' && (
         <video src={asset.url} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
@@ -263,49 +272,40 @@ function ActionsDesign({ design, t, onNavigate, onBack }: {
         <img src={asset.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
       )}
 
-      <div className="absolute inset-0" style={{ background: `rgba(0, 0, 0, ${Math.min(overlayOpacity + 14, 85) / 100})` }} />
+      {asset && <div className="absolute inset-0" style={{ background: `rgba(0, 0, 0, ${Math.min(overlayOpacity + 14, 85) / 100})` }} />}
 
       <div className="relative z-10 flex h-full flex-col justify-between p-8 lg:p-14">
         <button
           onClick={onBack}
-          className="self-start touch-press rounded-full border border-white/15 bg-white/10 px-5 py-3 text-base font-semibold text-white/86 backdrop-blur-md transition-colors hover:bg-white/18"
+          className="totem-back-button self-start"
         >
           &larr; {t.geral.btnVoltar}
         </button>
 
-        <div className="totem-block-enter flex flex-1 flex-col items-center justify-center gap-10">
-          <div className="max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/50">{design.theme.brandName}</p>
-            <h1 className="mt-4 text-5xl font-bold leading-[0.95] text-white lg:text-7xl">{t.telaInicial.tituloEscolha}</h1>
-          </div>
-
-          <div className="grid w-full max-w-4xl grid-cols-2 gap-5 lg:gap-7">
+        <div className="totem-choice-stage totem-block-enter">
+          <div className="totem-choice-wrap">
+            <div className="totem-choice-grid">
             <button
               onClick={() => onNavigate('checkin')}
-              className="touch-press relative min-h-64 overflow-hidden rounded-[1.75rem] px-8 py-9 text-left shadow-[0_28px_80px_rgba(0,0,0,0.24)]"
-              style={{ background: design.theme.primaryColor, color: '#ffffff' }}
+              className="totem-choice-card touch-press"
+              style={{ background: resolvedTheme.primaryColor, color: resolvedTheme.onPrimaryColor }}
             >
-              <span className="absolute right-8 top-8 h-14 w-14 rounded-full border border-white/22" />
-              <span className="absolute right-12 top-12 h-6 w-6 rounded-full bg-white/85" />
-              <span className="text-sm font-bold uppercase tracking-[0.16em] opacity-72">{t.telaInicial.entradaLabel}</span>
-              <span className="mt-20 block text-5xl font-bold leading-none lg:text-6xl">{t.telaInicial.checkinTitulo}</span>
-              <span className="mt-5 block text-xl font-medium leading-snug text-white/72">{t.telaInicial.checkinDescricao}</span>
+              <span className="totem-choice-card__label">{t.telaInicial.entradaLabel}</span>
+              <span className="totem-choice-card__title">{formatChoiceTitle(t.telaInicial.checkinTitulo)}</span>
             </button>
             <button
               onClick={() => onNavigate('checkout')}
-              className="touch-press relative min-h-64 overflow-hidden rounded-[1.75rem] border px-8 py-9 text-left shadow-[0_22px_60px_rgba(0,0,0,0.16)]"
+              className="totem-choice-card touch-press"
               style={{
-                background: hexToRgba(design.theme.surfaceColor, 0.78),
-                borderColor: hexToRgba(design.theme.textColor, 0.12),
-                color: '#ffffff',
+                background: hexToRgba(resolvedTheme.surfaceColor, 0.78),
+                borderColor: hexToRgba(resolvedTheme.borderColor, 0.72),
+                color: resolvedTheme.textColor,
               }}
             >
-              <span className="absolute right-8 top-8 h-14 w-14 rounded-full border border-white/18" />
-              <span className="absolute right-12 top-12 h-6 w-6 rounded-full bg-white/56" />
-              <span className="text-sm font-bold uppercase tracking-[0.16em] opacity-62">{t.telaInicial.saidaLabel}</span>
-              <span className="mt-20 block text-5xl font-bold leading-none lg:text-6xl">{t.telaInicial.checkoutTitulo}</span>
-              <span className="mt-5 block text-xl font-medium leading-snug text-white/58">{t.telaInicial.checkoutDescricao}</span>
-</button>
+              <span className="totem-choice-card__label">{t.telaInicial.saidaLabel}</span>
+              <span className="totem-choice-card__title">{formatChoiceTitle(t.telaInicial.checkoutTitulo)}</span>
+            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -340,22 +340,22 @@ function AttractFallback({ totemConfig, conteudo, idioma, t, onLanguage, onActiv
           </p>
         </div>
 
-        <div className="flex flex-col items-center gap-6 totem-block-enter" style={{ animationDelay: '0.2s' }}>
+        <div className="totem-idle-controls flex flex-col items-center gap-6 totem-block-enter" style={{ animationDelay: '0.2s' }}>
           <div className="h-1 w-24 animate-breathe rounded-full bg-[#d7fbe8]" />
 
           <button
             onClick={onActivate}
-            className="touch-press animate-breathe rounded-[1.75rem] bg-[#0f766e] px-10 py-5 text-2xl font-semibold text-white"
+            className="totem-idle-start touch-press animate-breathe bg-[#0f766e] text-white"
           >
             {t.telaInicial.toqueComecar}
           </button>
 
-          <div className="mt-6 flex gap-3 text-base lg:text-xl">
+          <div className="totem-idle-languages mt-2">
             {IDIOMAS.map(lang => (
               <button
                 key={lang}
                 onClick={() => onLanguage(lang)}
-                className={`touch-press rounded-2xl px-5 py-3 font-semibold backdrop-blur-md transition-all ${
+                className={`totem-idle-language touch-press ${
                   idioma === lang ? 'bg-white/30 shadow-[0_0_24px_rgba(255,255,255,0.12)]' : 'bg-white/10'
                 }`}
               >
@@ -388,8 +388,7 @@ function AttractFallback({ totemConfig, conteudo, idioma, t, onLanguage, onActiv
   )
 }
 
-function ActionsFallback({ totemConfig, t, onNavigate, onBack }: {
-  totemConfig: any
+function ActionsFallback({ t, onNavigate, onBack }: {
   t: Record<string, any>
   onNavigate: (fluxo: 'checkin' | 'checkout') => void
   onBack: () => void
@@ -404,40 +403,29 @@ function ActionsFallback({ totemConfig, t, onNavigate, onBack }: {
       <div className="relative z-10 flex min-h-[100dvh] flex-col justify-between p-8 lg:p-14">
         <button
           onClick={onBack}
-          className="self-start touch-press rounded-full border border-white/15 bg-white/10 px-5 py-3 text-base font-semibold text-white/86 backdrop-blur-md transition-colors hover:bg-white/18"
+          className="totem-back-button self-start"
         >
           &larr; {t.geral.btnVoltar}
         </button>
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-10">
-          <div className="max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/50">
-              {totemConfig?.config?.nomeExibido ?? 'CheckIn Hub'}
-            </p>
-            <h1 className="mt-4 text-5xl font-bold leading-[0.95] text-white lg:text-7xl">{t.telaInicial.tituloEscolha}</h1>
-          </div>
-
-          <div className="grid w-full max-w-4xl grid-cols-2 gap-5 lg:gap-7">
+        <div className="totem-choice-stage">
+          <div className="totem-choice-wrap">
+            <div className="totem-choice-grid">
             <button
               onClick={() => onNavigate('checkin')}
-              className="touch-press relative min-h-64 overflow-hidden rounded-[1.75rem] bg-[#0f766e] px-8 py-9 text-left shadow-[0_28px_80px_rgba(0,0,0,0.24)]"
+              className="totem-choice-card touch-press bg-[#0f766e]"
             >
-              <span className="absolute right-8 top-8 h-14 w-14 rounded-full border border-white/22" />
-              <span className="absolute right-12 top-12 h-6 w-6 rounded-full bg-white/85" />
-              <span className="text-sm font-bold uppercase tracking-[0.16em] opacity-72">{t.telaInicial.entradaLabel}</span>
-              <span className="mt-20 block text-5xl font-bold leading-none lg:text-6xl">{t.telaInicial.checkinTitulo}</span>
-              <span className="mt-5 block text-xl font-medium leading-snug text-white/72">{t.telaInicial.checkinDescricao}</span>
+              <span className="totem-choice-card__label">{t.telaInicial.entradaLabel}</span>
+              <span className="totem-choice-card__title">{formatChoiceTitle(t.telaInicial.checkinTitulo)}</span>
             </button>
             <button
               onClick={() => onNavigate('checkout')}
-              className="touch-press relative min-h-64 overflow-hidden rounded-[1.75rem] border border-white/15 bg-white/8 px-8 py-9 text-left shadow-[0_22px_60px_rgba(0,0,0,0.16)]"
+              className="totem-choice-card touch-press border border-white/15 bg-white/8"
             >
-              <span className="absolute right-8 top-8 h-14 w-14 rounded-full border border-white/18" />
-              <span className="absolute right-12 top-12 h-6 w-6 rounded-full bg-white/56" />
-              <span className="text-sm font-bold uppercase tracking-[0.16em] opacity-62">{t.telaInicial.saidaLabel}</span>
-              <span className="mt-20 block text-5xl font-bold leading-none lg:text-6xl">{t.telaInicial.checkoutTitulo}</span>
-              <span className="mt-5 block text-xl font-medium leading-snug text-white/58">{t.telaInicial.checkoutDescricao}</span>
-</button>
+              <span className="totem-choice-card__label">{t.telaInicial.saidaLabel}</span>
+              <span className="totem-choice-card__title">{formatChoiceTitle(t.telaInicial.checkoutTitulo)}</span>
+            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -455,6 +443,25 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
+function idleThemeVars(theme: ResolvedTotemTheme, fontStack: string): CSSProperties {
+  return {
+    '--kiosk-primary': theme.primaryColor,
+    '--kiosk-primary-rgb': theme.primaryRgb,
+    '--kiosk-primary-raw': theme.rawPrimaryColor,
+    '--kiosk-primary-raw-rgb': theme.rawPrimaryRgb,
+    '--kiosk-on-primary': theme.onPrimaryColor,
+    '--kiosk-bg': theme.backgroundColor,
+    '--kiosk-text': theme.textColor,
+    '--kiosk-text-rgb': theme.textRgb,
+    '--kiosk-surface': theme.surfaceColor,
+    '--kiosk-surface-rgb': theme.surfaceRgb,
+    '--kiosk-border': theme.borderColor,
+    background: theme.backgroundColor,
+    color: theme.textColor,
+    fontFamily: fontStack,
+  } as CSSProperties
+}
+
 function getVisibleContentItems(block: TotemBlock | undefined, idioma: Idioma): TotemContentItem[] {
   return Array.isArray(block?.contentItems)
     ? block.contentItems.filter(item => getLocalizedContentText(item, idioma).trim().length > 0)
@@ -463,6 +470,10 @@ function getVisibleContentItems(block: TotemBlock | undefined, idioma: Idioma): 
 
 function getLocalizedContentText(item: TotemContentItem, idioma: Idioma): string {
   return item.texts?.[idioma]?.trim() || item.text?.trim() || item.texts?.pt?.trim() || ''
+}
+
+function formatChoiceTitle(title: string): string {
+  return title.replace(/-/g, ' ')
 }
 
 function getCarouselDuration(speed?: TotemCarouselSpeed): number {

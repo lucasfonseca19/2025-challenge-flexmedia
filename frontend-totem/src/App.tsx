@@ -29,11 +29,13 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
-    if (!totemConfig?.id) return
+    const totemId = totemConfig?.id
+    if (totemId === undefined) return
+    const activeTotemId: number = totemId
 
     async function sendHeartbeat() {
       try {
-        await totemConfigService.heartbeat(totemConfig.id)
+        await totemConfigService.heartbeat(activeTotemId)
       } catch {
         setTotemConfig(null)
       }

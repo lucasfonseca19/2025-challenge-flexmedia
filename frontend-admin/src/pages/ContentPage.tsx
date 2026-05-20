@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext'
 import { FONTS } from '../constants/fonts'
 import type { TotemBlock, TotemCarouselSpeed, TotemContentItem, TotemDesign, TotemMediaAsset } from '../types'
 import TotemDesignRenderer, { TotemFlowPreview, type TotemPreviewScreen } from '../components/TotemDesignRenderer'
+import { hasAttractMedia, resolveThemeForSave, resolveTotemTheme } from '../utils/totemTheme'
 
 const PREVIEW_SCREENS: Array<{ id: TotemPreviewScreen; label: string; kind: 'idle' | 'flow' }> = [
   { id: 'idle', label: 'Tela inicial', kind: 'idle' },
@@ -44,9 +45,10 @@ const EMPTY_DESIGN: TotemDesign = {
   theme: {
     brandName: 'CheckIn Hub',
     primaryColor: '#0f766e',
-    backgroundColor: '#101513',
-    textColor: '#f7fbf8',
-    surfaceColor: '#18211d',
+    mode: 'dark',
+    backgroundColor: '#171A1F',
+    textColor: '#F4EFE6',
+    surfaceColor: '#232A32',
     fontFamily: 'Satoshi',
   },
   layout: {
@@ -56,7 +58,7 @@ const EMPTY_DESIGN: TotemDesign = {
   },
   blocks: [
     { id: 'hero', type: 'hero', visible: true, title: 'Bem-vindo', subtitle: 'Toque para começar', alignment: 'left', variant: 'attract', overlay: 42 },
-    { id: 'background-video', type: 'video', visible: true, title: 'Vídeo de fundo', variant: 'background' },
+    { id: 'background-video', type: 'video', visible: true, title: 'Mídia de fundo', variant: 'background' },
     { id: 'hotel-content', type: 'carousel', visible: true, title: 'Conteúdos do hotel', speed: 50, contentItems: [] },
     { id: 'actions', type: 'cta', visible: true, title: 'Atendimento', subtitle: 'Check-in e check-out', variant: 'dual' },
     { id: 'language', type: 'language', visible: true, title: 'Idiomas' },
@@ -87,6 +89,7 @@ export default function ContentPage() {
 
   const heroBlock = getBlock(design, 'hero')
   const videoBlock = getBlock(design, 'video')
+  const attractMedia = getAttractMedia(heroBlock, videoBlock)
   const carouselBlock = getBlock(design, 'carousel')
   const screenIndex = PREVIEW_SCREENS.findIndex(screen => screen.id === previewScreen)
   const currentScreen = PREVIEW_SCREENS[screenIndex] ?? PREVIEW_SCREENS[0]
@@ -107,9 +110,10 @@ export default function ContentPage() {
         totemDesignService.listar(hotelId),
         totemMediaService.listar(hotelId),
       ])
-      setPresets(savedPresets)
+      const normalizedPresets = savedPresets.map(normalizeDesign)
+      setPresets(normalizedPresets)
       setIsNewPreset(false)
-      const firstPreset = savedPresets[0]
+      const firstPreset = normalizedPresets[0]
       setSelectedPresetId(firstPreset?.id ?? null)
       setDesignName(firstPreset?.nome ?? '')
       setDesign(firstPreset ? normalizeDesign(firstPreset) : EMPTY_DESIGN)
@@ -140,8 +144,17 @@ export default function ContentPage() {
     setSaving(true)
     setError(null)
     try {
-      const saved = await totemDesignService.salvar(hotelId, {
+      const designToSave = normalizeDesign({
         ...nextDesign,
+        theme: resolveThemeForSave(nextDesign.theme),
+      })
+      if (!hasAttractMedia(designToSave.blocks)) {
+        setError('Adicione uma mídia de fundo para a Tela Inicial antes de salvar.')
+        return
+      }
+
+      const saved = await totemDesignService.salvar(hotelId, {
+        ...designToSave,
         id: selectedPresetId ?? undefined,
         nome: designName.trim(),
       })
@@ -149,8 +162,9 @@ export default function ContentPage() {
       setDesignName(saved.nome ?? designName.trim())
       setSelectedPresetId(saved.id ?? null)
       setIsNewPreset(false)
+      const normalizedSaved = normalizeDesign(saved)
       setPresets(current => [
-        saved,
+        normalizedSaved,
         ...current.filter(preset => preset.id !== saved.id),
       ])
       setMessage('Design salvo.')
@@ -161,16 +175,21 @@ export default function ContentPage() {
     }
   }
 
-  async function uploadForBlock(file: File | undefined, blockType: TotemBlock['type'], kind: 'image' | 'video') {
+  async function uploadAttractMedia(file: File | undefined) {
     if (!file) return
     setUploading(true)
     setError(null)
     try {
       const asset = await totemMediaService.upload(hotelId, file)
-      const block = getBlock(design, blockType)
-      const previousUrl = kind === 'image' ? block?.imageUrl : block?.videoUrl
-      setMidias(current => [asset, ...current.filter(item => item.publicUrl !== previousUrl)])
-      upsertBlock(blockType, kind === 'image' ? { imageUrl: asset.publicUrl, visible: true } : { videoUrl: asset.publicUrl, visible: true })
+      const previousUrls = [getBlock(design, 'hero')?.imageUrl, getBlock(design, 'video')?.videoUrl].filter(Boolean)
+      setMidias(current => [asset, ...current.filter(item => item.publicUrl !== asset.publicUrl && !previousUrls.includes(item.publicUrl))])
+      if (asset.mimeType.startsWith('video/')) {
+        upsertBlock('video', { videoUrl: asset.publicUrl, visible: true, title: 'Mídia de fundo' })
+        upsertBlock('hero', { imageUrl: undefined, visible: true })
+      } else {
+        upsertBlock('hero', { imageUrl: asset.publicUrl, visible: true })
+        upsertBlock('video', { videoUrl: undefined, visible: true, title: 'Mídia de fundo' })
+      }
       setMessage('Mídia atualizada.')
     } catch {
       setError('Arquivo inválido ou acima do limite permitido.')
@@ -242,12 +261,13 @@ export default function ContentPage() {
     setSaving(true)
     setError(null)
     try {
+      const normalizedPreset = normalizeDesign(preset)
       const saved = await totemDesignService.salvar(hotelId, {
-        ...preset,
+        ...normalizedPreset,
         id: preset.id,
         nome: newName.trim(),
       })
-      setPresets(current => current.map(p => p.id === saved.id ? saved : p))
+      setPresets(current => current.map(p => p.id === saved.id ? normalizeDesign(saved) : p))
       if (selectedPresetId === saved.id) {
         setDesignName(saved.nome ?? '')
       }
@@ -372,10 +392,20 @@ export default function ContentPage() {
           </div>
         )}
 
+        <div className="studio-width-warning">
+          <div className="studio-width-warning__icon" aria-hidden="true">
+            <span />
+          </div>
+          <h2>Amplie a janela para usar o Totem Studio</h2>
+          <p>
+            O editor precisa de pelo menos 1280 px de largura para exibir painéis e preview com a proporção correta do totem.
+          </p>
+        </div>
+
         {loading ? (
           <LoadingStudio />
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[360px_minmax(420px,1fr)_360px]">
+          <div className="studio-workspace grid gap-5 xl:grid-cols-[360px_minmax(420px,1fr)_360px]">
             <aside className="rounded-[1.5rem] border border-white/10 bg-[#151d19] p-4 shadow-[0_20px_70px_-45px_rgba(0,0,0,0.85)]">
               <GlobalDesignPanel
                 design={design}
@@ -464,7 +494,7 @@ export default function ContentPage() {
               <ScreenContentPanel
                 screen={currentScreen}
                 heroBlock={heroBlock}
-                videoBlock={videoBlock}
+                attractMedia={attractMedia}
                 carouselBlock={carouselBlock}
                 midias={midias}
                 uploading={uploading}
@@ -476,10 +506,11 @@ export default function ContentPage() {
                 onMoveContentItem={moveContentItem}
                 onReorderContentItems={reorderContentItems}
                 onUploadContentMedia={uploadForContentItem}
-                onUploadImage={file => uploadForBlock(file, 'hero', 'image')}
-                onUploadVideo={file => uploadForBlock(file, 'video', 'video')}
-                onClearImage={() => upsertBlock('hero', { imageUrl: undefined })}
-                onClearVideo={() => upsertBlock('video', { videoUrl: undefined })}
+                onUploadAttractMedia={uploadAttractMedia}
+                onClearAttractMedia={() => {
+                  upsertBlock('hero', { imageUrl: undefined })
+                  upsertBlock('video', { videoUrl: undefined })
+                }}
               />
             </aside>
           </div>
@@ -516,6 +547,7 @@ function GlobalDesignPanel({
 }) {
   const [renamingId, setRenamingId] = useState<number | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const resolvedTheme = resolveTotemTheme(design.theme)
 
   function startRenaming(preset: TotemDesign) {
     setRenamingId(preset.id ?? null)
@@ -614,16 +646,10 @@ function GlobalDesignPanel({
       </div>
 
       <div className="mt-6 border-t border-white/10 pt-5">
-        <PanelTitle icon={<Palette size={19} />} title="Marca e tokens" />
+        <PanelTitle icon={<Palette size={19} />} title="Marca e aparência" />
         <Field label="Nome exibido">
           <input value={design.theme.brandName} onChange={event => onThemeChange('brandName', event.target.value)} className="studio-input" />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <ColorField label="Acento" value={design.theme.primaryColor} onChange={value => onThemeChange('primaryColor', value)} />
-          <ColorField label="Fundo" value={design.theme.backgroundColor} onChange={value => onThemeChange('backgroundColor', value)} />
-          <ColorField label="Texto" value={design.theme.textColor} onChange={value => onThemeChange('textColor', value)} />
-          <ColorField label="Superfície" value={design.theme.surfaceColor} onChange={value => onThemeChange('surfaceColor', value)} />
-        </div>
         <Field label="Fonte">
           <select value={design.theme.fontFamily} onChange={event => onThemeChange('fontFamily', event.target.value)} className="studio-input">
             {FONTS.map(font => (
@@ -633,6 +659,39 @@ function GlobalDesignPanel({
             ))}
           </select>
         </Field>
+        <Field label="Modo do fundo operacional">
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+            {(['light', 'dark'] as const).map(mode => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onThemeChange('mode', mode)}
+                className={`h-10 rounded-lg text-xs font-bold transition-colors ${
+                  (design.theme.mode ?? 'dark') === mode
+                    ? 'bg-[#d7fbe8] text-[#10201d]'
+                    : 'text-[#d8fff4] hover:bg-white/8'
+                }`}
+              >
+                {mode === 'light' ? 'Claro' : 'Escuro'}
+              </button>
+            ))}
+          </div>
+        </Field>
+        <ColorField label="Cor de acento" value={design.theme.primaryColor} onChange={value => onThemeChange('primaryColor', value)} />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-white">Acento aplicado</p>
+              <p className="mt-1 text-xs leading-5 text-[#9eb2aa]">
+                {resolvedTheme.primaryAdjusted ? 'Ajustada para legibilidade' : 'Usando a cor original'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-8 w-8 rounded-full border border-white/15" style={{ background: resolvedTheme.rawPrimaryColor }} title="Cor original" />
+              <span className="h-8 w-8 rounded-full border border-white/15" style={{ background: resolvedTheme.primaryColor }} title="Cor acessível" />
+            </div>
+          </div>
+        </div>
       </div>
     </>
   )
@@ -641,7 +700,7 @@ function GlobalDesignPanel({
 function ScreenContentPanel({
   screen,
   heroBlock,
-  videoBlock,
+  attractMedia,
   carouselBlock,
   midias,
   uploading,
@@ -653,14 +712,12 @@ function ScreenContentPanel({
   onMoveContentItem,
   onReorderContentItems,
   onUploadContentMedia,
-  onUploadImage,
-  onUploadVideo,
-  onClearImage,
-  onClearVideo,
+  onUploadAttractMedia,
+  onClearAttractMedia,
 }: {
   screen: { id: TotemPreviewScreen; label: string; kind: 'idle' | 'flow' }
   heroBlock?: TotemBlock
-  videoBlock?: TotemBlock
+  attractMedia: { type: 'image' | 'video'; url: string } | null
   carouselBlock?: TotemBlock
   midias: TotemMediaAsset[]
   uploading: boolean
@@ -672,10 +729,8 @@ function ScreenContentPanel({
   onMoveContentItem: (itemId: string, offset: -1 | 1) => void
   onReorderContentItems: (activeId: string, overId: string) => void
   onUploadContentMedia: (itemId: string, file: File | undefined) => void
-  onUploadImage: (file: File | undefined) => void
-  onUploadVideo: (file: File | undefined) => void
-  onClearImage: () => void
-  onClearVideo: () => void
+  onUploadAttractMedia: (file: File | undefined) => void
+  onClearAttractMedia: () => void
 }) {
   if (screen.kind === 'flow') {
     return (
@@ -695,20 +750,11 @@ function ScreenContentPanel({
     <div className="space-y-4">
       <PanelTitle icon={<ImageSquare size={19} />} title="Tela inicial" />
       <MediaField
-        kind="video"
         assets={midias}
-        selectedUrl={videoBlock?.videoUrl}
+        selectedMedia={attractMedia}
         uploading={uploading}
-        onUpload={onUploadVideo}
-        onClear={onClearVideo}
-      />
-      <MediaField
-        kind="image"
-        assets={midias}
-        selectedUrl={heroBlock?.imageUrl}
-        uploading={uploading}
-        onUpload={onUploadImage}
-        onClear={onClearImage}
+        onUpload={onUploadAttractMedia}
+        onClear={onClearAttractMedia}
       />
       <Field label="Escurecimento da mídia">
         <input type="range" min={0} max={75} value={heroBlock?.overlay ?? 42} onChange={event => onHeroChange({ overlay: Number(event.target.value), visible: true })} className="w-full accent-[#d7fbe8]" />
@@ -999,28 +1045,25 @@ function SortableContentItem({
   )
 }
 
-function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }: {
-  kind: 'image' | 'video'
+function MediaField({ assets, selectedMedia, uploading, onUpload, onClear }: {
   assets: TotemMediaAsset[]
-  selectedUrl?: string
+  selectedMedia: { type: 'image' | 'video'; url: string } | null
   uploading: boolean
   onUpload: (file: File | undefined) => void
   onClear: () => void
 }) {
-  const selectedAsset = assets.find(asset => asset.publicUrl === selectedUrl)
-  const label = kind === 'image' ? 'Imagem de fallback' : 'Vídeo de fundo'
-  const uploadLabel = selectedUrl
-    ? kind === 'image' ? 'Substituir imagem' : 'Substituir vídeo'
-    : kind === 'image' ? 'Enviar imagem' : 'Enviar vídeo'
-  const accept = kind === 'image' ? 'image/jpeg,image/png,image/webp' : 'video/mp4'
+  const selectedAsset = assets.find(asset => asset.publicUrl === selectedMedia?.url)
+  const selectedUrl = selectedMedia?.url
+  const uploadLabel = selectedUrl ? 'Substituir mídia' : 'Enviar mídia'
+  const accept = 'image/jpeg,image/png,image/webp,video/mp4'
 
   return (
     <div>
-      <span className="mb-1.5 block text-xs font-medium text-[#9eb2aa]">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium text-[#9eb2aa]">Mídia de fundo</span>
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
         <div className="overflow-hidden rounded-xl bg-black/20">
           {selectedUrl ? (
-            kind === 'image' ? (
+            selectedMedia?.type === 'image' ? (
               <img src={selectedUrl} alt={selectedAsset?.originalName ?? 'Mídia selecionada'} className="h-32 w-full object-cover" />
             ) : (
               <video src={selectedUrl} className="h-32 w-full object-cover" muted loop autoPlay playsInline />
@@ -1028,7 +1071,8 @@ function MediaField({ kind, assets, selectedUrl, uploading, onUpload, onClear }:
           ) : (
             <div className="flex h-32 flex-col items-center justify-center text-center text-sm text-[#9eb2aa]">
               <CloudArrowUp size={26} weight="duotone" />
-              <span className="mt-2">Nenhuma mídia selecionada</span>
+              <span className="mt-2">Obrigatória para salvar</span>
+              <span className="mt-1 text-xs">JPEG, PNG, WEBP ou MP4</span>
             </div>
           )}
         </div>
@@ -1129,7 +1173,7 @@ const labels: Record<TotemBlock['type'], string> = {
     carousel: 'Conteúdos do hotel',
     banner: 'Aviso',
     amenities: 'Durante sua estadia',
-    video: 'Vídeo de fundo',
+    video: 'Mídia de fundo',
     footer: 'Rodapé',
     language: 'Idiomas',
   }
@@ -1149,10 +1193,11 @@ const labels: Record<TotemBlock['type'], string> = {
 }
 
 function normalizeDesign(value: TotemDesign): TotemDesign {
+  const theme = resolveThemeForSave({ ...EMPTY_DESIGN.theme, ...(value.theme ?? {}) })
   return {
     ...EMPTY_DESIGN,
     ...value,
-    theme: { ...EMPTY_DESIGN.theme, ...(value.theme ?? {}) },
+    theme,
     layout: { ...EMPTY_DESIGN.layout, ...(value.layout ?? {}) },
     blocks: ensureCoreBlocks(Array.isArray(value.blocks) && value.blocks.length > 0 ? value.blocks : EMPTY_DESIGN.blocks),
   }
@@ -1180,6 +1225,12 @@ function createContentItem(): TotemContentItem {
 
 function getContentItems(block?: TotemBlock): TotemContentItem[] {
   return Array.isArray(block?.contentItems) ? block.contentItems : []
+}
+
+function getAttractMedia(heroBlock?: TotemBlock, videoBlock?: TotemBlock): { type: 'image' | 'video'; url: string } | null {
+  if (videoBlock?.visible && videoBlock.videoUrl) return { type: 'video', url: videoBlock.videoUrl }
+  if (heroBlock?.visible && heroBlock.imageUrl) return { type: 'image', url: heroBlock.imageUrl }
+  return null
 }
 
 function getContentItemTexts(item: TotemContentItem): Record<ContentLanguage, string> {
