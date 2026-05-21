@@ -11,7 +11,45 @@
 | Admin | `frontend-admin` | `5174` | Gestão de hotéis, usuários, reservas, totens, conteúdo e métricas |
 | MySQL | Docker/local | `3306` | Banco `checkinhub` |
 
-Comandos de subida em desenvolvimento:
+### Subida completa com Docker
+
+Este modo sobe MySQL, backend, totem e admin juntos. E o caminho mais simples para colegas testarem o projeto sem abrir quatro terminais.
+
+```bash
+docker compose up --build
+```
+
+Alternativa para instalacoes com o binario antigo:
+
+```bash
+docker-compose up --build
+```
+
+URLs expostas na maquina:
+
+```text
+Backend: http://localhost:8080
+Totem:   http://localhost:5173
+Admin:   http://localhost:5174
+```
+
+Para parar os containers:
+
+```bash
+docker compose down
+```
+
+No Docker, o MySQL fica no volume `mysql_data` e as midias enviadas pelo Totem Studio ficam no volume `backend_uploads`, montado em `/app/uploads` dentro do container backend.
+
+Para recriar banco e midias do zero, removendo os volumes do MySQL e dos uploads:
+
+```bash
+docker compose down -v
+```
+
+### Subida em modo desenvolvimento
+
+Use este modo quando for editar codigo localmente com hot reload nos frontends.
 
 ```bash
 docker-compose up mysql -d

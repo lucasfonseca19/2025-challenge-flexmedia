@@ -73,6 +73,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Endpoints públicos do totem
+                .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/checkin/**", HttpMethod.GET.name())).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/checkin/**", HttpMethod.POST.name())).permitAll()

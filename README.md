@@ -14,7 +14,43 @@ Projeto academico FIAP Challenge Flexmedia 2025-2.
 
 Os tres projetos sao independentes e se comunicam via API REST.
 
-## Rodando localmente
+## Rodando localmente com Docker
+
+Este modo sobe banco, backend, totem e admin juntos. Requer Docker Desktop ou Docker Engine com Compose.
+
+```bash
+docker compose up --build
+```
+
+Se a maquina usar o binario antigo do Compose:
+
+```bash
+docker-compose up --build
+```
+
+URLs:
+
+| Servico | URL |
+|---|---|
+| Backend | `http://localhost:8080` |
+| Totem | `http://localhost:5173` |
+| Admin | `http://localhost:5174` |
+
+Para parar:
+
+```bash
+docker compose down
+```
+
+No Docker, o MySQL fica no volume `mysql_data` e as midias enviadas pelo Totem Studio ficam no volume `backend_uploads`, montado em `/app/uploads` dentro do container backend.
+
+Para apagar tambem os volumes do MySQL e dos uploads, recriando banco e midias do zero:
+
+```bash
+docker compose down -v
+```
+
+## Rodando localmente em modo desenvolvimento
 
 ```bash
 docker-compose up mysql -d

@@ -11,10 +11,11 @@ COPY src ./src
 RUN mvn package -DskipTests -q
 
 # ── Estágio 2: runtime ────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+RUN mkdir -p uploads && chown appuser:appgroup uploads
 USER appuser
 
 COPY --from=build /app/target/*.jar app.jar
