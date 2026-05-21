@@ -20,6 +20,23 @@ frontend-admin/node_modules/
 .vscode/
 *.iml
 .opencode/
+.claude/
+.codex/
+.rtk/
+.superpowers/
+.playwright/
+
+# AI agent context
+AGENTS.md
+CLAUDE.md
+RTK.md
+
+# Root-level stray dependencies
+/package.json
+/package-lock.json
+
+# Artifacts
+docs/TASKS.md
 
 # OS
 .DS_Store
