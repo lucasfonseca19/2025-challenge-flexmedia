@@ -41,7 +41,7 @@ Auth persiste `admin_token` e `admin_usuario` no `localStorage`. O interceptor A
 `DashboardPage` renderiza experiencias diferentes por perfil:
 
 - `ADMIN`: console FlexMedia de plataforma, com indicadores globais, total de hoteis, usuarios/operadores e atalhos para cadastro de hoteis e usuarios.
-- `OPERADOR`: dashboard operacional do hotel vinculado, chamando `/api/metricas/dashboard?hotelId={hotelId}` para historico, idiomas e totais do dia.
+- `OPERADOR`: dashboard operacional do hotel vinculado, chamando `/api/metricas/dashboard?hotelId={hotelId}` para historico, idiomas, check-ins, check-outs e chaves emitidas no dia. O painel nao exibe ocupacao percentual enquanto o cadastro de hotel nao possuir total de quartos para calcular uma taxa real.
 
 O dashboard nao usa mais dados simulados silenciosos quando o backend falha; em erro de API ou permissao, exibe estado de indisponibilidade.
 
