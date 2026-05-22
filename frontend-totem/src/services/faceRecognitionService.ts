@@ -68,8 +68,42 @@ async function ensureReady(): Promise<void> {
   return initPromise
 }
 
+function videoHasFrame(video: HTMLVideoElement): boolean {
+  return video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0
+}
+
+async function waitForVideoFrame(video: HTMLVideoElement): Promise<void> {
+  if (videoHasFrame(video)) return
+
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      window.clearTimeout(timeout)
+      video.removeEventListener('loadeddata', handleReady)
+      video.removeEventListener('playing', handleReady)
+      video.removeEventListener('timeupdate', handleReady)
+    }
+
+    const handleReady = () => {
+      if (!videoHasFrame(video)) return
+      cleanup()
+      resolve()
+    }
+
+    const timeout = window.setTimeout(() => {
+      cleanup()
+      reject(new Error('A câmera ainda não está pronta. Aguarde um instante e tente novamente.'))
+    }, 2500)
+
+    video.addEventListener('loadeddata', handleReady)
+    video.addEventListener('playing', handleReady)
+    video.addEventListener('timeupdate', handleReady)
+    void video.play().catch(() => undefined)
+  })
+}
+
 async function detectSingleFace(video: HTMLVideoElement): Promise<FaceResult> {
   await ensureReady()
+  await waitForVideoFrame(video)
   const result = await human.detect(video)
 
   if (!result.face || result.face.length === 0) {

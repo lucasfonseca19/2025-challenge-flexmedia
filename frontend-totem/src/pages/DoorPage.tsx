@@ -25,7 +25,10 @@ export default function DoorPage() {
       .then(stream => {
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
         streamRef.current = stream
-        if (videoRef.current) videoRef.current.srcObject = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          void videoRef.current.play().catch(() => undefined)
+        }
         setCameraAtiva(true)
         void faceRecognitionService.init()
       })
@@ -48,16 +51,22 @@ export default function DoorPage() {
     return () => clearTimeout(timer)
   }, [estado])
 
+  useEffect(() => {
+    if (estado === 'resultado' || !cameraAtiva || !videoRef.current || !streamRef.current) return
+    if (videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+    }
+    void videoRef.current.play().catch(() => undefined)
+  }, [estado, cameraAtiva])
+
   async function capturarEValidar() {
     if (!videoRef.current || !cameraAtiva || !quarto) return
     setErro(null)
     setEstado('processando')
 
     try {
-      const [descriptorAtual, res] = await Promise.all([
-        faceRecognitionService.captureDescriptor(videoRef.current),
-        quartoService.validarFace(quarto),
-      ])
+      const descriptorAtual = await faceRecognitionService.captureDescriptor(videoRef.current)
+      const res = await quartoService.validarFace(quarto)
 
       if (!res.sucesso || !res.descriptorArmazenado) {
         setResultado(res)
@@ -71,7 +80,7 @@ export default function DoorPage() {
 
       setSimilaridade(score)
       setResultado({
-        sucesso: true,
+        sucesso: acessoPermitido,
         mensagem: acessoPermitido ? 'Acesso liberado' : 'Rosto não reconhecido',
         descriptorArmazenado: null,
         hospedeNome: res.hospedeNome,

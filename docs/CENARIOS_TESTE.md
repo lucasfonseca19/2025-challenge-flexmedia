@@ -24,7 +24,7 @@
 <a id="status-execucao"></a>
 # Status de execução
 
-Última execução manual assistida: **2026-05-20**.
+Última execução manual assistida: **2026-05-22**.
 
 Ambiente usado:
 - Backend `http://localhost:8080`
@@ -33,6 +33,12 @@ Ambiente usado:
 - MySQL local `checkinhub`
 
 Dados criados/validados na execução:
+- Validação final backend-only 2026-05-22:
+  - `./mvnw test -q` passou com 79 testes, 0 falhas, 0 erros e 0 skipped; `./mvnw compile -q` também passou;
+  - Backend local iniciou em `8080` contra MySQL 8.4.9 real; `/actuator/health` retornou `200`, `status=UP` e `db.status=UP`;
+  - Smoke API P0/P1 validou login ADMIN válido/inválido, criação de hotel, bloqueio sem token, criação/login de OPERADOR, bloqueio de criação de hotel por OPERADOR, reserva criada com `hotel_id` derivado do JWT, busca pública por código/CPF, check-in com descriptor, porta com check-in ativo, reemissão de chave, checkout, porta sem check-in ativo, métricas, preset Totem Studio, totem com preset, busca pública por código de totem, heartbeat público, upload PNG/MP4 e CORS;
+  - Massa principal da rodada: hotel `Hotel Smoke Backend 1779478444` (`id=7`), operador `op-smoke-1779478444@teste.local` (`id=11`), reserva `JK5BGU` (`id=12`, quarto `SMK8444`, status final `CHECKOUT_REALIZADO`), totem `PRS8T9` (`id=4`), design `Design Smoke 1779478444` (`id=5`) e mídias `id=15` (`image/png`) / `id=16` (`video/mp4`);
+  - MySQL confirmou `JSON_VALID(face_descriptor)=1`, `JSON_LENGTH(face_descriptor)=1024`, duas chaves digitais inativas após checkout, heartbeat persistido, JSON válido em `totem_designs.theme/blocks` e `metricas_diarias` do hotel `7` em 2026-05-22 com `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=2`, `idioma_pt=1`.
 - Re-homologação 2026-05-20:
   - Hotel `Hotel HML 9589593 Editado` (`id=4`, ativo) e hotel desativado `Hotel HML Desativar 9589593` (`id=5`);
   - Operador ativo `op-hml-active-9589593@teste.local` (`id=9`), operador desativado `op-hml-9589593@teste.local` (`id=7`) e admin secundário `admin-hml-9589593@teste.local` (`id=8`);
