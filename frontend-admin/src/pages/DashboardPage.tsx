@@ -12,7 +12,6 @@ interface DashboardData {
   totalCheckinsHoje: number
   totalCheckoutsHoje: number
   totalChavesHoje: number
-  ocupacaoAtual: number
   hoteisAtivos: number
   historico: { data: string; totalCheckins: number; totalCheckouts: number; totalChaves: number }[]
   idiomaPt: number
@@ -171,11 +170,10 @@ export default function DashboardPage() {
 
       {!carregando && !erro && !isAdmin && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
             <StatCard label="Check-ins hoje" value={dados?.totalCheckinsHoje ?? 0} cor="border-blue-500/30" />
             <StatCard label="Check-outs hoje" value={dados?.totalCheckoutsHoje ?? 0} cor="border-green-500/30" />
             <StatCard label="Chaves emitidas" value={dados?.totalChavesHoje ?? 0} cor="border-cyan-500/30" />
-            <StatCard label="Ocupação atual" value={`${dados?.ocupacaoAtual ?? 0}%`} cor="border-purple-500/30" />
           </div>
 
           <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
