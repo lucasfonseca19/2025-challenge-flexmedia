@@ -368,6 +368,6 @@ Antes de alterar backend ou banco:
 
 ## Limitações conhecidas de homologação
 
-- O navegador interno do Codex valida navegação, textos, bloqueios e estados visuais, mas não substitui teste com câmera real.
+- A validação automatizada em navegador ajuda a conferir navegação, textos, bloqueios e estados visuais, mas não substitui teste com câmera real.
 - A validação facial com Human precisa ser testada em navegador com acesso à webcam.
 - O reconhecimento é demonstrativo; não é equivalente a Face ID com sensor de profundidade.

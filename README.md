@@ -50,18 +50,79 @@ Para apagar tambem os volumes do MySQL e dos uploads, recriando banco e midias d
 docker compose down -v
 ```
 
-## Rodando localmente em modo desenvolvimento
+## Rodando localmente sem Docker
+
+Use este modo quando quiser rodar os processos direto na maquina. Requer:
+
+- Java 17;
+- Node.js 20 ou superior;
+- MySQL 8.4 local;
+- terminal aberto na raiz do repositorio.
+
+Crie o banco e o usuario local no MySQL, se ainda nao existirem:
+
+```sql
+CREATE DATABASE IF NOT EXISTS checkinhub;
+CREATE USER IF NOT EXISTS 'checkinhub'@'localhost' IDENTIFIED BY 'checkinhub123';
+GRANT ALL PRIVILEGES ON checkinhub.* TO 'checkinhub'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Depois suba as tres superficies em terminais separados:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+```bash
+cd frontend-totem
+npm install
+npm run dev
+```
+
+```bash
+cd frontend-admin
+npm install
+npm run dev
+```
+
+## Rodando localmente em modo desenvolvimento com MySQL via Docker
+
+Use este modo quando quiser hot reload nos frontends, mas preferir subir apenas o banco em container.
+
+Terminal 1:
+
+```bash
+docker compose up mysql -d
+```
+
+Se a maquina usar o binario antigo do Compose:
 
 ```bash
 docker-compose up mysql -d
+```
 
+Terminal 2:
+
+```bash
 cd backend
 ./mvnw spring-boot:run
+```
 
+Terminal 3:
+
+```bash
 cd frontend-totem
+npm install
 npm run dev
+```
 
+Terminal 4:
+
+```bash
 cd frontend-admin
+npm install
 npm run dev
 ```
 
@@ -103,13 +164,13 @@ Porta:
 
 O admin possui o Totem Studio para customizar o visual do totem por hotel:
 
-- temas, cores, densidade e layout;
-- blocos visuais reordenaveis;
+- presets nomeados por hotel;
+- fonte, modo claro/escuro, cor de acento e midia de fundo;
 - biblioteca de imagens e videos;
-- preview do totem;
-- rascunho e publicacao por hotel.
+- preview do totem e das telas internas;
+- atribuicao opcional de preset para cada totem na tela Totens.
 
-O totem busca o design publicado e renderiza a idle customizada.
+O totem busca o preset atribuido ao seu cadastro. Se nao houver preset atribuido, usa o visual padrao/fallback.
 
 ## Documentacao
 
@@ -120,7 +181,6 @@ O totem busca o design publicado e renderiza a idle customizada.
 - `docs/REQUISITOS_CHALLENGE.md`: requisitos do enunciado e aderencia do MVP.
 - `docs/OPERACAO_LOCAL.md`: comandos, banco e contratos locais.
 - `docs/CENARIOS_TESTE.md`: tracker de homologacao manual.
-- `AGENTS.md` e `CLAUDE.md`: contexto resumido para agentes.
 
 ## Validacao
 

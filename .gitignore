@@ -19,17 +19,6 @@ frontend-admin/node_modules/
 .idea/
 .vscode/
 *.iml
-.opencode/
-.claude/
-.codex/
-.rtk/
-.superpowers/
-.playwright/
-
-# AI agent context
-AGENTS.md
-CLAUDE.md
-RTK.md
 
 # Root-level stray dependencies
 /package.json

@@ -1,6 +1,6 @@
 # Requisitos do Challenge Flexmedia
 
-Este documento consolida, dentro do repo atual, as informacoes necessarias do material em `/Users/lucas/Challenge`. Ele deve ser a referencia de produto/entrega para agentes e implementadores.
+Este documento consolida, dentro do repo atual, as informacoes necessarias do material em `/Users/lucas/Challenge`. Ele deve ser a referencia de produto/entrega para implementadores e avaliadores.
 
 Fontes originais:
 
@@ -41,14 +41,6 @@ Restricoes:
 - usar somente tecnologias/conteudos abordados ate a FASE 7;
 - manter arquivos organizados e corretamente nomeados;
 - video pitch com ate 3 minutos e link publico.
-
-## Checklist de pre-entrega
-
-Antes de empacotar a entrega final:
-
-- revisar o repositorio para remover arquivos, instrucoes e artefatos ligados ao uso de IA que nao facam parte do produto entregue;
-- revisar arquivos de contexto para agentes, prompts/instrucoes operacionais, skills locais, tooling auxiliar e artefatos temporarios;
-- garantir que permanencam no repositorio apenas codigo, assets, documentacao e configuracoes realmente necessarios para avaliacao do projeto.
 
 ## Personas e requisitos obrigatorios
 
@@ -137,11 +129,4 @@ Esses itens nao devem deslocar a estabilidade do fluxo principal.
 
 ## Como usar este documento
 
-Ao iniciar uma nova sessao com agente:
-
-1. Ler `AGENTS.md`.
-2. Ler `docs/ARQUITETURA.md`.
-3. Ler este documento quando a tarefa tocar escopo de produto, banca, entregaveis ou priorizacao.
-4. Ler o documento especifico da superficie alterada.
-5. Atualizar este documento quando uma decisao mudar a aderencia ao enunciado.
-6. Atualizar `docs/CENARIOS_TESTE.md` quando uma validacao passar, falhar ou ficar pendente.
+Use este documento como referencia de escopo do Challenge, requisitos de produto, entregaveis e priorizacao. Atualize-o quando uma decisao mudar a aderencia ao enunciado e registre validacoes relevantes em `docs/CENARIOS_TESTE.md`.

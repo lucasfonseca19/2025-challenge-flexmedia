@@ -23,6 +23,6 @@ npm run build
 - API: `/api` proxyado para `http://localhost:8080`.
 - Uploads: `/uploads` proxyado para `http://localhost:8080`.
 - Biometria: `@vladmandic/human` local no browser.
-- Idle customizada: design publicado pelo Totem Studio.
+- Idle customizada: preset do Totem Studio atribuido ao cadastro do totem.
 
 Documentacao detalhada: `../docs/frontend-totem.md`.
