@@ -29,17 +29,20 @@ public class AuthController {
     private final HotelRepository hotelRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final CurrentUserService currentUserService;
 
     public AuthController(AuthenticationManager authManager,
                           UsuarioRepository usuarioRepository,
                           HotelRepository hotelRepository,
                           JwtService jwtService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          CurrentUserService currentUserService) {
         this.authManager = authManager;
         this.usuarioRepository = usuarioRepository;
         this.hotelRepository = hotelRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
+        this.currentUserService = currentUserService;
     }
 
     @PostMapping("/login")
@@ -51,7 +54,11 @@ public class AuthController {
         Usuario usuario = usuarioRepository.findByEmailAndAtivoTrue(request.email())
                 .orElseThrow();
 
-        String token = jwtService.gerarToken(usuario.getEmail());
+        String token = jwtService.gerarToken(
+                usuario.getEmail(),
+                usuario.getHotel() != null ? usuario.getHotel().getId() : null,
+                usuario.getRole().name()
+        );
         return ResponseEntity.ok(new LoginResponseDTO(token, UsuarioInfoDTO.from(usuario)));
     }
 
@@ -94,6 +101,11 @@ public class AuthController {
     @DeleteMapping("/usuarios/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> desativarUsuario(@PathVariable Long id) {
+        Usuario usuarioAtual = currentUserService.getCurrentUser();
+        if (usuarioAtual.getId().equals(id)) {
+            throw new BusinessException("Não é possível desativar o próprio usuário logado.");
+        }
+
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Usuário não encontrado: " + id));
         usuario.setAtivo(false);

@@ -1,8 +1,8 @@
 import axios from 'axios'
+import type { Totem } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
 })
 
 // Injeta token JWT em todas as requisições
@@ -18,7 +18,8 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    const isLoginRequest = err.config?.url === '/auth/login'
+    if (err.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_usuario')
       window.location.href = '/login'
@@ -67,6 +68,56 @@ export const conteudoService = {
   criar: (data: unknown) => api.post('/conteudo', data).then(r => r.data),
   atualizar: (id: number, data: unknown) => api.put(`/conteudo/${id}`, data).then(r => r.data),
   remover: (id: number) => api.delete(`/conteudo/${id}`),
+}
+
+export const totemService = {
+  listar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totens`).then(r => r.data as Totem[]),
+  criar: (hotelId: number, data: { nome: string; designId?: number | null }) =>
+    api.post(`/hoteis/${hotelId}/totens`, data).then(r => r.data as Totem),
+  atualizar: (id: number, data: { nome: string; designId?: number | null }) =>
+    api.put(`/totens/${id}`, data).then(r => r.data as Totem),
+  remover: (id: number) =>
+    api.delete(`/totens/${id}`),
+}
+
+export const configService = {
+  buscar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/config`).then(r => r.data),
+  salvar: (hotelId: number, data: unknown) =>
+    api.put(`/hoteis/${hotelId}/config`, data).then(r => r.data),
+}
+
+export const totemDesignService = {
+  listar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totem-designs`).then(r => r.data),
+  salvar: (hotelId: number, data: { id?: number; nome?: string } & Record<string, unknown>) =>
+    data.id
+      ? api.put(`/hoteis/${hotelId}/totem-designs/${data.id}`, data).then(r => r.data)
+      : api.post(`/hoteis/${hotelId}/totem-designs`, data).then(r => r.data),
+  buscarDraft: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totem-design/draft`).then(r => r.data),
+  salvarDraft: (hotelId: number, data: unknown) =>
+    api.put(`/hoteis/${hotelId}/totem-design/draft`, data).then(r => r.data),
+  publicar: (hotelId: number) =>
+    api.post(`/hoteis/${hotelId}/totem-design/publish`).then(r => r.data),
+  buscarPublicado: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totem-design/published`).then(r => r.data),
+}
+
+export const totemMediaService = {
+  listar: (hotelId: number) =>
+    api.get(`/hoteis/${hotelId}/totem-media`).then(r => r.data),
+  upload: (hotelId: number, file: File) => {
+    const data = new FormData()
+    data.append('file', file)
+    const token = localStorage.getItem('admin_token')
+    return api.post(`/hoteis/${hotelId}/totem-media`, data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }).then(r => r.data)
+  },
+  remover: (hotelId: number, assetId: number) =>
+    api.delete(`/hoteis/${hotelId}/totem-media/${assetId}`),
 }
 
 export const usuarioService = {

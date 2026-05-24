@@ -4,9 +4,12 @@ import br.com.flexmedia.checkinhub.common.exception.ResourceNotFoundException;
 import br.com.flexmedia.checkinhub.common.exception.BusinessException;
 import br.com.flexmedia.checkinhub.modules.hotel.dto.ReservaRequestDTO;
 import br.com.flexmedia.checkinhub.modules.hotel.dto.ReservaResponseDTO;
+import br.com.flexmedia.checkinhub.security.CurrentUserService;
+import br.com.flexmedia.checkinhub.security.Usuario;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,22 +19,21 @@ public class ReservaService {
 
     private final ReservaRepository reservaRepository;
     private final HotelRepository hotelRepository;
+    private final CurrentUserService currentUserService;
+    private final ReservaCodeGenerator reservaCodeGenerator;
 
     @Transactional
     public ReservaResponseDTO criar(ReservaRequestDTO dto) {
-        if (reservaRepository.findByCodigoReserva(dto.codigoReserva()).isPresent()) {
-            throw new BusinessException("Código de reserva já cadastrado: " + dto.codigoReserva());
-        }
-
         if (dto.dataCheckout().isBefore(dto.dataCheckin())) {
             throw new BusinessException("Data de checkout deve ser maior ou igual ao check-in.");
         }
 
-        Hotel hotel = hotelRepository.findById(dto.hotelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + dto.hotelId()));
+        Long hotelId = resolveHotelIdForRequest(dto.hotelId());
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + hotelId));
 
         Reserva reserva = Reserva.builder()
-                .codigoReserva(dto.codigoReserva())
+                .codigoReserva(gerarCodigoUnico())
                 .hospedeNome(dto.hospedeNome())
                 .hospedeCpf(dto.hospedeCpf())
                 .hospedeEmail(dto.hospedeEmail())
@@ -47,15 +49,22 @@ public class ReservaService {
     }
 
     public Page<ReservaResponseDTO> listar(Long hotelId, String busca, Pageable pageable) {
-        if (hotelId != null) {
-            return reservaRepository.findByHotelAndBusca(hotelId, busca, pageable)
+        Usuario usuario = currentUserService.getCurrentUser();
+        Long effectiveHotelId = currentUserService.isAdmin(usuario)
+                ? hotelId
+                : currentUserService.getOperatorHotelId(usuario);
+
+        if (effectiveHotelId != null) {
+            return reservaRepository.findByHotelAndBusca(effectiveHotelId, busca, pageable)
                     .map(ReservaResponseDTO::from);
         }
         return reservaRepository.findAll(pageable).map(ReservaResponseDTO::from);
     }
 
     public ReservaResponseDTO buscarPorId(Long id) {
-        return ReservaResponseDTO.from(findOrThrow(id));
+        Reserva reserva = findOrThrow(id);
+        assertCanAccess(reserva);
+        return ReservaResponseDTO.from(reserva);
     }
 
     public ReservaResponseDTO buscarPorCodigo(String codigo) {
@@ -63,6 +72,13 @@ public class ReservaService {
                 reservaRepository.findByCodigoReserva(codigo)
                         .orElseThrow(() -> new ResourceNotFoundException("Reserva não encontrada: " + codigo))
         );
+    }
+
+    public ReservaResponseDTO buscarPorCodigoAdministrativo(String codigo) {
+        Reserva reserva = reservaRepository.findByCodigoReserva(codigo)
+                .orElseThrow(() -> new ResourceNotFoundException("Reserva não encontrada: " + codigo));
+        assertCanAccess(reserva);
+        return ReservaResponseDTO.from(reserva);
     }
 
     public Reserva findOrThrow(Long id) {
@@ -78,21 +94,16 @@ public class ReservaService {
     @Transactional
     public ReservaResponseDTO atualizar(Long id, ReservaRequestDTO dto) {
         Reserva reserva = findOrThrow(id);
-
-        if (!reserva.getCodigoReserva().equals(dto.codigoReserva())) {
-            if (reservaRepository.findByCodigoReserva(dto.codigoReserva()).isPresent()) {
-                throw new BusinessException("Código de reserva já cadastrado: " + dto.codigoReserva());
-            }
-        }
+        assertCanAccess(reserva);
 
         if (dto.dataCheckout().isBefore(dto.dataCheckin())) {
             throw new BusinessException("Data de checkout deve ser maior ou igual ao check-in.");
         }
 
-        Hotel hotel = hotelRepository.findById(dto.hotelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + dto.hotelId()));
+        Long hotelId = resolveHotelIdForRequest(dto.hotelId());
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel não encontrado: " + hotelId));
 
-        reserva.setCodigoReserva(dto.codigoReserva());
         reserva.setHospedeNome(dto.hospedeNome());
         reserva.setHospedeCpf(dto.hospedeCpf());
         reserva.setHospedeEmail(dto.hospedeEmail());
@@ -107,6 +118,38 @@ public class ReservaService {
 
     @Transactional
     public void deletar(Long id) {
-        reservaRepository.delete(findOrThrow(id));
+        Reserva reserva = findOrThrow(id);
+        assertCanAccess(reserva);
+        reservaRepository.delete(reserva);
+    }
+
+    private Long resolveHotelIdForRequest(Long requestedHotelId) {
+        Usuario usuario = currentUserService.getCurrentUser();
+        if (currentUserService.isAdmin(usuario)) {
+            return requestedHotelId;
+        }
+        return currentUserService.getOperatorHotelId(usuario);
+    }
+
+    private String gerarCodigoUnico() {
+        for (int tentativa = 0; tentativa < 20; tentativa++) {
+            String codigo = reservaCodeGenerator.gerarCodigo();
+            if (!reservaRepository.existsByCodigoReserva(codigo)) {
+                return codigo;
+            }
+        }
+        throw new BusinessException("Não foi possível gerar um código de reserva único.");
+    }
+
+    private void assertCanAccess(Reserva reserva) {
+        Usuario usuario = currentUserService.getCurrentUser();
+        if (currentUserService.isAdmin(usuario)) {
+            return;
+        }
+
+        Long operatorHotelId = currentUserService.getOperatorHotelId(usuario);
+        if (!operatorHotelId.equals(reserva.getHotel().getId())) {
+            throw new AccessDeniedException("Reserva não pertence ao hotel do operador.");
+        }
     }
 }

@@ -14,8 +14,7 @@ import java.time.LocalDate;
 public class MetricaDiaria {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_metrica")
-    @SequenceGenerator(name = "seq_metrica", sequenceName = "seq_metrica", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -36,4 +35,16 @@ public class MetricaDiaria {
     @Column(name = "total_chaves_emitidas", nullable = false)
     @Builder.Default
     private int totalChavesEmitidas = 0;
+
+    @Column(name = "idioma_pt", nullable = false)
+    @Builder.Default
+    private int idiomaPt = 0;
+
+    @Column(name = "idioma_en", nullable = false)
+    @Builder.Default
+    private int idiomaEn = 0;
+
+    @Column(name = "idioma_es", nullable = false)
+    @Builder.Default
+    private int idiomaEs = 0;
 }

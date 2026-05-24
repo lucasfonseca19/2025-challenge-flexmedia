@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTotem } from '../context/TotemContext'
+import { KioskButton, KioskShell } from '../components/KioskShell'
 
 const TEMPO_RESET = 10
 
@@ -27,31 +28,31 @@ export default function ThankYouPage() {
   const isCheckin = fluxo === 'checkin'
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white gap-6 md:gap-8">
-      {/* Ícone */}
-      <div className="w-28 h-28 md:w-40 md:h-40 bg-green-500/20 border-4 border-green-400 rounded-full flex items-center justify-center">
-        <span className="text-5xl md:text-7xl">{isCheckin ? '🏨' : '👋'}</span>
-      </div>
-
-      <div className="text-center space-y-3">
-        <h2 className="text-4xl md:text-6xl font-bold text-green-400">{t.obrigado.titulo}</h2>
-        <p className="text-xl md:text-3xl text-slate-300">{t.obrigado.instrucao}</p>
-      </div>
-
-      {/* Countdown */}
-      <div className="flex flex-col items-center gap-2 mt-4">
-        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-slate-600 flex items-center justify-center">
-          <span className="text-2xl md:text-4xl font-mono font-bold">{contador}</span>
+    <KioskShell
+      eyebrow={isCheckin ? 'Check-in concluído' : 'Check-out concluído'}
+      title={t.obrigado.titulo}
+      subtitle={t.obrigado.instrucao}
+      maxWidth="max-w-3xl"
+    >
+      <div className="flex flex-col items-start gap-8">
+        <div className="flex h-28 w-28 items-center justify-center rounded-full border border-green-300/30 bg-green-300/12 text-6xl text-green-100 md:h-36 md:w-36 md:text-7xl">
+          ✓
         </div>
-        <p className="text-slate-500 text-lg">{t.obrigado.voltando}</p>
-      </div>
 
-      <button
-        onClick={() => { resetar(); navigate('/') }}
-        className="px-8 py-3 md:px-12 md:py-4 bg-slate-700 hover:bg-slate-600 text-white text-base md:text-xl rounded-2xl transition-colors active:scale-95"
-      >
-        {t.geral.btnVoltar}
-      </button>
-    </div>
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/14 bg-white/8">
+            <span className="font-mono text-2xl font-bold md:text-3xl">{contador}</span>
+          </div>
+          <p className="text-lg opacity-65">{t.obrigado.voltando}</p>
+        </div>
+
+        <KioskButton
+          onClick={() => { resetar(); navigate('/') }}
+          variant="secondary"
+        >
+          {t.geral.btnVoltar}
+        </KioskButton>
+      </div>
+    </KioskShell>
   )
 }

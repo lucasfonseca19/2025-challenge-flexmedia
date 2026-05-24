@@ -4,7 +4,15 @@
     "boasVindas": "Welcome",
     "instrucao": "Touch the screen to start",
     "btnCheckin": "Check-in",
-    "btnCheckout": "Check-out"
+    "btnCheckout": "Check-out",
+    "entradaLabel": "Arrival",
+    "saidaLabel": "Departure",
+    "tituloEscolha": "Arrival or departure?",
+    "checkinTitulo": "Check-in",
+    "checkoutTitulo": "Check-out",
+    "checkinDescricao": "Start your stay",
+    "checkoutDescricao": "Close your stay",
+    "toqueComecar": "Touch to start"
   },
   "selecionarIdioma": {
     "titulo": "Select your language",
@@ -45,7 +53,8 @@
     "btnConfirmar": "Confirm",
     "erroDataInvalida": "Incorrect date of birth. Please check and try again.",
     "erroDataObrigatoria": "Please enter your date of birth.",
-    "erroFormatoInvalido": "Invalid format. Use MM/DD/YYYY."
+    "erroFormatoInvalido": "Invalid format. Use MM/DD/YYYY.",
+    "erroValidacaoObrigatoria": "We could not confirm your identity. Please contact the front desk."
   },
   "emitirChave": {
     "titulo": "Your key is ready!",

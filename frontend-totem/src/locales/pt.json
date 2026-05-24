@@ -4,7 +4,15 @@
     "boasVindas": "Bem-vindo",
     "instrucao": "Toque na tela para iniciar",
     "btnCheckin": "Fazer Check-in",
-    "btnCheckout": "Fazer Check-out"
+    "btnCheckout": "Fazer Check-out",
+    "entradaLabel": "Entrada",
+    "saidaLabel": "Saída",
+    "tituloEscolha": "Entrada ou saída?",
+    "checkinTitulo": "Check-in",
+    "checkoutTitulo": "Check-out",
+    "checkinDescricao": "Entrar na estadia",
+    "checkoutDescricao": "Encerrar estadia",
+    "toqueComecar": "Toque para começar"
   },
   "selecionarIdioma": {
     "titulo": "Selecione seu idioma",
@@ -45,7 +53,8 @@
     "btnConfirmar": "Confirmar",
     "erroDataInvalida": "Data de nascimento incorreta. Verifique e tente novamente.",
     "erroDataObrigatoria": "Por favor, informe a data de nascimento.",
-    "erroFormatoInvalido": "Formato inválido. Use DD/MM/AAAA."
+    "erroFormatoInvalido": "Formato inválido. Use DD/MM/AAAA.",
+    "erroValidacaoObrigatoria": "Não foi possível confirmar sua identidade. Procure a recepção."
   },
   "emitirChave": {
     "titulo": "Sua chave está pronta!",

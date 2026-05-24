@@ -17,7 +17,8 @@ public record ReservaResponseDTO(
         LocalDate dataCheckin,
         LocalDate dataCheckout,
         StatusReserva status,
-        LocalDate hospedeDataNascimento
+        LocalDate hospedeDataNascimento,
+        String faceDescriptor
 ) {
     public static ReservaResponseDTO from(Reserva r) {
         return new ReservaResponseDTO(
@@ -25,7 +26,7 @@ public record ReservaResponseDTO(
                 r.getHospedeEmail(), r.getQuartoNumero(),
                 r.getHotel().getId(), r.getHotel().getNome(),
                 r.getDataCheckin(), r.getDataCheckout(), r.getStatus(),
-                r.getHospedeDataNascimento()
+                r.getHospedeDataNascimento(), r.getFaceDescriptor()
         );
     }
 }

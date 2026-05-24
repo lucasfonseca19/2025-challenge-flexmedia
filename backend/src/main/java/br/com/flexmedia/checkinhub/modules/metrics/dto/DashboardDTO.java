@@ -8,7 +8,10 @@ public record DashboardDTO(
         long totalChavesHoje,
         int ocupacaoAtual,
         long hoteisAtivos,
-        List<MetricaDiaDTO> historico
+        List<MetricaDiaDTO> historico,
+        long idiomaPt,
+        long idiomaEn,
+        long idiomaEs
 ) {
     public record MetricaDiaDTO(String data, int totalCheckins, int totalCheckouts, int totalChaves) {}
 }

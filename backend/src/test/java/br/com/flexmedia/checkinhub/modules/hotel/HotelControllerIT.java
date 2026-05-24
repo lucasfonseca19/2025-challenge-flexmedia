@@ -40,6 +40,20 @@ class HotelControllerIT {
     }
 
     @Test
+    @WithMockUser(roles = "OPERADOR")
+    void getHoteis_comOperador_retorna403() throws Exception {
+        mockMvc.perform(get("/api/hoteis"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERADOR")
+    void buscarHotelPorId_comOperador_retorna403() throws Exception {
+        mockMvc.perform(get("/api/hoteis/1"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void criarHotel_dadosValidos_retorna201() throws Exception {
         var body = Map.of(
@@ -56,6 +70,22 @@ class HotelControllerIT {
                 .andExpect(jsonPath("$.nome").value("Hotel Integração"))
                 .andExpect(jsonPath("$.cnpj").value("12.345.678/0001-99"))
                 .andExpect(jsonPath("$.ativo").value(true));
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERADOR")
+    void criarHotel_comOperador_retorna403() throws Exception {
+        var body = Map.of(
+                "nome", "Hotel Bloqueado",
+                "cnpj", "88.777.666/0001-55",
+                "cidade", "Santos",
+                "estado", "SP"
+        );
+
+        mockMvc.perform(post("/api/hoteis")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isForbidden());
     }
 
     @Test

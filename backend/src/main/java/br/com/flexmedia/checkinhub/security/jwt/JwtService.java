@@ -26,13 +26,28 @@ public class JwtService {
     }
 
     public String gerarToken(String email) {
+        return gerarToken(email, null, null);
+    }
+
+    public String gerarToken(String email, Long hotelId, String role) {
         long agora = System.currentTimeMillis();
         return Jwts.builder()
                 .subject(email)
+                .claim("hotelId", hotelId)
+                .claim("role", role)
                 .issuedAt(new Date(agora))
                 .expiration(new Date(agora + jwtProperties.getExpirationMs()))
                 .signWith(getKey())
                 .compact();
+    }
+
+    public Long extrairHotelId(String token) {
+        Object hotelId = extrairClaims(token).get("hotelId");
+        return hotelId != null ? Long.valueOf(hotelId.toString()) : null;
+    }
+
+    public String extrairRole(String token) {
+        return (String) extrairClaims(token).get("role");
     }
 
     public String extrairEmail(String token) {

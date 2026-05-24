@@ -1,0 +1,792 @@
+# Cenários de Teste — CheckIn Hub
+
+> **Objetivo:** mapear todos os fluxos do sistema para validação manual/E2E.
+> **Estratégia:** garantir o básico antes de edge cases. Seguir a ordem das seções (P0 → P3).
+> **Ambientes:** Backend `http://localhost:8080` · Totem `http://localhost:5173` · Admin `http://localhost:5174`
+> **Credenciais seed:** `admin@flexmedia.com` / `admin123`
+> **Guia operacional:** ver `docs/OPERACAO_LOCAL.md` para contratos atuais, acesso ao DB e checklist antes de refinamentos.
+> **Legenda de prioridade:** 🔴 P0 (bloqueante) · 🟠 P1 (crítico) · 🟡 P2 (importante) · 🟢 P3 (edge case / refinamento)
+> **Legenda de execução:** ✅ passou · ⚠️ passou parcialmente / divergente · ❌ falhou · ⏳ não testado
+
+---
+
+## Índice
+
+1. [🔴 P0 — Fluxos bloqueantes (o produto não funciona sem isso)](#p0)
+2. [🟠 P1 — Fluxos críticos (o produto funciona, mas quebra cedo)](#p1)
+3. [🟡 P2 — Fluxos importantes (funcionalidades acessórias)](#p2)
+4. [🟢 P3 — Edge cases e refinamento](#p3)
+5. [Status de execução](#status-execucao)
+6. [Apêndice — Setup de dados de teste](#apendice)
+
+---
+
+<a id="status-execucao"></a>
+# Status de execução
+
+Última execução manual assistida: **2026-05-22**.
+
+Ambiente usado:
+- Backend `http://localhost:8080`
+- Totem `http://localhost:5173`
+- Admin `http://localhost:5174`
+- MySQL local `checkinhub`
+
+Dados criados/validados na execução:
+- Validação final backend-only 2026-05-22:
+  - `./mvnw test -q` passou com 79 testes, 0 falhas, 0 erros e 0 skipped; `./mvnw compile -q` também passou;
+  - Backend local iniciou em `8080` contra MySQL 8.4.9 real; `/actuator/health` retornou `200`, `status=UP` e `db.status=UP`;
+  - Smoke API P0/P1 validou login ADMIN válido/inválido, criação de hotel, bloqueio sem token, criação/login de OPERADOR, bloqueio de criação de hotel por OPERADOR, reserva criada com `hotel_id` derivado do JWT, busca pública por código/CPF, check-in com descriptor, porta com check-in ativo, reemissão de chave, checkout, porta sem check-in ativo, métricas, preset Totem Studio, totem com preset, busca pública por código de totem, heartbeat público, upload PNG/MP4 e CORS;
+  - Massa principal da rodada: hotel `Hotel Smoke Backend 1779478444` (`id=7`), operador `op-smoke-1779478444@teste.local` (`id=11`), reserva `JK5BGU` (`id=12`, quarto `SMK8444`, status final `CHECKOUT_REALIZADO`), totem `PRS8T9` (`id=4`), design `Design Smoke 1779478444` (`id=5`) e mídias `id=15` (`image/png`) / `id=16` (`video/mp4`);
+  - MySQL confirmou `JSON_VALID(face_descriptor)=1`, `JSON_LENGTH(face_descriptor)=1024`, duas chaves digitais inativas após checkout, heartbeat persistido, JSON válido em `totem_designs.theme/blocks` e `metricas_diarias` do hotel `7` em 2026-05-22 com `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=2`, `idioma_pt=1`.
+- Re-homologação 2026-05-20:
+  - Hotel `Hotel HML 9589593 Editado` (`id=4`, ativo) e hotel desativado `Hotel HML Desativar 9589593` (`id=5`);
+  - Operador ativo `op-hml-active-9589593@teste.local` (`id=9`), operador desativado `op-hml-9589593@teste.local` (`id=7`) e admin secundário `admin-hml-9589593@teste.local` (`id=8`);
+  - Reserva `LH3KET` (`id=10`, quarto `993`) criada pelo OPERADOR, validada por código e CPF, confirmada por DOB, com chave reemitida e checkout concluído;
+  - Preset `Design HML 9589593` (`id=3`) com imagem `/uploads/totem/4/39bf3b0f-8ff5-4dba-a649-57e8c8283328.png`, MP4 `/uploads/totem/4/a2b0e2ec-376f-4a5e-b70a-4631a866365c.mp4` e carrossel localizado;
+  - Totem `Totem HML 9589593` (`id=2`, código `QQBWJC`) com `design_id=3` e heartbeat persistido;
+  - MySQL confirmou `metricas_diarias` de 2026-05-20 para hotel `4`: `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=3`, `idioma_pt=1`.
+- Execuções anteriores registradas:
+- Operador: `op1777062452505@teste.local`
+- Reserva: `RES497807`
+- Reserva editável: `RES-P0-EDIT`
+- Reserva cross-hotel: `RES-HOTEL-2`
+- Hotel criado/editado: `Hotel P0 CRUD Editado` (`id=2`)
+- Hotel criado indevidamente por operador durante teste de segurança: `Hotel Proibido` (`id=3`)
+- Hotéis de massa: `Hotel Massa 9450220` (`id=4`, inativo), `Hotel Usuarios 9450220` (`id=5`)
+- Reservas de massa: `PAGE-9450220-0` até `PAGE-9450220-15`, `KEY-9450220`, `DEL-9450220` (excluída)
+- Conteúdo de totem: `Conteudo P0 Ativo` (`id=1`, atualmente inativo)
+- Conteúdo visual ativo: `Conteudo Visual 483815` (`id=3`)
+- Totem: `Totem P0 3344`, código `5RIKKD`
+- Homologação biométrica Human: reserva `PAGE-9450220-15`, quarto `615`, reserva `id=23`, chave digital `61574EB1FD2943B1AB2348DF1793F04D`
+- Massa de re-homologação 2026-05-05:
+  - `HML-DOB-OK`, quarto `701`, fallback por data validado e chave digital `0BC559D6DDD44321B2D0EE1E5D99FF03`
+  - `HML-CANCELADA`, quarto `702`, reserva cancelada
+  - `HML-JA-CHECKIN`, quarto `703`, reserva já em check-in com descriptor dummy
+  - `HML-SEM-DESC`, quarto `704`, check-in ativo sem descriptor facial
+  - `HML-DESC-RUIM`, quarto `705`, check-in ativo com descriptor inválido/corrompido
+
+| TC | Resultado | Evidência / observação |
+|----|-----------|------------------------|
+| TC-001 | ✅ | Backend iniciou, actuator retornou `200`, `db.status=UP`, DataLoader informou admin existente. |
+| TC-002 | ✅ | Totem abriu em `5173` e redirecionou para `/setup`. |
+| TC-003 | ✅ | Admin abriu em `5174` e redirecionou para `/login`. |
+| TC-010 | ✅ | Revalidado em 2026-05-20 no navegador: ADMIN entrou no dashboard com menu apenas Dashboard, Hotéis e Usuários; API retornou `role=ADMIN`, `hotelId=null`. |
+| TC-011 | ✅ | Revalidado em 2026-05-20 no navegador: OPERADOR entrou com menu Dashboard, Reservas, Totens e Totem Studio; API retornou `hotelId=4`. |
+| TC-016 | ✅ | Revalidado em 2026-05-20: ADMIN acessando `/reservas` foi redirecionado para `/dashboard`, sem links operacionais no menu. |
+| TC-017 | ✅ | Revalidado em 2026-05-20: OPERADOR acessando `/hoteis` foi redirecionado para `/dashboard`, sem links de Hotéis/Usuários no menu. |
+| TC-012 | ✅ | Retestado após correção: senha inválida permanece em `/login` e exibe `E-mail ou senha inválidos.`. |
+| TC-013 | ✅ | Acesso direto a `/dashboard` sem sessão redirecionou para `/login`. |
+| TC-014 | ✅ | Token inválido em rota protegida retornou `401` pela API. |
+| TC-015 | ✅ | Logout voltou para `/login`; sessão não permaneceu acessível na UI. |
+| TC-020 | ✅ | Revalidado em 2026-05-20: `POST /api/hoteis` criou `Hotel HML 9589593` (`id=4`) com `201` e `ativo=true`. |
+| TC-021 | ✅ | Revalidado em 2026-05-20: `PUT /api/hoteis/4` atualizou nome para `Hotel HML 9589593 Editado`. |
+| TC-022 | ✅ | Revalidado em 2026-05-20: `PATCH /api/hoteis/5/desativar` retornou `204`; MySQL confirmou `ativo=0`. |
+| TC-023 | ✅ | Revalidado em 2026-05-20: CNPJ duplicado retornou `422`. |
+| TC-030 | ✅ | Revalidado em 2026-05-20: OPERADOR criou reserva `LH3KET` com `hotel_id=4` derivado do JWT mesmo enviando `hotelId=999999`; código curto alfanumérico gerado pelo backend. |
+| TC-031 | ✅ | Revalidado em 2026-05-20: `GET /api/checkin/reserva/LH3KET` localizou a reserva criada. |
+| TC-032 | ✅ | Checkout anterior ao check-in retornou `422` com detalhe de validação. |
+| TC-033 | ✅ | `PUT /api/reservas/5` alterou quarto e datas de `RES-P0-EDIT` com `200`. |
+| TC-034 | ✅ | `DELETE /api/reservas/{id}` retornou `204`; busca posterior da reserva excluída retornou `404`. |
+| TC-035 | ✅ | Criadas 16 reservas `PAGE-9450220-*`; paginação retornou 10 itens na página 0 e 6 na página 1. |
+| TC-040 | ✅ | Revalidado em 2026-05-20: totem `QQBWJC` criado com `design_id=3`; banco confirmou vínculo ao hotel `4`. |
+| TC-041 | ✅ | Revalidado em 2026-05-20: código `QQBWJC` ativou o totem, persistiu `localStorage.totem_config` e abriu IdlePage. |
+| TC-042 | ✅ | Revalidado em 2026-05-20: heartbeat atualizou `totens.ultimo_heartbeat`. |
+| TC-043 | ✅ | Revalidado em 2026-05-20: código inválido retornou `404` pela API. |
+| TC-050 | ✅ | Retestado com câmera real pelo usuário em 2026-05-05. Execução anterior com `PAGE-9450220-15` também confirmou check-in biométrico Human, chave ativa, `face_descriptor` JSON válido com 1024 dimensões e status `CHECKIN_REALIZADO`. |
+| TC-051 | ✅ | Revalidado em 2026-05-20: busca pública por CPF `90095895930` retornou a reserva `LH3KET`. |
+| TC-052 | ✅ | Revalidado em 2026-05-20: reserva inexistente retornou erro controlado `422`. |
+| TC-053 | ✅ | Revalidado em 2026-05-20 via API: segundo check-in de `LH3KET` já em `CHECKIN_REALIZADO` foi bloqueado com `422`. Navegador interno em 2026-05-05 também bloqueou `HML-JA-CHECKIN`. |
+| TC-054 | ✅ | Revalidado em 2026-05-20 via API: `HML-CANCELADA` ainda existe com status `CANCELADA`. Navegador interno em 2026-05-05 exibiu aviso e bloqueou avanço. |
+| TC-055 | ✅ | Revalidado em 2026-05-20 via API: DOB incorreto bloqueou; DOB correto `1990-01-01` confirmou `LH3KET` sem `face_descriptor`. |
+| TC-060 | ✅ | Revalidado em 2026-05-20: checkout de `LH3KET` concluiu com `CHECKOUT_REALIZADO`; banco confirmou chaves inativas após checkout. |
+| TC-061 | ✅ | Checkout de reserva `CONFIRMADA` foi bloqueado com `422` e detalhe `Check-out não permitido`. |
+| TC-100 | ✅ | Revalidado em 2026-05-20: OPERADOR `op-hml-9589593@teste.local` criado com `hotel_id=4`. |
+| TC-101 | ✅ | Revalidado em 2026-05-20: ADMIN `admin-hml-9589593@teste.local` criado com `hotelId=null`. |
+| TC-102 | ✅ | Revalidado em 2026-05-20: e-mail duplicado retornou `422`. |
+| TC-103 | ✅ | Revalidado em 2026-05-20: operador `id=7` desativado com `204`; login posterior retornou `401`. |
+| TC-104 | ✅ | Revalidado em 2026-05-20: auto-desativação do OPERADOR logado foi bloqueada com `403 Access Denied`. |
+| TC-110 | ✅ | Retestado com câmera real pelo usuário em 2026-05-05: mesmo rosto usado no check-in liberou acesso. Execução anterior em `/porta/615` também passou. |
+| TC-111 | ✅ | Retestado manualmente pelo usuário em 2026-05-05: tentativa com rosto diferente/condição negativa foi negada ou falhou com mensagem clara. |
+| TC-112 | ✅ | Revalidado em 2026-05-20: porta do quarto `993` sem descriptor retornou `200` com `sucesso=false` e mensagem clara; após checkout retornou `200` com `sucesso=false` e `Sem check-in ativo para este quarto`. |
+| TC-120 | ✅ | Rehomologado em 2026-05-20: preset `Design HML 9589593` criado, atribuído ao totem `QQBWJC`, e runtime do totem renderizou marca e carrossel do preset no navegador. |
+| TC-121 | ✅ | Rehomologado em 2026-05-20: `GET /api/totens/codigo/QQBWJC` retornou `design.id=3`; `localStorage.totem_config` persistiu o design atribuído. |
+| TC-130 | ✅ | Rehomologado em 2026-05-20: upload PNG criou mídia `id=10`, `mime_type=image/png`, `public_url=/uploads/totem/4/39bf3b0f-8ff5-4dba-a649-57e8c8283328.png`. |
+| TC-131 | ✅ | Rehomologado em 2026-05-20: preset persistiu mídia em `blocks` e IdlePage renderizou o carrossel `Spa aberto ate 22h` no runtime. |
+| TC-132 | ⚠️ | API e persistência rehomologadas em 2026-05-20: upload `video/mp4` criou mídia `id=11` e o preset persistiu `videoUrl`; playback visual em loop ainda deve ser conferido com MP4 real. |
+| TC-133 | ✅ | Rehomologado em 2026-05-20: mídia temporária `id=12` removida por `DELETE /api/hoteis/4/totem-media/12` com `204` e não apareceu mais no banco. |
+| TC-140 | ✅ | Revalidado em 2026-05-20: dashboard ADMIN renderizou visão FlexMedia no navegador e API retornou agregados globais (`totalCheckinsHoje=1`, `totalCheckoutsHoje=1`, `totalChavesHoje=3`). |
+| TC-141 | ✅ | Revalidado em 2026-05-20: dashboard OPERADOR renderizou visão do hotel e API com `hotelId=4` retornou histórico e métricas do hotel. |
+| TC-142 | ✅ | Revalidado em 2026-05-20: `metricas_diarias` registrou para hotel `4` em `2026-05-20`: `total_checkins=1`, `total_checkouts=1`, `total_chaves_emitidas=3`, `idioma_pt=1`. |
+| TC-150 | ✅ | Revalidado em 2026-05-20: emissão de chave retornou `201`, token único, `ativa=true` antes do checkout e `data_expiracao=2026-05-21 12:00:00`. |
+| TC-151 | ✅ | Revalidado em 2026-05-20: reemissão gerou token novo; após checkout, MySQL confirmou todas as chaves da reserva `LH3KET` com `ativa=0`. |
+| TC-240 | ✅ | Revalidado em 2026-05-20: heartbeat do totem `QQBWJC` atualizou `totens.ultimo_heartbeat` no banco. |
+| TC-250 | ✅ | Tabela de reservas do admin exibiu coluna `Dt. Nascimento` com datas preenchidas, ex. `15/05/1990` e `02/02/1992`. |
+| TC-320 | ✅ | Retestado após correção: OPERADOR com `hotelId=1` ignora `hotelId=2` da query e não recebe reservas de outro hotel. |
+| TC-321 | ✅ | Retestado após correção: OPERADOR recebe `403` ao tentar `POST /api/hoteis` com payload válido. |
+| TC-322 | ✅ | Request sem `Authorization` em `/api/hoteis` retornou `401`. |
+| TC-323 | ✅ | Preflight CORS permitiu `Origin: http://localhost:5174` e não retornou `Access-Control-Allow-Origin` para `http://evil.local`. |
+| TC-324 | ✅ | JWT inválido em `/api/hoteis` retornou `401`. |
+
+Notas de divergência entre documentação e schema atual:
+- `reservas.descriptor_facial` no documento corresponde a `reservas.face_descriptor` no banco.
+- `reservas.data_checkin_real` e `reservas.data_checkout_real` aparecem no documento, mas não existem no schema atual.
+- `chaves_digitais.expira_em` no documento corresponde a `chaves_digitais.data_expiracao` no banco.
+- Reconhecimento facial atual usa `@vladmandic/human` no browser. O backend só persiste e retorna `reservas.face_descriptor`; não há chamada para Face++ nem comparação biométrica no backend.
+
+Defeitos corrigidos e retestados:
+- `TC-104`: auto-desativação do usuário logado bloqueada; em 2026-05-20 o contrato retornou `403 Access Denied`.
+- `TC-131`: IdlePage passou a renderizar conteúdo ativo do payload público do totem.
+- `TC-320`: operador não recebe reservas de outro hotel mesmo informando `hotelId` arbitrário.
+- `TC-321`: endpoints de escrita de hotéis exigem `ADMIN`.
+
+Observação de ambiente:
+- `http://127.0.0.1:5173` foi incluído nas origens CORS de desenvolvimento e a ativação do totem com `5RIKKD` funcionou nesse host.
+- 2026-05-08: refinamento visual do fluxo do totem validado por build (`frontend-totem` e `frontend-admin`) e inspeção parcial no navegador interno em `/setup` e `/selecionar-idioma`; re-homologação completa do Totem Studio continua pendente porque o backend não estava em execução no momento da validação visual.
+- 2026-05-08: Totem Studio reorganizado para editar identidade global e conteúdo da tela inicial, com navegação de preview por telas internas (`Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave`, `Check-out`) sem edição granular por etapa. Requer re-homologação visual com backend ativo.
+- 2026-05-19: Totem Studio passou a usar mídia única obrigatória para a tela inicial, modo claro/escuro fixo para telas transacionais e acento com ajuste automático de contraste. Builds de `frontend-admin` e `frontend-totem` passaram; re-homologação manual com backend ativo segue pendente para upload real de imagem/vídeo e atribuição de preset a dispositivo.
+- 2026-05-20: paridade da tela `Escolha` validada no Chrome com abas `http://localhost:5174/conteudo` e `http://localhost:5173/`: preview e runtime usam proporção portrait 9:16, mantêm dois cards lado a lado e os títulos `Check in`/`Check out` permanecem em uma linha (`linesApprox=1`). Builds de `frontend-admin` e `frontend-totem` passaram.
+- 2026-05-20: Totem Studio recebeu aviso de largura mínima para viewports abaixo de 1280 px, ocultando o workspace para evitar preview comprimido. Build do `frontend-admin` passou; Chrome em viewport amplo confirmou workspace visível e aviso oculto.
+- 2026-05-20: proporção dos cards da tela `Escolha` corrigida para escalar por largura (`aspect-ratio`), evitando cards altos/estreitos no Studio. Chrome confirmou ratio `1.12` tanto no preview (`148.06 x 132.19`) quanto no runtime (`217.77 x 194.43`), com títulos em uma linha. Builds de `frontend-admin` e `frontend-totem` passaram.
+- 2026-05-20: re-homologação P0/P1 por API, navegador e MySQL validou auth, escopo ADMIN/OPERADOR, reserva com código automático, busca por código/CPF, fallback DOB, checkout, chave digital, métricas, Totem Studio, upload de imagem/MP4, atribuição de preset, ativação de totem e heartbeat. Pendências: câmera real para check-in biométrico/porta com mesmo rosto/rosto diferente e playback visual com MP4 real em loop.
+- 2026-05-20: divergências de contrato observadas e aceitas no tracker: auto-desativação por OPERADOR bloqueia com `403` em vez de `422`; validação de porta sem descriptor ou sem check-in ativo retorna `200` com `sucesso=false`; emissão de chave retorna `201 Created`.
+
+---
+
+<a id="p0"></a>
+# 🔴 P0 — Fluxos bloqueantes
+
+O sistema precisa funcionar 100% nestes cenários antes de qualquer outro teste.
+
+## 1.1 Subida do ambiente
+
+**Objetivo:** garantir que as 3 superfícies sobem.
+
+### TC-001 — Backend sobe e expõe actuator
+- **Passos:** `docker-compose up mysql -d` → `cd backend && ./mvnw spring-boot:run`
+- **Esperado:**
+  - Log `Started CheckinHubApplication`
+  - `GET http://localhost:8080/actuator/health` → `200 {"status":"UP"}`
+  - `DataLoader` cria usuário `admin@flexmedia.com` na tabela `usuarios` (conferir no MySQL)
+- **Banco:** tabela `usuarios` com 1 linha (role `ADMIN`, `ativo = 1`)
+
+### TC-002 — Totem sobe e carrega setup
+- **Passos:** `cd frontend-totem && npm run dev` → abrir `http://localhost:5173`
+- **Esperado:** redirecionado para `/setup` (totem ainda não ativado) OU para `/` se `localStorage.totemConfig` já setado
+
+### TC-003 — Admin sobe e carrega login
+- **Passos:** `cd frontend-admin && npm run dev` → abrir `http://localhost:5174`
+- **Esperado:** redireciona para `/login` com formulário visível
+
+---
+
+## 1.2 Autenticação do painel admin
+
+### TC-010 — Login ADMIN FlexMedia (happy path)
+- **Pré:** backend rodando, seed do DataLoader executado
+- **Passos:** `/login` → email `admin@flexmedia.com` / senha `admin123` → Entrar
+- **Esperado:**
+  - `POST /api/auth/login` retorna `200` com `{ token, email, role: "ADMIN", hotelId: null }`
+  - `localStorage` persiste `admin_token` e `admin_usuario`
+  - Redireciona para `/dashboard`
+  - Menu lateral exibe: Dashboard, Hotéis, Usuários (NÃO exibe Reservas, Totens ou Totem Studio)
+
+### TC-011 — Login OPERADOR (gestor vinculado a hotel)
+- **Pré:** criar hotel + usuário OPERADOR via `POST /api/auth/register` com role=OPERADOR e `hotelId` válido
+- **Passos:** login com credenciais do OPERADOR
+- **Esperado:**
+  - Token retorna `role: "OPERADOR"`, `hotelId: <id>`
+  - Redireciona para `/dashboard`
+  - Menu exibe: Dashboard, Reservas, Totens, Totem Studio (NÃO exibe Hotéis/Usuários)
+
+### TC-012 — Login com credencial inválida
+- **Passos:** `/login` → email correto + senha errada
+- **Esperado:**
+  - `POST /api/auth/login` retorna `401`
+  - Mensagem de erro visível na UI
+  - Permanece em `/login`, sem token no `localStorage`
+
+### TC-013 — Acesso a rota protegida sem token
+- **Passos:** deslogado, acessar `http://localhost:5174/dashboard` direto
+- **Esperado:** `PrivateRoute` redireciona para `/login`
+
+### TC-014 — Token expirado/inválido retorna 401
+- **Passos:** editar `localStorage.admin_token` com string inválida → recarregar `/dashboard`
+- **Esperado:** primeira chamada retorna `401` → interceptor axios limpa storage e redireciona para `/login`
+
+### TC-015 — Logout limpa sessão
+- **Passos:** logado → clicar em Sair
+- **Esperado:** `localStorage` limpo, redireciona para `/login`, voltar no histórico não readquire sessão
+
+### TC-016 — ADMIN não acessa operação de hotel
+- **Pré:** logado como ADMIN
+- **Passos:** acessar manualmente `/reservas`, `/totem` e `/conteudo`
+- **Esperado:** app redireciona para `/dashboard`; menu lateral não exibe Reservas, Totens nem Totem Studio
+
+### TC-017 — OPERADOR não acessa console FlexMedia
+- **Pré:** logado como OPERADOR
+- **Passos:** acessar manualmente `/hoteis` e `/usuarios`
+- **Esperado:** app redireciona para `/dashboard`; menu lateral não exibe Hotéis nem Usuários
+
+---
+
+## 1.3 Cadastro de hotel (ADMIN)
+
+### TC-020 — Criar hotel (happy path)
+- **Pré:** logado como ADMIN
+- **Passos:** `/hoteis` → Novo Hotel → preencher Nome, CNPJ (formato `XX.XXX.XXX/XXXX-XX`), Cidade, UF → Salvar
+- **Esperado:**
+  - `POST /api/hoteis` retorna `201` com objeto criado (`id`, `ativo: true`)
+  - Hotel aparece na listagem
+  - **Banco:** linha criada em `hoteis` com `ativo = 1`
+
+### TC-021 — Editar hotel
+- **Passos:** lista → editar → alterar nome → Salvar
+- **Esperado:** `PUT /api/hoteis/{id}` retorna `200`, lista atualizada
+
+### TC-022 — Desativar hotel
+- **Passos:** lista → Desativar
+- **Esperado:** `PATCH /api/hoteis/{id}/desativar` retorna `200`, hotel marcado como inativo, **banco:** `ativo = 0`
+
+### TC-023 — CNPJ duplicado bloqueia criação
+- **Passos:** criar 2 hotéis com o mesmo CNPJ
+- **Esperado:** segundo POST retorna `400`/`409`, mensagem de erro visível, registro não criado
+
+---
+
+## 1.4 Cadastro de reservas (OPERADOR)
+
+### TC-030 — Criar reserva pelo operador
+- **Pré:** logado como OPERADOR de hotel X
+- **Passos:** `/reservas` → Nova Reserva → preencher Hóspede (Nome, CPF, DOB opcional, Email opcional), Quarto, Check-in, Check-out → Salvar
+- **Esperado:**
+  - `POST /api/reservas` retorna `201`
+  - Reserva aparece com status `CONFIRMADA` e codigo alfanumerico curto, com ate 6 caracteres e sem hifens
+  - O formulario nao solicita hotel nem codigo de reserva para o operador
+  - **Banco:** linha em `reservas` com `hotel_id = X`, `status = 'CONFIRMADA'`, `codigo_reserva` unico
+
+### TC-031 — Código de reserva gerado funciona no totem
+- **Passos:** criar reserva pelo operador → copiar o `codigoReserva` retornado → buscar no totem pelo codigo
+- **Esperado:** `GET /api/checkin/reserva/{codigo}` retorna a reserva correta para o hospede confirmar os dados
+
+### TC-032 — Data de checkout anterior ao checkin é rejeitada
+- **Passos:** criar reserva com `dataCheckout < dataCheckin`
+- **Esperado:** POST retorna `400`, mensagem de validação
+
+### TC-033 — Editar reserva
+- **Passos:** lista → editar → alterar quarto ou datas → Salvar
+- **Esperado:** `PUT /api/reservas/{id}` retorna `200`, lista atualizada
+
+### TC-034 — Excluir reserva
+- **Passos:** lista → Excluir → confirmar
+- **Esperado:** reserva removida do banco (ou flagged como excluída — verificar implementação)
+
+### TC-035 — Listagem com paginação e filtros
+- **Passos:** criar 15+ reservas → navegar páginas → filtrar por status/busca
+- **Esperado:** `GET /api/reservas?page=&size=&status=&busca=` retorna página correta, filtro aplicado no backend
+
+---
+
+## 1.5 Ativação do totem
+
+### TC-040 — Criar totem no painel (OPERADOR)
+- **Pré:** logado como OPERADOR
+- **Passos:** `/totens` → Novo Totem → nome → Salvar
+- **Esperado:**
+  - `POST /api/hoteis/{hotelId}/totens` retorna `201` com `codigo` único gerado
+  - Totem aparece na lista com status offline
+  - **Banco:** linha em `totens` vinculada ao hotel, `ultimo_heartbeat = NULL`
+
+### TC-041 — Ativar totem usando código
+- **Pré:** totem criado (TC-040), código copiado
+- **Passos:** abrir totem em `http://localhost:5173/setup` → colar código → Ativar
+- **Esperado:**
+  - `GET /api/totens/codigo/{codigo}` retorna config + `hotelId`
+  - `localStorage.totemConfig` persistido (código, hotelId, logo, cores)
+  - Redireciona para `/` (IdlePage)
+
+### TC-042 — Heartbeat marca totem como online
+- **Pré:** TC-041 concluído
+- **Passos:** deixar totem aberto → aguardar ~60s → recarregar admin
+- **Esperado:**
+  - `POST /api/totens/{id}/heartbeat` chamado pelo totem
+  - Admin (refresh 30s) mostra status Online
+  - **Banco:** `totens.ultimo_heartbeat` atualizado
+
+### TC-043 — Código de totem inválido
+- **Passos:** `/setup` → código inexistente
+- **Esperado:** mensagem de erro, permanece em `/setup`, `localStorage` não alterado
+
+---
+
+## 1.6 Fluxo de check-in no totem (CORAÇÃO DO PRODUTO)
+
+### TC-050 — Check-in completo com código de reserva (happy path)
+- **Pré:** totem ativado (TC-041), reserva CONFIRMADA criada (TC-030), câmera disponível no dispositivo
+- **Passos:**
+  1. Idle → selecionar idioma na tela → tocar Check-in → vai para `/buscar-reserva`
+  2. Escolher Português → vai para `/buscar-reserva`
+  3. Digitar código da reserva → Buscar
+  4. Conferir dados do hóspede exibidos → Confirmar
+  5. Permitir câmera → Human detecta rosto no browser → clicar em `Validar rosto`
+  6. Frontend captura o embedding facial e confirma check-in
+  7. Tela `/emitir-chave` exibe token digital
+  8. Avançar para `/obrigado` → reset automático para `/`
+- **Esperado (por etapa):**
+  - Passo 3: `GET /api/checkin/reserva/{codigo}` → `200` com dados
+  - Passo 4: valida que `status == CONFIRMADA` (se não, mostra erro)
+  - Passo 6: `POST /api/checkin/confirmar/{id}` envia `{ faceDescriptor, idioma }` → `200`
+  - Passo 7: `POST /api/chaves/{reservaId}` → `200` com `{ token, dataExpiracao, tipo }`
+- **Banco (estado final):**
+  - `reservas.status` = `CHECKIN_REALIZADO`
+  - `reservas.face_descriptor` preenchido com JSON array do embedding Human
+  - `JSON_VALID(reservas.face_descriptor) = 1`
+  - `JSON_LENGTH(reservas.face_descriptor) = 1024`
+  - `chaves_digitais`: 1 linha ativa para a reserva, com `token`, `data_expiracao`, `ativa = 1`
+  - `metricas_diarias`: contador de check-ins do hotel+data incrementado em 1
+
+**Execução 2026-04-28:** passou com `PAGE-9450220-15` / quarto `615`. Banco confirmou `face_descriptor` válido, 1024 dimensões, chave digital ativa e status `CHECKIN_REALIZADO`.
+
+**Execução 2026-05-05:** retestado manualmente pelo usuário com câmera real. Navegador interno não consegue validar câmera, mas validou o fluxo alternativo por data de nascimento em `HML-DOB-OK` até `/emitir-chave`.
+
+### TC-051 — Check-in buscando por CPF
+- **Passos:** idêntico a TC-050, mas no passo 3 digitar CPF (formato `000.000.000-00` OU `00000000000`)
+- **Esperado:** busca encontra reserva, fluxo segue igual
+
+### TC-052 — Reserva não encontrada
+- **Passos:** TC-050 passo 3 com código inexistente
+- **Esperado:** mensagem clara, permanece em `/buscar-reserva`, permite nova tentativa
+
+### TC-053 — Reserva já com check-in não permite novo check-in
+- **Pré:** reserva já com `status = CHECKIN_REALIZADO`
+- **Passos:** TC-050 até passo 4
+- **Esperado:** `POST /api/checkin/confirmar` retorna `400` com mensagem de status inválido, UI exibe erro
+
+**Execução 2026-05-05:** passou no navegador interno com `HML-JA-CHECKIN`. A tela de confirmação exibiu aviso de check-in já realizado e não disponibilizou botão para prosseguir.
+
+### TC-054 — Reserva CANCELADA não permite check-in
+- **Pré:** reserva com `status = CANCELADA`
+- **Esperado:** ConfirmDataPage exibe aviso e não permite avançar
+
+**Execução 2026-05-05:** passou no navegador interno com `HML-CANCELADA`. A tela exibiu aviso de reserva cancelada e manteve apenas a ação de voltar.
+
+### TC-055 — Fallback de confirmação por data de nascimento quando câmera/Human falha
+- **Pré:** dispositivo sem câmera OU Human não detecta rosto após tentativas
+- **Passos:** FacialRecognitionPage → usar fallback → digitar DOB → Confirmar
+- **Esperado:**
+  - Backend compara `dataNascimento` enviada com `reservas.hospede_data_nascimento`
+  - Se bate: check-in confirmado sem descriptor facial (ou com flag)
+  - Se não bate: `400`, mensagem de erro
+
+---
+
+## 1.7 Fluxo de check-out no totem
+
+### TC-060 — Check-out completo (happy path)
+- **Pré:** reserva com `status = CHECKIN_REALIZADO` (TC-050 concluído)
+- **Passos:**
+  1. Idle → tocar tela → idioma → `/checkout`
+  2. Informar código/CPF → buscar
+  3. Conferir resumo → Confirmar saída
+  4. Tela sucesso → `/obrigado`
+- **Esperado:**
+  - Passo 2: `GET /api/checkout/reserva/{codigo}` → `200`
+  - Passo 3: `POST /api/checkout/confirmar/{id}` → `200`
+- **Banco:**
+  - `reservas.status` = `CHECKOUT_REALIZADO`
+  - `reservas.data_checkout_real` = timestamp
+  - `chaves_digitais.ativa = 0` para todas as chaves da reserva
+  - `metricas_diarias`: contador de check-outs incrementado
+
+### TC-061 — Check-out em reserva sem check-in falha
+- **Pré:** reserva `CONFIRMADA` (sem check-in)
+- **Esperado:** backend retorna `400`, UI mostra erro
+
+---
+
+<a id="p1"></a>
+# 🟠 P1 — Fluxos críticos
+
+Funcionalidades essenciais que sustentam o produto ao longo do tempo.
+
+## 2.1 Gestão de usuários (ADMIN)
+
+### TC-100 — Cadastrar usuário OPERADOR vinculado a hotel
+- **Pré:** logado como ADMIN, hotel existente
+- **Passos:** `/usuarios` → Novo → nome, email, senha, role `OPERADOR`, hotel → Salvar
+- **Esperado:** `POST /api/auth/register` → `201`, usuário aparece na lista, **banco:** `usuarios.hotel_id` preenchido
+
+### TC-101 — Cadastrar outro ADMIN
+- **Passos:** idêntico, role `ADMIN`, sem hotel
+- **Esperado:** criado com `hotel_id = NULL`
+
+### TC-102 — Email duplicado bloqueia
+- **Esperado:** `POST /api/auth/register` → `400`/`409`
+
+### TC-103 — Desativar usuário
+- **Passos:** lista → Desativar
+- **Esperado:** `DELETE /api/auth/usuarios/{id}` → `200`, `usuarios.ativo = 0`, usuário não consegue mais logar
+
+### TC-104 — Não é possível desativar próprio usuário logado
+- **Esperado:** backend ou UI bloqueia ação (validar comportamento esperado)
+
+---
+
+## 2.2 Reconhecimento facial na porta do quarto
+
+### TC-110 — Validação facial bem-sucedida abre porta
+- **Pré:** hóspede com check-in feito (descriptor armazenado)
+- **Passos:** abrir totem em `/porta/{numeroQuarto}` → câmera → capturar rosto
+- **Esperado:**
+  - Frontend captura descriptor ao vivo com Human
+  - `POST /api/quartos/{quarto}/validar-face` retorna `descriptorArmazenado`
+  - Frontend compara localmente com `human.match.similarity(...)`
+  - Similaridade `>= 0.5` → UI mostra "Acesso liberado"
+
+**Execução 2026-04-28:** passou manualmente em `/porta/615` com o mesmo rosto usado no check-in.
+
+**Execução 2026-05-05:** retestado manualmente pelo usuário com câmera real; mesmo rosto liberou acesso.
+
+### TC-111 — Validação facial nega acesso com rosto diferente
+- **Passos:** outra pessoa tenta acesso
+- **Esperado:** similaridade `< 0.5`, UI mostra "Acesso negado" ou mensagem clara de validação facial
+
+**Execução 2026-04-28:** passou manualmente conforme relato do usuário.
+
+**Execução 2026-05-05:** retestado manualmente pelo usuário; condição negativa foi negada ou falhou com mensagem clara.
+
+### TC-112 — Quarto sem check-in ativo
+- **Passos:** `/porta/{quartoSemReserva}`
+- **Esperado:** retorna erro, UI informa que não há hóspede ativo no quarto
+
+**Execução 2026-05-05:** passou por validação complementar de API:
+- `POST /api/quartos/704/validar-face` retornou `Sem imagem facial registrada para este hóspede`.
+- `POST /api/quartos/799/validar-face` retornou `Sem check-in ativo para este quarto`.
+
+---
+
+## 2.3 Totem Studio e aparência do totem
+
+### TC-120 — Criar preset, atribuir ao totem e renderizar design
+- **Pré:** OPERADOR logado
+- **Passos:** `/conteudo` → clicar "Novo preset" ou selecionar preset existente → informar nome do design → editar tema/blocos no Totem Studio → Salvar → `/totem` → criar/editar dispositivo e selecionar o preset salvo
+- **Esperado:**
+  - `POST /api/hoteis/{hotelId}/totem-designs` ou `PUT /api/hoteis/{hotelId}/totem-designs/{designId}` retorna `200/201`
+  - `PUT /api/totens/{id}` salva `designId` opcional
+  - Totem renderiza o preset atribuído na IdlePage
+  - Preview do Studio permite navegar entre `Tela inicial`, `Escolha`, `Busca`, `Confirmação`, `Biometria`, `Chave` e `Check-out`
+  - Telas internas do fluxo herdam identidade atribuída sem exigir customização por etapa
+  - Na lista de presets salvos, cada card exibe apenas o nome, com botões de renomear (lápis) e duplicar (copiar)
+  - Botão "Novo preset" cria card com bordas tracejadas e campo de nome focado, indicando design não salvo
+  - Ao abrir o Studio, o primeiro preset já vem selecionado e seu design carregado no editor
+  - Não há seção "Bases visuais" nem campo "Densidade do fluxo"; o design base interno é aplicado automaticamente ao criar um novo preset
+
+### TC-121 — Preset atribuído persiste entre reinícios do totem
+- **Passos:** salvar preset → atribuir a um totem → fechar navegador do totem → reabrir
+- **Esperado:** preset permanece no backend e reaparece na IdlePage daquele dispositivo
+
+---
+
+## 2.4 Mídia e conteúdo exibido no totem
+
+### TC-130 — Enviar mídia para biblioteca do Totem Studio
+- **Passos:** `/conteudo` → Biblioteca de mídia → enviar imagem ou MP4
+- **Esperado:** `POST /api/hoteis/{hotelId}/totem-media` → `201`, mídia aparece na biblioteca e arquivo fica acessível por `/uploads/...`
+
+### TC-131 — Mídia do preset aparece na IdlePage do totem
+- **Passos:** associar mídia a um bloco, salvar preset, atribuir a um totem e recarregar totem na tela idle
+- **Esperado:** Totem recebe o design atribuído e exibe imagem/video no bloco configurado
+
+### TC-131B — Carrossel de conteúdo do preset aparece na IdlePage
+- **Passos:** `/conteudo` → adicionar itens em `Conteúdo em destaque` → escolher velocidade → salvar preset → atribuir a um totem → recarregar totem na tela idle
+- **Esperado:** Totem exibe o carrossel central com itens ativos, sem mensagem de apoio fixa, e mantém o botão `Toque para começar` na área inferior
+
+### TC-132 — Vídeo roda em loop no preview e no totem
+- **Passos:** adicionar bloco de vídeo, selecionar MP4, salvar preset, atribuir a um totem e observar preview e idle
+- **Esperado:** vídeo renderiza com `muted loop autoPlay playsInline` no admin e no totem
+
+### TC-133 — Remover mídia da biblioteca
+- **Esperado:** `DELETE /api/hoteis/{hotelId}/totem-media/{assetId}` → `204`, registro removido e arquivo local apagado quando possível
+
+---
+
+## 2.5 Dashboard de métricas
+
+### TC-140 — Dashboard ADMIN (visão global)
+- **Pré:** logado como ADMIN, 2+ hotéis com check-ins registrados
+- **Passos:** `/dashboard`
+- **Esperado:**
+  - `GET /api/metricas/dashboard` (sem `hotelId`) retorna agregado de todos os hotéis
+  - UI mostra visão FlexMedia/plataforma com hotéis ativos, hotéis cadastrados, operadores ativos e uso global do dia
+  - Não exibe dados mockados quando backend/API falha
+
+### TC-141 — Dashboard OPERADOR (visão do hotel)
+- **Pré:** logado como OPERADOR
+- **Esperado:**
+  - `GET /api/metricas/dashboard?hotelId={hotel}` retorna apenas dados do seu hotel
+  - UI mostra histórico e idiomas do hotel quando existirem dados
+  - Não exibe dados mockados quando backend/API falha
+
+### TC-142 — Métrica incrementa ao fazer check-in
+- **Passos:** anotar contador atual → fazer TC-050 → recarregar dashboard
+- **Esperado:** contador do dia +1
+
+---
+
+## 2.6 Emissão de chave digital
+
+### TC-150 — Chave gerada tem token único e expiração
+- **Esperado (TC-050 passo 7):**
+  - `chaves_digitais.token` único (UUID ou similar)
+  - `expira_em` = `dataCheckout + horário configurado`
+  - `ativa = 1`
+
+### TC-151 — Reemitir chave invalida a anterior
+- **Pré:** reserva com chave ativa
+- **Passos:** disparar `POST /api/chaves/{reservaId}` novamente
+- **Esperado:** chave antiga fica `ativa = 0`, nova chave ativa criada
+
+---
+
+<a id="p2"></a>
+# 🟡 P2 — Fluxos importantes
+
+Funcionalidades de suporte e UX.
+
+## 3.1 i18n do totem
+
+### TC-200 — Textos traduzidos em Português, Inglês e Espanhol
+- **Passos:** para cada idioma, passar por `/buscar-reserva`, `/confirmar-dados`, `/facial`, `/obrigado`
+- **Esperado:** todos os textos traduzidos, sem chaves cruas (`key.not.found`)
+
+### TC-201 — Formato de DOB muda com idioma
+- **Passos:** PT → `DD/MM/AAAA`; EN → `MM/DD/YYYY`; ES → `DD/MM/AAAA`
+- **Esperado:** placeholders e máscaras corretas
+
+---
+
+## 3.2 Auto-reset por inatividade
+
+### TC-210 — Totem volta para idle após 90s sem interação
+- **Passos:** navegar até `/buscar-reserva` → não mexer por 90s
+- **Esperado:** `useIdleReset` dispara → estado limpo → `/`
+
+### TC-211 — Interação reinicia o timer
+- **Passos:** mexer a cada 30s
+- **Esperado:** não reseta
+
+---
+
+## 3.3 Paginação de listagens
+
+### TC-220 — Hotéis com paginação
+- **Esperado:** `GET /api/hoteis?page=0&size=10` respeita parâmetros, UI navega corretamente
+
+### TC-221 — Reservas com filtros combinados
+- **Passos:** filtrar status `CONFIRMADA` + busca por nome
+- **Esperado:** backend retorna intersecção correta
+
+---
+
+## 3.4 MockPMSAdapter
+
+### TC-230 — Check-in notifica PMS mock
+- **Pré:** `app.pms.adapter=mock` (padrão)
+- **Passos:** fazer TC-050
+- **Esperado:** log do backend mostra chamada ao `MockPMSAdapter.notificarCheckin`
+
+---
+
+## 3.5 Status online/offline de totens
+
+### TC-240 — Totem com heartbeat recente aparece Online
+- **Critério:** `ultimo_heartbeat` < 2 min atrás → Online; senão Offline
+
+### TC-241 — Refresh automático da lista de totens (30s)
+- **Passos:** admin aberto em aba → matar totem → aguardar 30s
+- **Esperado:** status atualiza sem reload manual
+
+---
+
+## 3.6 Visualização de data de nascimento na reserva
+
+### TC-250 — DOB exibida na tabela de reservas do admin
+- **Esperado:** coluna mostra DOB quando preenchida, vazio quando não
+
+---
+
+<a id="p3"></a>
+# 🟢 P3 — Edge cases e refinamento
+
+## 4.1 Validações de campo
+
+### TC-300 — CPF em formatos diferentes
+- **Passos:** testar busca com `000.000.000-00`, `00000000000`, espaços extras, letras
+- **Esperado:** backend aceita ambos os formatos numéricos; rejeita com letras
+
+### TC-301 — CNPJ inválido
+- **Esperado:** backend rejeita formatos diferentes de `XX.XXX.XXX/XXXX-XX`
+
+### TC-302 — UF com 3 caracteres
+- **Esperado:** validação rejeita (max 2)
+
+### TC-303 — Email inválido na reserva
+- **Esperado:** `@valid` rejeita `abc@` ou `abc.com`
+
+### TC-304 — Nome do hóspede com > 150 caracteres
+- **Esperado:** truncado ou rejeitado
+
+---
+
+## 4.2 Concorrência
+
+### TC-310 — Dois totens tentando check-in da mesma reserva simultaneamente
+- **Esperado:** apenas um sucede; o outro recebe `400` (status já alterado)
+
+### TC-311 — Emitir chave durante check-out
+- **Esperado:** comportamento definido (preferencialmente bloqueia)
+
+---
+
+## 4.3 Segurança
+
+### TC-320 — OPERADOR tenta acessar dados de outro hotel
+- **Passos:** logado como OPERADOR de hotel A → chamar `GET /api/reservas?hotelId=B` via curl
+- **Esperado:** backend filtra por `hotelId` do JWT, retorna apenas hotel A (ou `403`)
+
+### TC-321 — OPERADOR tenta criar hotel (endpoint ADMIN)
+- **Esperado:** `POST /api/hoteis` → `403`
+
+### TC-322 — Request sem Authorization header em rota protegida
+- **Esperado:** `401`
+
+### TC-323 — CORS bloqueia origem não permitida
+- **Esperado:** config `SecurityConfig` permite apenas origens configuradas
+
+### TC-324 — JWT adulterado é rejeitado
+- **Passos:** alterar 1 caractere do token → chamar endpoint
+- **Esperado:** `JwtAuthFilter` rejeita com `401`
+
+---
+
+## 4.4 Câmera e Human
+
+### TC-330 — Usuário nega permissão de câmera
+- **Esperado:** UI oferece fallback por DOB (TC-055)
+
+### TC-331 — Nenhum rosto detectado após N segundos
+- **Esperado:** timeout, UI sugere fallback ou reposicionamento
+
+### TC-332 — Múltiplos rostos no frame
+- **Esperado:** UI pede para apenas 1 pessoa ficar em frente à câmera
+
+### TC-333 — Descriptor corrompido no banco
+- **Esperado:** `/porta/{n}` recebe descriptor inválido, frontend falha de forma controlada e mostra mensagem clara, sem erro 500 no backend
+
+---
+
+## 4.5 Dados e integridade
+
+### TC-340 — Soft delete de hotel com reservas ativas
+- **Passos:** desativar hotel que tem reservas `CHECKIN_REALIZADO`
+- **Esperado:** comportamento definido (bloquear? cascatear?) — documentar
+
+### TC-341 — Excluir totem ativo em uso
+- **Esperado:** totem em uso recebe erro no próximo heartbeat
+
+### TC-342 — Reserva com check-out após expiração da chave
+- **Esperado:** check-out ainda funciona, chave é invalidada mesmo se já expirada
+
+---
+
+## 4.6 UX e acessibilidade
+
+### TC-350 — Botões do totem com área de toque grande (kiosk)
+### TC-351 — Admin responsivo em resoluções de tablet
+### TC-352 — Mensagens de erro claras e em PT-BR
+### TC-353 — Loading states visíveis em todas as chamadas HTTP
+
+---
+
+<a id="apendice"></a>
+# Apêndice — Setup de dados de teste
+
+## A.1 Dados mínimos para testar P0
+
+```sql
+-- Após subir backend (DataLoader já cria admin):
+-- 1. Via admin UI logado como admin@flexmedia.com / admin123:
+
+-- Criar hotel teste
+POST /api/hoteis { nome: "Hotel Teste", cnpj: "11.222.333/0001-44", cidade: "São Paulo", estado: "SP" }
+
+-- Criar operador do hotel
+POST /api/auth/register { nome: "Op Teste", email: "op@teste.com", senha: "op123", role: "OPERADOR", hotelId: 1 }
+
+-- 2. Logar como op@teste.com e criar:
+POST /api/reservas {
+  hospedeNome: "João Silva",
+  hospedeCpf: "123.456.789-00",
+  hospedeDataNascimento: "1990-05-15",
+  hospedeEmail: "joao@email.com",
+  quartoNumero: "101",
+  hotelId: 1,
+  dataCheckin: "2026-04-16",
+  dataCheckout: "2026-04-20"
+}
+
+-- Criar totem
+POST /api/hoteis/1/totens { nome: "Totem Lobby" }
+-- Copiar o codigo retornado
+```
+
+## A.2 Limpeza entre suítes
+
+```sql
+-- Restaurar estado zero (cuidado em produção):
+DELETE FROM chaves_digitais;
+DELETE FROM metricas_diarias;
+UPDATE reservas SET status = 'CONFIRMADA', face_descriptor = NULL;
+```
+
+## A.3 Ferramentas sugeridas
+
+- **API:** Postman/Insomnia/Bruno com collection importando os endpoints
+- **Banco:** MySQL Workbench ou `docker exec -it mysql mysql -ucheckinhub -pcheckinhub123 checkinhub`
+- **E2E admin/totem:** Playwright (futuro)
+- **Câmera em dev:** usar webcam real ou OBS Virtual Camera com foto para repetibilidade
+
+## A.4 Convenção para registrar execução
+
+Para cada execução da suíte, preencher tabela:
+
+| TC | Data | Resultado | Observação |
+|----|------|-----------|------------|
+| TC-001 | 2026-04-24 | ✅ | Backend `UP`, MySQL `UP`, admin seed existente. |
+| TC-012 | 2026-04-24 | ⚠️ | API retorna `401`, mas a UI não exibiu mensagem de erro. |
+| TC-030 | 2026-04-24 | ⚠️ | Reserva criada, mas checkout/DOB não persistiram como informado no formulário. |
+| TC-050 | 2026-04-24 | ⚠️ | Check-in concluiu sem câmera real; fallback manual bypassou DOB e `face_descriptor` ficou vazio. |
+| TC-050 | 2026-04-28 | ✅ | Check-in biométrico com Human concluiu para `PAGE-9450220-15`; `face_descriptor` JSON válido com 1024 dimensões e chave digital ativa. |
+| TC-050 | 2026-05-05 | ✅ | Retestado manualmente pelo usuário com câmera real. Navegador interno não valida câmera, mas fluxo alternativo por DOB foi exercitado em `HML-DOB-OK`. |
+| TC-053 | 2026-05-05 | ✅ | `HML-JA-CHECKIN` bloqueou novo check-in na tela de confirmação. |
+| TC-054 | 2026-05-05 | ✅ | `HML-CANCELADA` exibiu aviso de reserva cancelada e não permitiu avançar. |
+| TC-055 | 2026-05-05 | ✅ | DOB incorreto bloqueou; DOB correto `01/01/1990` emitiu chave para `HML-DOB-OK`. Banco confirmou `CHECKIN_REALIZADO` e chave ativa. |
+| TC-110 | 2026-04-28 | ✅ | Porta `/porta/615` liberou o mesmo rosto usado no check-in. |
+| TC-111 | 2026-04-28 | ✅ | Porta negou rosto diferente/condição negativa conforme teste manual do usuário. |
+| TC-110 | 2026-05-05 | ✅ | Retestado manualmente pelo usuário com câmera real; mesmo rosto liberou acesso. |
+| TC-111 | 2026-05-05 | ✅ | Retestado manualmente pelo usuário; rosto diferente/condição negativa foi negado ou falhou com mensagem clara. |
+| TC-112 | 2026-05-05 | ✅ | API retornou erro controlado para quarto sem check-in ativo (`799`) e para quarto com check-in ativo sem face (`704`). |
+| TC-010/TC-011 | 2026-05-20 | ✅ | Menus e dashboards por perfil revalidados no navegador: ADMIN vê Dashboard/Hotéis/Usuários; OPERADOR vê Dashboard/Reservas/Totens/Totem Studio. |
+| TC-016/TC-017 | 2026-05-20 | ✅ | Rotas fora do perfil redirecionaram para `/dashboard`: ADMIN em `/reservas`; OPERADOR em `/hoteis`. |
+| TC-030/TC-031 | 2026-05-20 | ✅ | OPERADOR criou reserva `LH3KET`; backend gerou código curto e vinculou `hotel_id=4`; busca pública por código localizou a reserva. |
+| TC-051/TC-052 | 2026-05-20 | ✅ | Busca por CPF `90095895930` retornou `LH3KET`; reserva inexistente retornou erro controlado `422`. |
+| TC-055/TC-060 | 2026-05-20 | ✅ | DOB incorreto bloqueou; DOB correto confirmou check-in sem descriptor; checkout concluiu e banco confirmou `CHECKOUT_REALIZADO`. |
+| TC-112 | 2026-05-20 | ✅ | Porta sem descriptor e porta sem check-in ativo retornaram `200` com `sucesso=false` e mensagem clara. |
+| TC-120/TC-121 | 2026-05-20 | ✅ | Preset `Design HML 9589593` atribuído ao totem `QQBWJC`; runtime carregou marca/carrossel e `localStorage.totem_config` persistiu `design.id=3`. |
+| TC-130/TC-131/TC-133 | 2026-05-20 | ✅ | Upload PNG persistiu mídia `id=10`, preset usou a URL no JSON e mídia temporária `id=12` foi removida com `204`. |
+| TC-132 | 2026-05-20 | ⚠️ | Upload/persistência de MP4 validado (`id=11`), mas loop visual ainda precisa ser conferido com um MP4 real. |
+| TC-140/TC-141/TC-142 | 2026-05-20 | ✅ | Dashboards ADMIN/OPERADOR retornaram métricas reais; `metricas_diarias` do hotel `4` registrou 1 check-in, 1 checkout, 3 chaves e idioma PT. |
+| TC-150/TC-151 | 2026-05-20 | ✅ | Chave retornou `201` e token único; reemissão gerou novo token; após checkout todas as chaves da reserva ficaram inativas. |
+| TC-240 | 2026-05-20 | ✅ | Heartbeat do totem `QQBWJC` persistiu `ultimo_heartbeat` em `totens`. |
+| TC-055 | 2026-04-24 | ❌ | Fallback manual não exigiu data de nascimento. |
+| TC-060 | 2026-04-24 | ⚠️ | Checkout concluiu, mas fluxo real diverge do roteiro. |

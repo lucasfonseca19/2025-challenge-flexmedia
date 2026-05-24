@@ -14,8 +14,7 @@ import java.time.LocalDateTime;
 public class Hotel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_hotel")
-    @SequenceGenerator(name = "seq_hotel", sequenceName = "seq_hotel", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank

@@ -1,13 +1,16 @@
 ﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { InterfaceKit } from 'interface-kit/react'
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute from './components/PrivateRoute'
+import RoleRoute from './components/RoleRoute'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import HotelsPage from './pages/HotelsPage'
 import ReservationsPage from './pages/ReservationsPage'
-import ContentPage from './pages/ContentPage'
 import UsersPage from './pages/UsersPage'
+import TotemPage from './pages/TotemPage'
+import ContentPage from './pages/ContentPage'
 
 function App() {
   return (
@@ -18,15 +21,21 @@ function App() {
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/hoteis" element={<HotelsPage />} />
-              <Route path="/reservas" element={<ReservationsPage />} />
-              <Route path="/conteudo" element={<ContentPage />} />
-              <Route path="/usuarios" element={<UsersPage />} />
+              <Route element={<RoleRoute allowed={['ADMIN']} />}>
+                <Route path="/hoteis" element={<HotelsPage />} />
+                <Route path="/usuarios" element={<UsersPage />} />
+              </Route>
+              <Route element={<RoleRoute allowed={['OPERADOR']} />}>
+                <Route path="/reservas" element={<ReservationsPage />} />
+                <Route path="/totem" element={<TotemPage />} />
+                <Route path="/conteudo" element={<ContentPage />} />
+              </Route>
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
+      {import.meta.env.DEV && <InterfaceKit />}
     </AuthProvider>
   )
 }

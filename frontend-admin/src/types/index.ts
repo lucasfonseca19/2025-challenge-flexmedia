@@ -39,6 +39,79 @@ export interface ConteudoTotem {
   ativo: boolean
 }
 
+export type TotemDesignStatus = 'DRAFT' | 'PUBLISHED'
+
+export type TotemBlockType = 'hero' | 'cta' | 'carousel' | 'banner' | 'amenities' | 'video' | 'footer' | 'language'
+export type TotemCarouselSpeed = 'slow' | 'medium' | 'fast' | number
+
+export interface TotemContentItem {
+  id: string
+  text: string
+  texts?: Partial<Record<'pt' | 'en' | 'es', string>>
+  mediaUrl?: string
+  mediaType?: 'image' | 'video'
+  backgroundColor?: string
+  textPosition?: 'top' | 'center' | 'bottom'
+  active: boolean
+}
+
+export interface TotemTheme {
+  brandName: string
+  primaryColor: string
+  mode?: 'light' | 'dark'
+  backgroundColor: string
+  textColor: string
+  surfaceColor: string
+  fontFamily: string
+}
+
+export interface TotemLayout {
+  template: string
+  density: 'compact' | 'comfortable' | 'spacious'
+  screen: 'portrait' | 'landscape'
+}
+
+export interface TotemBlock {
+  id: string
+  type: TotemBlockType
+  visible: boolean
+  title: string
+  subtitle?: string
+  imageUrl?: string
+  videoUrl?: string
+  alignment?: 'left' | 'center' | 'right'
+  variant?: string
+  backgroundColor?: string
+  overlay?: number
+  items?: string[]
+  contentItems?: TotemContentItem[]
+  speed?: TotemCarouselSpeed
+}
+
+export interface TotemDesign {
+  id?: number
+  hotelId?: number
+  nome?: string
+  status?: TotemDesignStatus
+  theme: TotemTheme
+  layout: TotemLayout
+  blocks: TotemBlock[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface TotemMediaAsset {
+  id: number
+  hotelId: number
+  originalName: string
+  mimeType: string
+  sizeBytes: number
+  publicUrl: string
+  width: number | null
+  height: number | null
+  createdAt: string
+}
+
 export interface Usuario {
   id: number
   nome: string
@@ -46,6 +119,27 @@ export interface Usuario {
   role: 'ADMIN' | 'OPERADOR'
   hotelId: number | null
   ativo: boolean
+}
+
+export interface Totem {
+  id: number
+  nome: string
+  codigo: string
+  designId: number | null
+  designName: string | null
+  online: boolean
+  ultimoHeartbeat: string | null
+  hotelId: number
+  ativo: boolean
+}
+
+export interface HotelConfig {
+  id?: number
+  hotelId: number
+  nomeExibido: string
+  logoUrl: string
+  corPrimaria: string
+  idiomasAtivos: string  // CSV: "pt,en,es"
 }
 
 export interface AuthResponse {

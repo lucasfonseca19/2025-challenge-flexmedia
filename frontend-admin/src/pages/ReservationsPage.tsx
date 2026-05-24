@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Reserva } from '../types'
-import { hotelService, reservaService } from '../services/api'
+import { reservaService } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
 const STATUS_LABEL: Record<Reserva['status'], string> = {
@@ -18,7 +18,6 @@ const STATUS_COR: Record<Reserva['status'], string> = {
 }
 
 interface ReservaForm {
-  codigoReserva: string
   hospedeNome: string
   hospedeCpf: string
   hospedeEmail: string
@@ -32,7 +31,6 @@ interface ReservaForm {
 const today = new Date().toISOString().slice(0, 10)
 
 const EMPTY_FORM = (hotelId: number): ReservaForm => ({
-  codigoReserva: '',
   hospedeNome: '',
   hospedeCpf: '',
   hospedeEmail: '',
@@ -53,7 +51,6 @@ function formatarCpf(valor: string) {
 
 export default function ReservationsPage() {
   const { usuario } = useAuth()
-  const isAdmin = usuario?.role === 'ADMIN'
 
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [busca, setBusca] = useState('')
@@ -61,23 +58,17 @@ export default function ReservationsPage() {
   const [carregando, setCarregando] = useState(true)
   const [pagina, setPagina] = useState(0)
   const [totalPaginas, setTotalPaginas] = useState(1)
-  const [hoteis, setHoteis] = useState<{ id: number; nome: string }[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [form, setForm] = useState<ReservaForm>(() => EMPTY_FORM(usuario?.hotelId ?? 1))
+  const [form, setForm] = useState<ReservaForm>(() => EMPTY_FORM(usuario?.hotelId ?? 0))
   const [reservaEditando, setReservaEditando] = useState<Reserva | null>(null)
   const [deletandoId, setDeletandoId] = useState<number | null>(null)
 
   useEffect(() => {
-    hotelService.listar(0, 100)
-      .then(data => {
-        const lista = data.content ?? data
-        setHoteis(lista)
-        const hotelInicial = usuario?.hotelId ?? lista[0]?.id ?? 1
-        setForm(EMPTY_FORM(hotelInicial))
-      })
-      .catch(() => {})
+    if (usuario?.hotelId) {
+      setForm(EMPTY_FORM(usuario.hotelId))
+    }
   }, [usuario?.hotelId])
 
   async function carregar(p = 0, q = '', status = '') {
@@ -110,11 +101,13 @@ export default function ReservationsPage() {
     carregar(0, busca, s)
   }
 
-  const formatarData = (iso: string) =>
-    new Date(iso).toLocaleDateString('pt-BR')
+  const formatarData = (iso: string) => {
+    const [ano, mes, dia] = iso.split('-')
+    return `${dia}/${mes}/${ano}`
+  }
 
   function abrirNovo() {
-    const hotelPadrao = usuario?.hotelId ?? hoteis[0]?.id ?? 1
+    const hotelPadrao = usuario?.hotelId ?? 0
     setReservaEditando(null)
     setForm(EMPTY_FORM(hotelPadrao))
     setErro(null)
@@ -124,7 +117,6 @@ export default function ReservationsPage() {
   function abrirEdicao(r: Reserva) {
     setReservaEditando(r)
     setForm({
-      codigoReserva: r.codigoReserva,
       hospedeNome: r.hospedeNome,
       hospedeCpf: r.hospedeCpf,
       hospedeEmail: r.hospedeEmail ?? '',
@@ -149,7 +141,7 @@ export default function ReservationsPage() {
   }
 
   async function salvarReserva() {
-    if (!form.codigoReserva || !form.hospedeNome || !form.hospedeCpf || !form.quartoNumero) {
+    if (!form.hospedeNome || !form.hospedeCpf || !form.quartoNumero) {
       setErro('Preencha os campos obrigatórios.')
       return
     }
@@ -183,7 +175,16 @@ export default function ReservationsPage() {
     setSalvando(true)
     setErro(null)
     try {
-      const payload = { ...form, hospedeDataNascimento: form.hospedeDataNascimento || null }
+      const payload = {
+        hospedeNome: form.hospedeNome,
+        hospedeCpf: form.hospedeCpf,
+        hospedeEmail: form.hospedeEmail || null,
+        quartoNumero: form.quartoNumero,
+        hotelId: form.hotelId,
+        dataCheckin: form.dataCheckin,
+        dataCheckout: form.dataCheckout,
+        hospedeDataNascimento: form.hospedeDataNascimento || null,
+      }
       if (reservaEditando) {
         await reservaService.atualizar(reservaEditando.id, payload)
       } else {
@@ -347,14 +348,14 @@ export default function ReservationsPage() {
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 className="text-lg font-bold mb-6">{reservaEditando ? 'Editar reserva' : 'Nova reserva'}</h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Código da reserva *</label>
-                <input
-                  value={form.codigoReserva}
-                  onChange={e => setForm(p => ({ ...p, codigoReserva: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
-                />
-              </div>
+              {reservaEditando && (
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Código da reserva</label>
+                  <p className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg font-mono text-sm text-slate-300">
+                    {reservaEditando.codigoReserva}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Nome do hóspede *</label>
                 <input
@@ -391,27 +392,6 @@ export default function ReservationsPage() {
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
                 />
               </div>
-              {isAdmin ? (
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Hotel *</label>
-                  <select
-                    value={form.hotelId}
-                    onChange={e => setForm(p => ({ ...p, hotelId: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
-                  >
-                    {hoteis.map(h => (
-                      <option key={h.id} value={h.id}>{h.nome}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Hotel</label>
-                  <p className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-300">
-                    {hoteis.find(h => h.id === form.hotelId)?.nome ?? `Hotel #${form.hotelId}`}
-                  </p>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Check-in *</label>

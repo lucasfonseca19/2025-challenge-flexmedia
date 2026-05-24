@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public record ReservaRequestDTO(
-        @NotBlank String codigoReserva,
+        String codigoReserva,
         @NotBlank String hospedeNome,
         @NotBlank String hospedeCpf,
         @Email String hospedeEmail,
@@ -15,6 +15,7 @@ public record ReservaRequestDTO(
         @NotNull Long hotelId,
         @NotNull LocalDate dataCheckin,
         @NotNull LocalDate dataCheckout,
-        LocalDate hospedeDataNascimento
+        LocalDate hospedeDataNascimento,
+        String faceDescriptor
 ) {
 }

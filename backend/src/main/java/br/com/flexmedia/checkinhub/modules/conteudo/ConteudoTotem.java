@@ -10,8 +10,7 @@ import lombok.*;
 public class ConteudoTotem {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_conteudo")
-    @SequenceGenerator(name = "seq_conteudo", sequenceName = "seq_conteudo", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

@@ -16,7 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +47,7 @@ class CheckinServiceTest {
                 .hotel(hotelFixture())
                 .dataCheckin(LocalDate.now())
                 .dataCheckout(LocalDate.now().plusDays(3))
+                .hospedeDataNascimento(LocalDate.of(1990, 5, 15))
                 .status(status)
                 .build();
     }
@@ -54,7 +57,10 @@ class CheckinServiceTest {
         Reserva reserva = reservaFixture(StatusReserva.CONFIRMADA);
         when(reservaService.findOrThrow(10L)).thenReturn(reserva);
 
-        var result = checkinService.confirmarCheckin(10L);
+        var result = checkinService.confirmarCheckin(
+                10L,
+                new CheckinConfirmDTO(null, LocalDate.of(1990, 5, 15), "pt")
+        );
 
         assertThat(result.status()).isEqualTo(StatusReserva.CHECKIN_REALIZADO);
         verify(reservaRepository).save(reserva);
@@ -88,7 +94,7 @@ class CheckinServiceTest {
     void buscarParaCheckin_quandoCpfSemMascara_retornaReserva() {
         Reserva reserva = reservaFixture(StatusReserva.CONFIRMADA);
         when(reservaService.buscarPorCodigo(anyString())).thenThrow(new RuntimeException("nao encontrado"));
-        when(reservaRepository.findByHospedeCpfAndStatus("12345678900", StatusReserva.CONFIRMADA))
+        when(reservaRepository.findFirstByCpfAndStatusIn(eq("12345678900"), anyList()))
                 .thenReturn(java.util.Optional.of(reserva));
 
         var result = checkinService.buscarParaCheckin("12345678900");
